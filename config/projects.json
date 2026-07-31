@@ -1,0 +1,19 @@
+[
+    {
+        "id": "linkpagamento",
+        "name": "WinService LinkPagamento",
+        "description": "Serviço responsável pelo LinkPagamento",
+
+        "project_path": "{BASE_PATH}\\02-Source\\LinkPagamento\\LinkPagamento.csproj",
+        "aip_path": "{INSTALLER_PATH}\\LinkPagamento.aip",
+        "publish_path": "{BASE_PATH}\\Publish\\LinkPagamento",
+
+        "output_msi": "LinkPagamento.msi",
+        "network_path": "\\\\Servidor\\Builds",
+
+        "configuration": "Release",
+        "platform": "Any CPU",
+
+        "enabled": true
+    }
+]
