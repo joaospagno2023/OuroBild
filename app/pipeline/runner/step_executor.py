@@ -2,26 +2,50 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : step_executor.py
-Descrição : Responsável por executar uma Step da Pipeline.
+Descrição : Responsável por executar uma etapa da Pipeline.
 --------------------------------------------------------------------
 """
 
+from app.models.pipeline.pipeline import Pipeline
 from app.models.pipeline.pipeline_context import PipelineContext
 from app.models.pipeline.step_result import StepResult
+from app.models.pipeline.step_status import StepStatus
 from app.pipeline.abstractions.pipeline_step import PipelineStep
 
 
 class StepExecutor:
     """
-    Executa uma Step individual.
+    Responsável por executar uma Step da Pipeline.
     """
 
     def execute(
         self,
+        pipeline: Pipeline,
         step: PipelineStep,
         context: PipelineContext,
     ) -> StepResult:
+        """
+        Executa uma Step e retorna seu resultado.
+        """
 
-        return step.execute(
-            context,
-        )
+        try:
+
+            step_result = step.execute(
+                context,
+            )
+
+            if not step_result.name:
+                step_result.name = step.name
+
+            return step_result
+
+        except Exception as exception:
+
+            return StepResult(
+                name=step.name,
+                status=StepStatus.FAILED,
+                message=str(exception),
+                errors=[
+                    str(exception),
+                ],
+            )

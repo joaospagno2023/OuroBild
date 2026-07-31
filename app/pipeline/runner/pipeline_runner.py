@@ -11,14 +11,18 @@ from datetime import datetime
 from app.models.pipeline.pipeline import Pipeline
 from app.models.pipeline.pipeline_context import PipelineContext
 from app.models.pipeline.pipeline_result import PipelineResult
-from app.models.pipeline.step_result import StepResult
 from app.models.pipeline.step_status import StepStatus
+from app.pipeline.runner.step_executor import StepExecutor
 
 
 class PipelineRunner:
     """
     Executa todas as etapas de uma Pipeline.
     """
+
+    def __init__(self) -> None:
+
+        self._step_executor = StepExecutor()
 
     def execute(
         self,
@@ -37,26 +41,11 @@ class PipelineRunner:
 
             for step in pipeline.steps:
 
-                try:
-
-                    step_result = step.execute(
-                        context,
-                    )
-                    result.steps.append(step_result)
-                    
-                except Exception as exception:
-
-                    step_result = StepResult(
-                        name=step.__class__.__name__,
-                        status=StepStatus.FAILED,
-                        message=str(exception),
-                        errors=[
-                            str(exception),
-                        ],
-                    )
-
-                if not step_result.name:
-                    step_result.name = step.__class__.__name__
+                step_result = self._step_executor.execute(
+                    pipeline=pipeline,
+                    step=step,
+                    context=context,
+                )
 
                 result.steps.append(
                     step_result,
@@ -68,8 +57,8 @@ class PipelineRunner:
                     result.failed_step = step_result.name
                     result.message = step_result.message
 
-                if not pipeline.configuration.continue_on_error:
-                    break
+                    if not pipeline.configuration.continue_on_error:
+                        break
 
         finally:
 
