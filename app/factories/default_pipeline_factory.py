@@ -10,6 +10,7 @@ from app.abstractions.pipeline_factory import PipelineFactory
 from app.abstractions.process_service import ProcessService
 from app.models.pipeline.pipeline import Pipeline
 from app.models.project.project import Project
+from app.pipeline.steps.build_step import BuildStep
 from app.pipeline.steps.restore_step import RestoreStep
 
 
@@ -36,6 +37,9 @@ class DefaultPipelineFactory(PipelineFactory):
             name="Build Pipeline",
             steps=[
                 RestoreStep(
+                    process_service=self.__process_service,
+                ),
+                BuildStep(
                     process_service=self.__process_service,
                 ),
             ],

@@ -33,9 +33,9 @@ class PipelineRunner:
         Executa todas as etapas da Pipeline.
         """
 
-        result = PipelineResult()
-
-        result.started_at = datetime.now()
+        result = PipelineResult(
+            started_at=datetime.now()
+        )
 
         try:
 
@@ -62,12 +62,13 @@ class PipelineRunner:
 
         finally:
 
-            result.finished_at = datetime.now()
+            finished_at = datetime.now()
+
+            result.finished_at = finished_at
 
             if result.started_at is not None:
-
                 result.elapsed_seconds = (
-                    result.finished_at - result.started_at
-                ).total_seconds()
+                finished_at - result.started_at
+            ).total_seconds()
 
         return result
