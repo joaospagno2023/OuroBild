@@ -56,6 +56,10 @@ class ExecutePipelineUseCase:
 
         runner = PipelineRunner()
 
+        pipeline = self.__pipeline_factory.create(
+            project,
+        )   
+
         return runner.execute(
             pipeline=pipeline,
             context=context,

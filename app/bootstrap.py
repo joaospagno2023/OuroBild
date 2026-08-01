@@ -44,6 +44,14 @@ from app.repositories.json_environment_repository import (
     JsonEnvironmentRepository,
 )
 
+from app.api.routers.build_router import (
+    router as build_router,
+)
+
+from app.use_cases.execute_build_use_case import (
+    ExecuteBuildUseCase,
+)
+
 class Bootstrap:
     """
     Responsável por criar e inicializar a aplicação.
@@ -117,6 +125,9 @@ class Bootstrap:
                 pipeline_factory=self.pipeline_factory,
             )
         )
+        self.execute_build_use_case = (
+            ExecuteBuildUseCase()
+        )
 
     def create_app(
         self,
@@ -148,5 +159,7 @@ class Bootstrap:
         app.state.bootstrap = self
 
         app.include_router(project_router)
+        app.include_router(project_router,)
 
+        app.include_router(build_router,)
         return app
