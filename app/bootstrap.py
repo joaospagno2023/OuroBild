@@ -159,7 +159,6 @@ class Bootstrap:
         app.state.bootstrap = self
 
         app.include_router(project_router)
-        app.include_router(project_router,)
-
+       
         app.include_router(build_router,)
         return app
