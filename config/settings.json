@@ -1,5 +1,15 @@
 {
     "application_name": "OuroBuild",
     "version": "1.0.0",
-    "log_level": "INFO"
+    "log_level": "INFO",
+
+    "base_path": "C:\\Custom\\OuroWeb",
+    "installer_path": "C:\\Custom\\OuroWeb\\Installer",
+    "publish_path": "C:\\Custom\\OuroWeb\\Publish",
+
+    "build_tools": {
+        "msbuild_path": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\MSBuild\\Current\\Bin\\MSBuild.exe",
+        "advanced_installer_path": "C:\\Program Files\\Caphyon\\Advanced Installer 23.7\\bin\\x86\\AdvancedInstaller.com",
+        "robocopy_path": "C:\\Windows\\System32\\robocopy.exe"
+    }
 }

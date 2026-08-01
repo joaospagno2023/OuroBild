@@ -1,0 +1,14 @@
+[
+    {
+        "id": "versioned",
+        "name": "Versionado",
+        "resolver": "versioned",
+        "root_path": "C:\\DvpLocal\\WorkSpaceTFS\\OuroNet\\Scc\\Versoes"
+    },
+    {
+        "id": "production",
+        "name": "Produção",
+        "resolver": "production",
+        "root_path": "C:\\DvpLocal\\WorkSpaceTFS\\OuroNet\\Scc\\Producao\\OuroNet"
+    }
+]

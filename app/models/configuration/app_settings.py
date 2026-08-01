@@ -6,8 +6,13 @@ Descrição : Modelo das configurações gerais da aplicação.
 --------------------------------------------------------------------
 """
 
-# Bibliotecas de terceiros
+from pathlib import Path
+
 from pydantic import BaseModel
+
+from app.models.configuration.build_tools_settings import (
+    BuildToolsSettings,
+)
 
 
 class AppSettings(BaseModel):
@@ -16,6 +21,23 @@ class AppSettings(BaseModel):
     """
 
     application_name: str
+
     version: str
+
     log_level: str
+
+    #
+    # Caminhos
+    #
+
+    base_path: Path
+
+    installer_path: Path
+
+    publish_path: Path
+
+    #
+    # Ferramentas
+    #
+
     build_tools: BuildToolsSettings

@@ -40,6 +40,9 @@ from app.use_cases.get_projects_use_case import (
     GetProjectsUseCase,
 )
 
+from app.repositories.json_environment_repository import (
+    JsonEnvironmentRepository,
+)
 
 class Bootstrap:
     """
@@ -52,15 +55,41 @@ class Bootstrap:
 
         configuration_path = Path("config")
 
+        #
+        # Configurações
+        #
+
         self.configuration_loader = ConfigurationLoader(
             config_path=configuration_path,
         )
 
-        self.project_repository = JsonProjectRepository(
-            configuration_path=configuration_path,
+        self.settings = (
+            self.configuration_loader.load_settings()
         )
 
         #
+        # Repositórios
+        #
+
+        self.project_repository = JsonProjectRepository(
+            configuration_path=configuration_path,
+            settings=self.settings,
+        )
+        #
+        # Repositories
+        #
+
+        self.project_repository = JsonProjectRepository(
+            configuration_path=configuration_path,
+            settings=self.settings,
+        )
+
+        self.environment_repository = (
+            JsonEnvironmentRepository(
+                configuration_path=configuration_path,
+            )
+        )
+                #
         # Services
         #
 
@@ -99,14 +128,14 @@ class Bootstrap:
         app = FastAPI(
             title="OuroBuild",
             description="Sistema interno de automação de builds da OuroWeb",
-            version="1.0.0",
+            version=self.settings.version,
         )
 
         @app.get("/")
         def root():
             return {
-                "application": "OuroBuild",
-                "version": "1.0.0",
+                "application": self.settings.application_name,
+                "version": self.settings.version,
                 "status": "running",
             }
 
