@@ -5,15 +5,34 @@
         "description": "Serviço responsável pelo LinkPagamento",
 
         "project_path": "02-Source\\01-Client\\OuroNet.Client.WinService.LinkPagamento\\OuroNet.Client.WinService.LinkPagamento.csproj",
+
         "aip_path": "{INSTALLER_PATH}\\LinkPagamento.aip",
+
         "publish_path": "{BASE_PATH}\\Publish\\LinkPagamento",
 
         "output_msi": "LinkPagamento.msi",
+
         "network_path": "\\\\Servidor\\Builds",
 
         "configuration": "Release",
+
         "platform": "Any CPU",
 
-        "enabled": true
+        "enabled": true,
+
+        "pipeline": {
+
+            "restore": true,
+
+            "build": true,
+
+            "test": false,
+
+            "publish": true,
+
+            "installer": false,
+
+            "deploy": false
+        }
     }
 ]

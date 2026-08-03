@@ -12,8 +12,12 @@ from app.abstractions.pipeline_factory import (
 from app.abstractions.process_service import (
     ProcessService,
 )
-from app.models.pipeline.pipeline import Pipeline
-from app.models.project.project import Project
+from app.models.pipeline.pipeline import (
+    Pipeline,
+)
+from app.models.project.project import (
+    Project,
+)
 from app.pipeline.build_pipeline_definition import (
     BuildPipelineDefinition,
 )
@@ -46,6 +50,10 @@ class DefaultPipelineFactory(
         """
 
         return Pipeline(
+
             name="Build Pipeline",
-            steps=self.__definition.create_steps(),
+
+            steps=self.__definition.create_steps(
+                project=project,
+            ),
         )

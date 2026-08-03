@@ -2,25 +2,26 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : pipeline_configuration.py
-Descrição : Configuração da Pipeline.
+Descrição : Configuração das etapas da Pipeline.
 --------------------------------------------------------------------
 """
 
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 
-@dataclass(slots=True)
-class PipelineConfiguration:
+class PipelineConfiguration(BaseModel):
     """
-    Configurações de execução da Pipeline.
+    Define quais etapas da Pipeline serão executadas.
     """
 
-    continue_on_error: bool = False
+    restore: bool = True
 
-    max_retries: int = 0
+    build: bool = True
 
-    timeout_seconds: int | None = None
+    test: bool = False
 
-    verbose: bool = False
+    publish: bool = True
 
-    dry_run: bool = False
+    installer: bool = False
+
+    deploy: bool = False

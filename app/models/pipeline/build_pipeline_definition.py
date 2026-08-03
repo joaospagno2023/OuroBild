@@ -9,7 +9,9 @@ Descrição : Define a Pipeline padrão de Build.
 from app.abstractions.process_service import (
     ProcessService,
 )
-from app.models.project.project import Project
+from app.models.project.project import (
+    Project,
+)
 from app.pipeline.abstractions.pipeline_step import (
     PipelineStep,
 )
@@ -26,7 +28,7 @@ from app.pipeline.steps.restore_step import (
 
 class BuildPipelineDefinition:
     """
-    Responsável por definir as Steps da Pipeline padrão.
+    Responsável por definir as Steps da Pipeline.
     """
 
     def __init__(
@@ -43,27 +45,52 @@ class BuildPipelineDefinition:
         project: Project,
     ) -> list[PipelineStep]:
         """
-        Cria as Steps da Pipeline.
-
-        Nesta primeira versão o projeto ainda não é
-        utilizado. O parâmetro foi adicionado para
-        permitir que futuras versões montem a Pipeline
-        dinamicamente conforme a configuração do projeto.
+        Cria as Steps da Pipeline conforme a configuração
+        do projeto.
         """
 
-        steps: list[PipelineStep] = [
+        steps: list[PipelineStep] = []
 
-            RestoreStep(
-                process_service=self.__process_service,
-            ),
+        #
+        # Restore
+        #
 
-            BuildStep(
-                process_service=self.__process_service,
-            ),
+        if project.pipeline.restore:
 
-            PublishStep(
-                process_service=self.__process_service,
-            ),
-        ]
+            steps.append(
+
+                RestoreStep(
+                    process_service=self.__process_service,
+                )
+
+            )
+
+        #
+        # Build
+        #
+
+        if project.pipeline.build:
+
+            steps.append(
+
+                BuildStep(
+                    process_service=self.__process_service,
+                )
+
+            )
+
+        #
+        # Publish
+        #
+
+        if project.pipeline.publish:
+
+            steps.append(
+
+                PublishStep(
+                    process_service=self.__process_service,
+                )
+
+            )
 
         return steps

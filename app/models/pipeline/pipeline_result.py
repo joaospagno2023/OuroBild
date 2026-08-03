@@ -2,36 +2,32 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : pipeline_result.py
-Descrição : Resultado final da execução da Pipeline.
+Descrição : Resultado da execução de uma Pipeline.
 --------------------------------------------------------------------
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
 
-from app.models.build.build_execution import BuildExecution
+from app.models.build.build_execution import (
+    BuildExecution,
+)
 from app.models.pipeline.step_result import StepResult
+from app.models.publish.publish_execution import (
+    PublishExecution,
+)
 
 
 @dataclass(slots=True)
 class PipelineResult:
     """
-    Resultado consolidado da execução da Pipeline.
+    Representa o resultado da execução de uma Pipeline.
     """
-
-    #
-    # Status
-    #
 
     success: bool = True
 
-    failed_step: str | None = None
-
     message: str = ""
-
-    #
-    # Tempo
-    #
 
     started_at: datetime | None = None
 
@@ -39,16 +35,16 @@ class PipelineResult:
 
     elapsed_seconds: float = 0.0
 
-    #
-    # Resultado consolidado da Build
-    #
-
-    build: BuildExecution | None = None
-
-    #
-    # Etapas executadas
-    #
+    failed_step: str = ""
 
     steps: list[StepResult] = field(
         default_factory=list,
     )
+
+    #
+    # Resultados especializados.
+    #
+
+    build: BuildExecution | None = None
+
+    publish: PublishExecution | None = None

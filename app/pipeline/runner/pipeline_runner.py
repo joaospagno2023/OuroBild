@@ -8,12 +8,23 @@ Descrição : Responsável por executar as etapas da Pipeline.
 
 from datetime import datetime
 
-from app.models.build.build_execution import BuildExecution
+from app.models.build.build_execution import (
+    BuildExecution,
+)
 from app.models.pipeline.pipeline import Pipeline
-from app.models.pipeline.pipeline_context import PipelineContext
-from app.models.pipeline.pipeline_result import PipelineResult
+from app.models.pipeline.pipeline_context import (
+    PipelineContext,
+)
+from app.models.pipeline.pipeline_result import (
+    PipelineResult,
+)
 from app.models.pipeline.step_status import StepStatus
-from app.pipeline.runner.step_executor import StepExecutor
+from app.models.publish.publish_execution import (
+    PublishExecution,
+)
+from app.pipeline.runner.step_executor import (
+    StepExecutor,
+)
 
 
 class PipelineRunner:
@@ -44,10 +55,12 @@ class PipelineRunner:
 
             for step in pipeline.steps:
 
-                step_result = self._step_executor.execute(
-                    pipeline=pipeline,
-                    step=step,
-                    context=context,
+                step_result = (
+                    self._step_executor.execute(
+                        pipeline=pipeline,
+                        step=step,
+                        context=context,
+                    )
                 )
 
                 result.steps.append(
@@ -55,27 +68,30 @@ class PipelineRunner:
                 )
 
                 #
-                # Promove a análise da Build para o
-                # resultado consolidado da Pipeline.
+                # Promove resultados especializados.
                 #
 
+                analysis = step_result.analysis
+
                 if isinstance(
-                    step_result.analysis,
+                    analysis,
                     BuildExecution,
                 ):
-                    result.build = (
-                        step_result.analysis
-                    )
+
+                    result.build = analysis
+
+                elif isinstance(
+                    analysis,
+                    PublishExecution,
+                ):
+
+                    result.publish = analysis
 
                 if step_result.status == StepStatus.FAILED:
 
                     result.success = False
-                    result.failed_step = (
-                        step_result.name
-                    )
-                    result.message = (
-                        step_result.message
-                    )
+                    result.failed_step = step_result.name
+                    result.message = step_result.message
 
                     if (
                         not pipeline.configuration.continue_on_error
@@ -91,7 +107,10 @@ class PipelineRunner:
             if result.started_at is not None:
 
                 result.elapsed_seconds = (
-                    finished_at - result.started_at
+
+                    finished_at
+                    - result.started_at
+
                 ).total_seconds()
 
         return result
