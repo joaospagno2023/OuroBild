@@ -11,6 +11,9 @@ from pathlib import Path
 from app.abstractions.process_service import ProcessService
 from app.models.pipeline.pipeline_context import PipelineContext
 from app.models.process.command_argument import CommandArgument
+from app.parsers.publish.publish_parser import (
+    PublishParser,
+)
 from app.pipeline.steps.process_step import ProcessStep
 
 
@@ -101,13 +104,10 @@ class PublishStep(ProcessStep):
         if request.runtime:
 
             arguments.extend(
-
                 [
-
                     CommandArgument(
                         value="--runtime",
                     ),
-
                     CommandArgument(
                         value=request.runtime,
                     ),
@@ -121,13 +121,10 @@ class PublishStep(ProcessStep):
         if request.framework:
 
             arguments.extend(
-
                 [
-
                     CommandArgument(
                         value="--framework",
                     ),
-
                     CommandArgument(
                         value=request.framework,
                     ),
@@ -141,13 +138,10 @@ class PublishStep(ProcessStep):
         if request.output_directory:
 
             arguments.extend(
-
                 [
-
                     CommandArgument(
                         value="--output",
                     ),
-
                     CommandArgument(
                         value=request.output_directory,
                     ),
@@ -161,11 +155,9 @@ class PublishStep(ProcessStep):
         if request.self_contained:
 
             arguments.append(
-
                 CommandArgument(
                     value="--self-contained",
                 )
-
             )
 
         #
@@ -175,11 +167,11 @@ class PublishStep(ProcessStep):
         if request.publish_profile:
 
             arguments.append(
-
                 CommandArgument(
-                    value=f"/p:PublishProfile={request.publish_profile}",
+                    value=(
+                        f"/p:PublishProfile={request.publish_profile}"
+                    ),
                 )
-
             )
 
         #
@@ -189,11 +181,9 @@ class PublishStep(ProcessStep):
         if request.single_file:
 
             arguments.append(
-
                 CommandArgument(
                     value="/p:PublishSingleFile=true",
                 )
-
             )
 
         #
@@ -203,25 +193,31 @@ class PublishStep(ProcessStep):
         if request.ready_to_run:
 
             arguments.append(
-
                 CommandArgument(
                     value="/p:PublishReadyToRun=true",
                 )
-
             )
 
         #
-        # Trim
+        # Trimmed
         #
 
         if request.trimmed:
 
             arguments.append(
-
                 CommandArgument(
                     value="/p:PublishTrimmed=true",
                 )
-
             )
 
         return arguments
+
+    def get_output_parser(
+        self,
+    ):
+        """
+        Retorna o parser responsável por interpretar
+        a saída do processo de Publish.
+        """
+
+        return PublishParser()

@@ -56,6 +56,9 @@ from app.use_cases.get_projects_use_case import (
     GetProjectsUseCase,
 )
 
+from app.api.exception_handlers import (
+    register_exception_handlers,
+)
 
 
 class Bootstrap:
@@ -153,6 +156,14 @@ class Bootstrap:
             version=self.settings.version,
         )
 
+        #
+        # Tratamento global de exceções
+        #
+
+        register_exception_handlers(
+            app,
+        )
+        
         @app.get("/")
         def root():
             return {

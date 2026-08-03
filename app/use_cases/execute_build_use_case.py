@@ -1,37 +1,37 @@
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
-Arquivo : execute_publish_use_case.py
-Descrição : Responsável por iniciar uma execução de Publish.
+Arquivo : execute_build_use_case.py
+Descrição : Responsável por iniciar uma execução de Build.
 --------------------------------------------------------------------
 """
 
 from app.abstractions.pipeline_factory import PipelineFactory
-from app.factories.publish_context_factory import (
-    PublishContextFactory,
+from app.factories.build_context_factory import (
+    BuildContextFactory,
 )
 from app.factories.build_environment_builder_factory import (
     BuildEnvironmentBuilderFactory,
 )
+from app.models.build.build_request import BuildRequest
 from app.models.pipeline.pipeline_context import PipelineContext
 from app.models.pipeline.pipeline_result import PipelineResult
-from app.models.publish.publish_request import PublishRequest
 from app.pipeline.runner.pipeline_runner import PipelineRunner
 
 
-class ExecutePublishUseCase:
+class ExecuteBuildUseCase:
     """
-    Responsável por iniciar uma execução de Publish.
+    Responsável por iniciar uma execução de Build.
     """
 
     def __init__(
         self,
-        publish_context_factory: PublishContextFactory,
+        build_context_factory: BuildContextFactory,
         pipeline_factory: PipelineFactory,
     ) -> None:
 
-        self.__publish_context_factory = (
-            publish_context_factory
+        self.__build_context_factory = (
+            build_context_factory
         )
 
         self.__pipeline_factory = (
@@ -44,67 +44,87 @@ class ExecutePublishUseCase:
 
     def execute(
         self,
-        request: PublishRequest,
+        request: BuildRequest,
     ) -> PipelineResult:
         """
-        Executa um Publish utilizando a Pipeline atual.
+        Executa uma Pipeline de Build.
         """
 
-        publish_context = (
-            self.__publish_context_factory.create(
+        #
+        # Cria o contexto
+        #
+
+        build_context = (
+            self.__build_context_factory.create(
                 request,
             )
         )
 
+        #
+        # Resolve os caminhos
+        #
+
         builder = self.__builder_factory.create(
-            publish_context.environment,
+            build_context.environment,
         )
 
         builder.build(
-            publish_context,
+            build_context,
         )
+
+        #
+        # Cria o contexto da Pipeline
+        #
 
         pipeline_context = PipelineContext()
 
         pipeline_context.variables["project"] = (
-            publish_context.project
+            build_context.project
         )
 
         pipeline_context.variables["project_id"] = (
-            publish_context.project.id
+            build_context.project.id
         )
 
         pipeline_context.variables["request"] = (
-            publish_context.request
+            build_context.request
         )
 
         pipeline_context.variables["environment"] = (
-            publish_context.environment
+            build_context.environment
         )
 
         pipeline_context.variables["paths"] = (
-            publish_context.paths
+            build_context.paths
         )
 
         #
-        # Compatibilidade
+        # Compatibilidade com as Steps atuais
         #
 
-        pipeline_context.variables["publish_context"] = (
-            publish_context
+        pipeline_context.variables["build_context"] = (
+            build_context
         )
 
         #
-        # Nova chave genérica
+        # Evolução da Engine
         #
 
         pipeline_context.variables["execution_context"] = (
-            publish_context
+            build_context
         )
 
+        #
+        # Cria a Pipeline
+        #
+
         pipeline = self.__pipeline_factory.create(
-            publish_context.project,
+            build_context.project,
         )
+
+        #
+        # Executa
+        #
 
         runner = PipelineRunner()
 
