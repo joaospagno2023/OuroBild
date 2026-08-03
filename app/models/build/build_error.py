@@ -8,21 +8,11 @@ Descrição : Representa um erro encontrado durante uma Build.
 
 from dataclasses import dataclass
 
+from app.models.build.build_message import BuildMessage
+
 
 @dataclass
-class BuildError:
+class BuildError(BuildMessage):
     """
     Representa um erro de compilação.
     """
-
-    project: str = ""
-
-    file: str = ""
-
-    line: int = 0
-
-    column: int = 0
-
-    code: str = ""
-
-    message: str = ""
