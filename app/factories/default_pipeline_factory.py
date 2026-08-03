@@ -6,15 +6,22 @@ Descrição : Implementação padrão da Pipeline do OuroBuild.
 --------------------------------------------------------------------
 """
 
-from app.abstractions.pipeline_factory import PipelineFactory
-from app.abstractions.process_service import ProcessService
+from app.abstractions.pipeline_factory import (
+    PipelineFactory,
+)
+from app.abstractions.process_service import (
+    ProcessService,
+)
 from app.models.pipeline.pipeline import Pipeline
 from app.models.project.project import Project
-from app.pipeline.steps.build_step import BuildStep
-from app.pipeline.steps.restore_step import RestoreStep
+from app.pipeline.build_pipeline_definition import (
+    BuildPipelineDefinition,
+)
 
 
-class DefaultPipelineFactory(PipelineFactory):
+class DefaultPipelineFactory(
+    PipelineFactory,
+):
     """
     Cria a Pipeline padrão do OuroBuild.
     """
@@ -23,7 +30,12 @@ class DefaultPipelineFactory(PipelineFactory):
         self,
         process_service: ProcessService,
     ) -> None:
-        self.__process_service = process_service
+
+        self.__definition = (
+            BuildPipelineDefinition(
+                process_service=process_service,
+            )
+        )
 
     def create(
         self,
@@ -35,12 +47,5 @@ class DefaultPipelineFactory(PipelineFactory):
 
         return Pipeline(
             name="Build Pipeline",
-            steps=[
-                RestoreStep(
-                    process_service=self.__process_service,
-                ),
-                BuildStep(
-                    process_service=self.__process_service,
-                ),
-            ],
+            steps=self.__definition.create_steps(),
         )

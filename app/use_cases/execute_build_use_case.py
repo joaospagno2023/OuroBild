@@ -117,7 +117,7 @@ class ExecuteBuildUseCase:
         pipeline = self.__pipeline_factory.create(
             build_context.project,
         )
-
+       
         runner = PipelineRunner()
 
         return runner.execute(

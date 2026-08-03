@@ -4,7 +4,7 @@
         "name": "WinService LinkPagamento",
         "description": "Serviço responsável pelo LinkPagamento",
 
-        "project_path": "{BASE_PATH}\\02-Source\\LinkPagamento\\LinkPagamento.csproj",
+        "project_path": "02-Source\\01-Client\\OuroNet.Client.WinService.LinkPagamento\\OuroNet.Client.WinService.LinkPagamento.csproj",
         "aip_path": "{INSTALLER_PATH}\\LinkPagamento.aip",
         "publish_path": "{BASE_PATH}\\Publish\\LinkPagamento",
 

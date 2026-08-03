@@ -13,7 +13,7 @@ from app.abstractions.process_service import ProcessService
 from app.models.process.command import Command
 from app.models.process.process_result import ProcessResult
 from app.models.process.process_status import ProcessStatus
-
+from pathlib import Path
 
 class DefaultProcessService(ProcessService):
     """
@@ -31,7 +31,7 @@ class DefaultProcessService(ProcessService):
         started_at = datetime.now()
 
         try:
-
+           
             result = subprocess.run(
                 args=[
                     str(command.executable),
