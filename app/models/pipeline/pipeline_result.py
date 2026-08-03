@@ -9,6 +9,7 @@ Descrição : Resultado final da execução da Pipeline.
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from app.models.build.build_execution import BuildExecution
 from app.models.pipeline.step_result import StepResult
 
 
@@ -18,7 +19,19 @@ class PipelineResult:
     Resultado consolidado da execução da Pipeline.
     """
 
+    #
+    # Status
+    #
+
     success: bool = True
+
+    failed_step: str | None = None
+
+    message: str = ""
+
+    #
+    # Tempo
+    #
 
     started_at: datetime | None = None
 
@@ -26,9 +39,15 @@ class PipelineResult:
 
     elapsed_seconds: float = 0.0
 
-    failed_step: str | None = None
+    #
+    # Resultado da análise da Build
+    #
 
-    message: str = ""
+    build: BuildExecution | None = None
+
+    #
+    # Etapas executadas
+    #
 
     steps: list[StepResult] = field(
         default_factory=list,
