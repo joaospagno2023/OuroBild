@@ -12,17 +12,30 @@ from pathlib import Path
 from fastapi import FastAPI
 
 # Routers
-from app.api.routers.project_router import router as project_router
+from app.api.routers.build_router import (
+    router as build_router,
+)
+from app.api.routers.project_router import (
+    router as project_router,
+)
 
 # Core
-from app.core.configuration.configuration_loader import ConfigurationLoader
+from app.core.configuration.configuration_loader import (
+    ConfigurationLoader,
+)
 
 # Factories
+from app.factories.build_context_factory import (
+    BuildContextFactory,
+)
 from app.factories.default_pipeline_factory import (
     DefaultPipelineFactory,
 )
 
 # Repositories
+from app.repositories.json_environment_repository import (
+    JsonEnvironmentRepository,
+)
 from app.repositories.json_project_repository import (
     JsonProjectRepository,
 )
@@ -33,6 +46,9 @@ from app.services.default_process_service import (
 )
 
 # Use Cases
+from app.use_cases.execute_build_use_case import (
+    ExecuteBuildUseCase,
+)
 from app.use_cases.execute_pipeline_use_case import (
     ExecutePipelineUseCase,
 )
@@ -40,17 +56,6 @@ from app.use_cases.get_projects_use_case import (
     GetProjectsUseCase,
 )
 
-from app.repositories.json_environment_repository import (
-    JsonEnvironmentRepository,
-)
-
-from app.api.routers.build_router import (
-    router as build_router,
-)
-
-from app.use_cases.execute_build_use_case import (
-    ExecuteBuildUseCase,
-)
 
 class Bootstrap:
     """
@@ -83,21 +88,14 @@ class Bootstrap:
             configuration_path=configuration_path,
             settings=self.settings,
         )
-        #
-        # Repositories
-        #
-
-        self.project_repository = JsonProjectRepository(
-            configuration_path=configuration_path,
-            settings=self.settings,
-        )
 
         self.environment_repository = (
             JsonEnvironmentRepository(
                 configuration_path=configuration_path,
             )
         )
-                #
+
+        #
         # Services
         #
 
@@ -111,12 +109,21 @@ class Bootstrap:
             process_service=self.process_service,
         )
 
+        self.build_context_factory = (
+            BuildContextFactory(
+                project_repository=self.project_repository,
+                environment_repository=self.environment_repository,
+            )
+        )
+
         #
         # Use Cases
         #
 
-        self.get_projects_use_case = GetProjectsUseCase(
-            repository=self.project_repository,
+        self.get_projects_use_case = (
+            GetProjectsUseCase(
+                repository=self.project_repository,
+            )
         )
 
         self.execute_pipeline_use_case = (
@@ -126,7 +133,10 @@ class Bootstrap:
             )
         )
         self.execute_build_use_case = (
-            ExecuteBuildUseCase()
+            ExecuteBuildUseCase(
+                build_context_factory=self.build_context_factory,
+                pipeline_factory=self.pipeline_factory,
+            )
         )
 
     def create_app(
@@ -158,7 +168,12 @@ class Bootstrap:
 
         app.state.bootstrap = self
 
-        app.include_router(project_router)
-       
-        app.include_router(build_router,)
+        app.include_router(
+            project_router,
+        )
+
+        app.include_router(
+            build_router,
+        )
+
         return app
