@@ -6,11 +6,16 @@ Descrição : Responsável por interpretar a saída do dotnet publish.
 --------------------------------------------------------------------
 """
 
+import re
 from typing import Any
 
 from app.abstractions.output_parser import OutputParser
+from app.models.publish.publish_error import PublishError
 from app.models.publish.publish_execution import (
     PublishExecution,
+)
+from app.models.publish.publish_warning import (
+    PublishWarning,
 )
 
 
@@ -18,6 +23,18 @@ class PublishParser(OutputParser):
     """
     Responsável por interpretar a saída do dotnet publish.
     """
+
+    OUTPUT_PATTERN = re.compile(
+        r"->\s(?P<directory>.+)"
+    )
+
+    ERROR_PATTERN = re.compile(
+        r": error (?P<code>[A-Z]+\d+): (?P<message>.+)"
+    )
+
+    WARNING_PATTERN = re.compile(
+        r": warning (?P<code>[A-Z]+\d+): (?P<message>.+)"
+    )
 
     def parse(
         self,
@@ -44,6 +61,11 @@ class PublishParser(OutputParser):
             output,
         )
 
+        self.__parse_output_directory(
+            execution,
+            output,
+        )
+
         self.__parse_errors(
             execution,
             output,
@@ -52,6 +74,14 @@ class PublishParser(OutputParser):
         self.__parse_warnings(
             execution,
             output,
+        )
+
+        execution.summary.total_errors = (
+            len(execution.errors)
+        )
+
+        execution.summary.total_warnings = (
+            len(execution.warnings)
         )
 
         return execution
@@ -119,17 +149,50 @@ class PublishParser(OutputParser):
             "publicação concluída" in output
         )
 
+    def __parse_output_directory(
+        self,
+        execution: PublishExecution,
+        output: str,
+    ) -> None:
+
+        for line in output.splitlines():
+
+            match = self.OUTPUT_PATTERN.search(
+                line,
+            )
+
+            if match is None:
+                continue
+
+            execution.summary.output_directory = (
+                match.group("directory").strip()
+            )
+
     def __parse_errors(
         self,
         execution: PublishExecution,
         output: str,
     ) -> None:
 
-        #
-        # Implementaremos na próxima Sprint.
-        #
+        for line in output.splitlines():
 
-        pass
+            match = self.ERROR_PATTERN.search(
+                line,
+            )
+
+            if match is None:
+                continue
+
+            execution.errors.append(
+
+                PublishError(
+
+                    code=match.group("code"),
+
+                    message=match.group("message"),
+                )
+
+            )
 
     def __parse_warnings(
         self,
@@ -137,8 +200,22 @@ class PublishParser(OutputParser):
         output: str,
     ) -> None:
 
-        #
-        # Implementaremos na próxima Sprint.
-        #
+        for line in output.splitlines():
 
-        pass
+            match = self.WARNING_PATTERN.search(
+                line,
+            )
+
+            if match is None:
+                continue
+
+            execution.warnings.append(
+
+                PublishWarning(
+
+                    code=match.group("code"),
+
+                    message=match.group("message"),
+                )
+
+            )
