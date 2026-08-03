@@ -57,6 +57,7 @@ from app.use_cases.get_projects_use_case import (
 )
 
 
+
 class Bootstrap:
     """
     Responsável por criar e inicializar a aplicação.

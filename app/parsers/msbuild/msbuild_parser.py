@@ -7,13 +7,17 @@ Descrição : Responsável por interpretar a saída do MSBuild.
 """
 
 import re
+from pathlib import Path
 
 from app.models.build.build_error import BuildError
 from app.models.build.build_execution import BuildExecution
 from app.models.build.build_warning import BuildWarning
+from typing import Any
+
+from app.abstractions.output_parser import OutputParser
 
 
-class MsBuildParser:
+class MsBuildParser(OutputParser):
     """
     Responsável por interpretar a saída textual do MSBuild.
     """
@@ -26,23 +30,23 @@ class MsBuildParser:
         r"^(?P<file>.+?)\((?P<line>\d+),(?P<column>\d+)\): warning (?P<code>[A-Z]+\d+): (?P<message>.+)$"
     )
 
-    SUMMARY_WARNING_PATTERN = re.compile(
-        r"^\s*(\d+)\s+Warning\(s\)"
-    )
-
-    SUMMARY_ERROR_PATTERN = re.compile(
-        r"^\s*(\d+)\s+Error\(s\)"
+    PROJECT_PATTERN = re.compile(
+        r"\[(?P<project>.+?\.csproj)\]$"
     )
 
     def parse(
         self,
         output: str,
+        context: Any | None = None,
     ) -> BuildExecution:
         """
         Interpreta a saída do MSBuild.
         """
 
         execution = BuildExecution()
+
+        error_keys: set[tuple] = set()
+        warning_keys: set[tuple] = set()
 
         for line in output.splitlines():
 
@@ -54,30 +58,41 @@ class MsBuildParser:
             error = self.__parse_error(line)
 
             if error is not None:
-                execution.errors.append(error)
+
+                key = (
+                    error.file,
+                    error.line,
+                    error.column,
+                    error.code,
+                )
+
+                if key not in error_keys:
+
+                    error_keys.add(key)
+
+                    execution.errors.append(error)
+
                 continue
 
             warning = self.__parse_warning(line)
 
             if warning is not None:
-                execution.warnings.append(warning)
-                continue
 
-            self.__parse_summary(
-                line=line,
-                execution=execution,
-            )
+                key = (
+                    warning.file,
+                    warning.line,
+                    warning.column,
+                    warning.code,
+                )
 
-        execution.summary.total_errors = len(
-            execution.errors,
-        )
+                if key not in warning_keys:
 
-        execution.summary.total_warnings = len(
-            execution.warnings,
-        )
+                    warning_keys.add(key)
 
-        execution.summary.build_succeeded = (
-            execution.summary.total_errors == 0
+                    execution.warnings.append(warning)
+
+        self.__build_summary(
+            execution,
         )
 
         return execution
@@ -87,12 +102,19 @@ class MsBuildParser:
         line: str,
     ) -> BuildError | None:
 
-        match = self.ERROR_PATTERN.match(line)
+        match = self.ERROR_PATTERN.match(
+            line,
+        )
 
         if match is None:
             return None
 
+        project = self.__extract_project(
+            match.group("message"),
+        )
+
         return BuildError(
+            project=project,
             file=match.group("file"),
             line=int(match.group("line")),
             column=int(match.group("column")),
@@ -105,12 +127,19 @@ class MsBuildParser:
         line: str,
     ) -> BuildWarning | None:
 
-        match = self.WARNING_PATTERN.match(line)
+        match = self.WARNING_PATTERN.match(
+            line,
+        )
 
         if match is None:
             return None
 
+        project = self.__extract_project(
+            match.group("message"),
+        )
+
         return BuildWarning(
+            project=project,
             file=match.group("file"),
             line=int(match.group("line")),
             column=int(match.group("column")),
@@ -118,28 +147,44 @@ class MsBuildParser:
             message=match.group("message"),
         )
 
-    def __parse_summary(
+    def __extract_project(
         self,
-        line: str,
+        message: str,
+    ) -> str:
+        """
+        Extrai o nome do projeto (.csproj) presente
+        ao final da mensagem do MSBuild.
+        """
+
+        match = self.PROJECT_PATTERN.search(
+            message,
+        )
+
+        if match is None:
+            return ""
+
+        project_file = Path(
+            match.group("project"),
+        )
+
+        return project_file.stem
+
+    def __build_summary(
+        self,
         execution: BuildExecution,
     ) -> None:
+        """
+        Atualiza o resumo da execução.
+        """
 
-        warning = self.SUMMARY_WARNING_PATTERN.match(
-            line,
+        execution.summary.total_errors = len(
+            execution.errors,
         )
 
-        if warning is not None:
-
-            execution.summary.total_warnings = int(
-                warning.group(1),
-            )
-
-        error = self.SUMMARY_ERROR_PATTERN.match(
-            line,
+        execution.summary.total_warnings = len(
+            execution.warnings,
         )
 
-        if error is not None:
-
-            execution.summary.total_errors = int(
-                error.group(1),
-            )
+        execution.summary.build_succeeded = (
+            execution.summary.total_errors == 0
+        )

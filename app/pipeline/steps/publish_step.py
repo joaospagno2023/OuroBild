@@ -46,12 +46,12 @@ class PublishStep(ProcessStep):
         context: PipelineContext,
     ) -> Path:
 
-        build_context = (
-            context.variables["build_context"]
+        publish_context = (
+            context.variables["publish_context"]
         )
 
         return (
-            build_context.paths.project_file.parent
+            publish_context.paths.project_file.parent
         )
 
     def get_arguments(
@@ -59,20 +59,22 @@ class PublishStep(ProcessStep):
         context: PipelineContext,
     ) -> list[CommandArgument]:
 
-        build_context = (
-            context.variables["build_context"]
+        publish_context = (
+            context.variables["publish_context"]
         )
 
-        project = build_context.project
+        request = publish_context.request
 
-        return [
+        arguments: list[CommandArgument] = [
 
             CommandArgument(
                 value="publish",
             ),
 
             CommandArgument(
-                value=build_context.paths.project_file.name,
+                value=(
+                    publish_context.paths.project_file.name
+                ),
             ),
 
             CommandArgument(
@@ -80,20 +82,146 @@ class PublishStep(ProcessStep):
             ),
 
             CommandArgument(
-                value=project.configuration,
+                value=request.configuration,
             ),
 
-            CommandArgument(
-                value="--output",
-            ),
-
-            CommandArgument(
-                value=str(
-                    build_context.paths.publish_root
-                ),
-            ),
+            #
+            # Nunca recompila.
+            #
 
             CommandArgument(
                 value="--no-build",
             ),
         ]
+
+        #
+        # Runtime
+        #
+
+        if request.runtime:
+
+            arguments.extend(
+
+                [
+
+                    CommandArgument(
+                        value="--runtime",
+                    ),
+
+                    CommandArgument(
+                        value=request.runtime,
+                    ),
+                ]
+            )
+
+        #
+        # Framework
+        #
+
+        if request.framework:
+
+            arguments.extend(
+
+                [
+
+                    CommandArgument(
+                        value="--framework",
+                    ),
+
+                    CommandArgument(
+                        value=request.framework,
+                    ),
+                ]
+            )
+
+        #
+        # Pasta de saída
+        #
+
+        if request.output_directory:
+
+            arguments.extend(
+
+                [
+
+                    CommandArgument(
+                        value="--output",
+                    ),
+
+                    CommandArgument(
+                        value=request.output_directory,
+                    ),
+                ]
+            )
+
+        #
+        # Self Contained
+        #
+
+        if request.self_contained:
+
+            arguments.append(
+
+                CommandArgument(
+                    value="--self-contained",
+                )
+
+            )
+
+        #
+        # Publish Profile
+        #
+
+        if request.publish_profile:
+
+            arguments.append(
+
+                CommandArgument(
+                    value=f"/p:PublishProfile={request.publish_profile}",
+                )
+
+            )
+
+        #
+        # Single File
+        #
+
+        if request.single_file:
+
+            arguments.append(
+
+                CommandArgument(
+                    value="/p:PublishSingleFile=true",
+                )
+
+            )
+
+        #
+        # ReadyToRun
+        #
+
+        if request.ready_to_run:
+
+            arguments.append(
+
+                CommandArgument(
+                    value="/p:PublishReadyToRun=true",
+                )
+
+            )
+
+        #
+        # Trim
+        #
+
+        if request.trimmed:
+
+            arguments.append(
+
+                CommandArgument(
+                    value="/p:PublishTrimmed=true",
+                )
+
+            )
+
+        return arguments

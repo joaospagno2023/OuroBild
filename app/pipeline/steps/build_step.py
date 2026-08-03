@@ -11,6 +11,7 @@ from pathlib import Path
 from app.abstractions.process_service import ProcessService
 from app.models.pipeline.pipeline_context import PipelineContext
 from app.models.process.command_argument import CommandArgument
+from app.parsers.msbuild.msbuild_parser import MsBuildParser
 from app.pipeline.steps.process_step import ProcessStep
 
 
@@ -89,3 +90,13 @@ class BuildStep(ProcessStep):
                 value="--no-restore",
             ),
         ]
+
+    def get_output_parser(
+        self,
+    ):
+        """
+        Retorna o parser responsável por interpretar
+        a saída do processo de Build.
+        """
+
+        return MsBuildParser()

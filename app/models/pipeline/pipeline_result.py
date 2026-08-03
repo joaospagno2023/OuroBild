@@ -40,7 +40,7 @@ class PipelineResult:
     elapsed_seconds: float = 0.0
 
     #
-    # Resultado da análise da Build
+    # Resultado consolidado da Build
     #
 
     build: BuildExecution | None = None

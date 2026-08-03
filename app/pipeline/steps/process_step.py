@@ -31,7 +31,42 @@ class ProcessStep(
         self,
         process_service: ProcessService,
     ) -> None:
+
         self._process_service = process_service
+
+    def get_output_parser(
+        self,
+    ):
+        """
+        Retorna o parser responsável por interpretar
+        a saída desta Step.
+
+        Por padrão não existe parser.
+        """
+
+        return None
+
+    def parse_output(
+        self,
+        output: str,
+        context: PipelineContext,
+    ):
+        """
+        Interpreta a saída produzida pelo processo.
+
+        Caso a Step não possua um parser associado,
+        retorna None.
+        """
+
+        parser = self.get_output_parser()
+
+        if parser is None:
+            return None
+
+        return parser.parse(
+            output=output,
+            context=context,
+        )
 
     def execute(
         self,
@@ -42,12 +77,29 @@ class ProcessStep(
         """
 
         command = Command(
-            executable=self.get_executable(context),
-            working_directory=self.get_working_directory(context),
-            arguments=self.get_arguments(context),
+            executable=self.get_executable(
+                context,
+            ),
+            working_directory=self.get_working_directory(
+                context,
+            ),
+            arguments=self.get_arguments(
+                context,
+            ),
         )
 
-        result = self._process_service.execute(command)
+        result = self._process_service.execute(
+            command,
+        )
+
+        #
+        # Interpreta a saída do processo.
+        #
+
+        analysis = self.parse_output(
+            output=result.stdout,
+            context=context,
+        )
 
         return StepResult(
             name=self.name,
@@ -58,6 +110,7 @@ class ProcessStep(
             ),
             message=result.stdout or result.stderr,
             elapsed_seconds=result.duration,
+            analysis=analysis,
         )
 
     @property
@@ -75,6 +128,9 @@ class ProcessStep(
         self,
         context: PipelineContext,
     ) -> Path:
+        """
+        Retorna o executável da Step.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -82,6 +138,9 @@ class ProcessStep(
         self,
         context: PipelineContext,
     ) -> Path:
+        """
+        Retorna o diretório de trabalho da Step.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -89,4 +148,7 @@ class ProcessStep(
         self,
         context: PipelineContext,
     ) -> list[CommandArgument]:
+        """
+        Retorna os argumentos da linha de comando.
+        """
         raise NotImplementedError
