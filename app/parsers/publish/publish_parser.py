@@ -9,7 +9,9 @@ Descrição : Responsável por interpretar a saída do dotnet publish.
 from typing import Any
 
 from app.abstractions.output_parser import OutputParser
-from app.models.publish.publish_execution import PublishExecution
+from app.models.publish.publish_execution import (
+    PublishExecution,
+)
 
 
 class PublishParser(OutputParser):
@@ -32,13 +34,37 @@ class PublishParser(OutputParser):
             context.variables["publish_context"]
         )
 
+        self.__parse_request(
+            execution,
+            publish_context,
+        )
+
+        self.__parse_summary(
+            execution,
+            output,
+        )
+
+        self.__parse_errors(
+            execution,
+            output,
+        )
+
+        self.__parse_warnings(
+            execution,
+            output,
+        )
+
+        return execution
+
+    def __parse_request(
+        self,
+        execution: PublishExecution,
+        publish_context,
+    ) -> None:
+
         request = publish_context.request
 
         summary = execution.summary
-
-        #
-        # Informações da requisição
-        #
 
         summary.configuration = (
             request.configuration
@@ -76,15 +102,43 @@ class PublishParser(OutputParser):
             request.trimmed
         )
 
-        #
-        # Resultado da execução
-        #
+    def __parse_summary(
+        self,
+        execution: PublishExecution,
+        output: str,
+    ) -> None:
 
-        output_lower = output.lower()
+        output = output.lower()
 
-        summary.published = (
-            "publish succeeded" in output_lower
-            or "publicação concluída" in output_lower
+        execution.summary.published = (
+
+            "publish succeeded" in output
+
+            or
+
+            "publicação concluída" in output
         )
 
-        return execution
+    def __parse_errors(
+        self,
+        execution: PublishExecution,
+        output: str,
+    ) -> None:
+
+        #
+        # Implementaremos na próxima Sprint.
+        #
+
+        pass
+
+    def __parse_warnings(
+        self,
+        execution: PublishExecution,
+        output: str,
+    ) -> None:
+
+        #
+        # Implementaremos na próxima Sprint.
+        #
+
+        pass
