@@ -1,32 +1,30 @@
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
-Arquivo : compilation_command_factory.py
-Descrição : Contrato responsável por criar comandos de compilação.
+Arquivo : msbuild_command_factory.py
+Descrição : Factory responsável por criar comandos MSBuild.
 --------------------------------------------------------------------
 """
 
-from abc import ABC
-from abc import abstractmethod
+from pathlib import Path
 
+from app.abstractions.compilation_command_factory import (
+    CompilationCommandFactory,
+)
 from app.models.build.build_context import BuildContext
 from app.models.process.command import Command
 
 
-class CompilationCommandFactory(
-    ABC,
+class MSBuildCommandFactory(
+    CompilationCommandFactory,
 ):
     """
-    Responsável por criar o comando de compilação
-    para um determinado projeto.
+    Cria comandos utilizando o MSBuild.
     """
 
-    @abstractmethod
     def create(
         self,
         context: BuildContext,
     ) -> Command:
-        """
-        Cria o comando de compilação.
-        """
+
         raise NotImplementedError

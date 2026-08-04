@@ -1,0 +1,19 @@
+{
+    "vswhere": {
+        "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+    },
+
+    "msbuild": {
+        "path": "C:\\Program Files\\Microsoft Visual Studio\\18\\Insiders\\MSBuild\\Current\\Bin\\MSBuild.exe",
+        "auto_detect": true
+    },
+
+    "dotnet": {
+        "path": "dotnet"
+    },
+
+    "advanced_installer": {
+        "path": "",
+        "auto_detect": true
+    }
+}
