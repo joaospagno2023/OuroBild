@@ -2,22 +2,33 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : analyze_request.py
-Descrição : Modelo de requisição para análise de projeto.
+Descrição : Modelo de requisição da análise de projetos.
 --------------------------------------------------------------------
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from pydantic import Field
 
 
 class AnalyzeRequest(
     BaseModel,
 ):
     """
-    Requisição utilizada para iniciar
-    uma análise de projeto.
+    Requisição para execução da análise de um projeto.
     """
 
-    project_file: str = Field(
-        description="Caminho completo do arquivo .csproj.",
-        min_length=1,
+    project: str = Field(
+        ...,
+        description="Identificador do projeto.",
+        examples=[
+            "ouronet.client.winservice.linkpagamento",
+        ],
+    )
+
+    environment: str = Field(
+        ...,
+        description="Identificador do ambiente.",
+        examples=[
+            "production",
+        ],
     )

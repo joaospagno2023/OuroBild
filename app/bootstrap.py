@@ -111,6 +111,16 @@ from app.validators.project_validator import (
     ProjectValidator,
 )
 
+# Workspace
+from app.workspace.workspace_resolver import (
+    WorkspaceResolver,
+)
+
+# Services
+from app.services.default_process_service import (
+    DefaultProcessService,
+)
+
 class Bootstrap:
     """
     Responsável por criar e inicializar a aplicação.
@@ -163,6 +173,16 @@ class Bootstrap:
                 configuration_path=configuration_path,
             )
         )
+#
+        # Workspace
+        #
+
+        self.workspace_resolver = (
+            WorkspaceResolver(
+                project_repository=self.project_repository,
+                environment_repository=self.environment_repository,
+            )
+        )
 
         #
         # Services
@@ -194,28 +214,32 @@ class Bootstrap:
         self.analysis_context_factory = (
             AnalysisContextFactory()
         )
+
         #
         # Analysis
         #
         self.project_reader = (
                 ProjectReader()
-            )
+        )
     
         self.project_analyzer = (
                 ProjectAnalyzer()
-            )
+        )
     
         self.framework_analyzer = (
                 FrameworkAnalyzer()
-            )
+        )
     
         self.build_analyzer = (
                 BuildAnalyzer()
-            )
+        )
     
         self.project_validator = (
                 ProjectValidator()
-            )
+        )
+        
+
+
         #
         # Use Cases Sempre  deve ir por ultio
         #
@@ -246,6 +270,7 @@ class Bootstrap:
         )
         self.execute_analyze_use_case = (
             ExecuteAnalyzeUseCase(
+                workspace_resolver=self.workspace_resolver,
                 analysis_context_factory=self.analysis_context_factory,
                 project_reader=self.project_reader,
                 project_analyzer=self.project_analyzer,

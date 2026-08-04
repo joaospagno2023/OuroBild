@@ -39,7 +39,9 @@ from app.readers.project_reader import (
 from app.validators.project_validator import (
     ProjectValidator,
 )
-
+from app.workspace.workspace_resolver import (
+    WorkspaceResolver,
+)
 
 class ExecuteAnalyzeUseCase:
     """
@@ -49,6 +51,7 @@ class ExecuteAnalyzeUseCase:
 
     def __init__(
         self,
+        workspace_resolver: WorkspaceResolver,
         analysis_context_factory: AnalysisContextFactory,
         project_reader: ProjectReader,
         project_analyzer: ProjectAnalyzer,
@@ -80,6 +83,9 @@ class ExecuteAnalyzeUseCase:
         self.__project_validator = (
             project_validator
         )
+        self.__workspace_resolver = (
+            workspace_resolver
+        )
 
     def execute(
         self,
@@ -88,14 +94,31 @@ class ExecuteAnalyzeUseCase:
         """
         Executa uma análise de projeto.
         """
+        #
+        # Resolve o projeto
+        #
 
+        project_file = (
+            self.__workspace_resolver.resolve_project(
+                project_id=request.project,
+                environment_id=request.environment,
+            )
+        )
         #
         # Cria o contexto
         #
 
+        resolved_project_file = (
+            self.__workspace_resolver.resolve_project(
+                project_id=request.project,
+                environment_id=request.environment,
+            )
+        )
+
         context = (
             self.__analysis_context_factory.create(
-                request,
+                request=request,
+                project_file=project_file,
             )
         )
 

@@ -25,16 +25,26 @@ class AnalysisContextFactory:
     def create(
         self,
         request: AnalyzeRequest,
+        project_file: Path,
     ) -> AnalysisContext:
         """
         Cria um contexto para análise.
+
+        Args:
+            request:
+                Requisição da análise.
+
+            project_file:
+                Caminho completo do arquivo .csproj.
+
+        Returns:
+            Contexto utilizado durante a análise.
         """
 
         return AnalysisContext(
 
             request=request,
 
-            project_file=Path(
-                request.project_file,
-            ),
+            project_file=project_file,
+
         )
