@@ -31,6 +31,24 @@ class DefaultProcessService(ProcessService):
         started_at = datetime.now()
 
         try:
+
+            #
+            # Diagnóstico da execução.
+            #
+
+            print()
+            print("=" * 80)
+            print("OUROBUILD - EXECUÇÃO DO PROCESSO")
+            print("=" * 80)
+            print(f"Executável : {command.executable}")
+            print(f"Diretório  : {command.working_directory}")
+            print("Argumentos :")
+
+            for argument in command.arguments:
+                print(f"   {argument.value}")
+
+            print("=" * 80)
+            print()
            
             result = subprocess.run(
                 args=[

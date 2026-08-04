@@ -8,12 +8,27 @@ Descrição : Etapa responsável pela execução da compilação.
 
 from pathlib import Path
 
-from app.abstractions.process_service import ProcessService
-from app.models.pipeline.pipeline_context import PipelineContext
-from app.models.process.command_argument import CommandArgument
-from app.parsers.msbuild.msbuild_parser import MsBuildParser
-from app.pipeline.steps.process_step import ProcessStep
-from app.services.msbuild_locator import MSBuildLocator
+from app.abstractions.process_service import (
+    ProcessService,
+)
+from app.models.build.compilation_engine import (
+    CompilationEngine,
+)
+from app.models.pipeline.pipeline_context import (
+    PipelineContext,
+)
+from app.models.process.command_argument import (
+    CommandArgument,
+)
+from app.parsers.msbuild.msbuild_parser import (
+    MsBuildParser,
+)
+from app.pipeline.steps.process_step import (
+    ProcessStep,
+)
+from app.services.msbuild_locator import (
+    MSBuildLocator,
+)
 
 
 class BuildStep(ProcessStep):
@@ -41,6 +56,41 @@ class BuildStep(ProcessStep):
             msbuild_locator
         )
 
+    def __normalize_platform(
+        self,
+        platform: str,
+    ) -> str:
+        """
+        Normaliza o nome da plataforma para o formato
+        esperado pelo MSBuild.
+        """
+
+        if not platform:
+            return platform
+
+        normalized = (
+            platform.strip()
+            .replace(" ", "")
+        )
+
+        aliases = {
+
+            "ANYCPU": "AnyCPU",
+
+            "X64": "x64",
+
+            "X86": "x86",
+
+            "WIN32": "Win32",
+
+            "MIXEDPLATFORMS": "Mixed Platforms",
+        }
+
+        return aliases.get(
+            normalized.upper(),
+            normalized,
+        )
+
     def get_executable(
         self,
         context: PipelineContext,
@@ -53,7 +103,9 @@ class BuildStep(ProcessStep):
             context.variables["build_context"]
         )
 
-        project = build_context.project
+        project = (
+            build_context.project
+        )
 
         #
         # Compilação utilizando MSBuild.
@@ -61,8 +113,9 @@ class BuildStep(ProcessStep):
 
         if (
             project.compilation_engine
-            == "msbuild"
+            == CompilationEngine.MSBUILD
         ):
+
             return (
                 self.__msbuild_locator.get_msbuild_path()
             )
@@ -71,7 +124,9 @@ class BuildStep(ProcessStep):
         # Compilação utilizando o SDK do .NET.
         #
 
-        return Path("dotnet")
+        return Path(
+            "dotnet",
+        )
 
     def get_working_directory(
         self,
@@ -95,7 +150,9 @@ class BuildStep(ProcessStep):
             context.variables["build_context"]
         )
 
-        project = build_context.project
+        project = (
+            build_context.project
+        )
 
         #
         # MSBuild
@@ -103,13 +160,19 @@ class BuildStep(ProcessStep):
 
         if (
             project.compilation_engine
-            == "msbuild"
+            == CompilationEngine.MSBUILD
         ):
+
+            platform = self.__normalize_platform(
+                project.platform,
+            )
 
             return [
 
                 CommandArgument(
-                    value=build_context.paths.project_file.name,
+                    value=str(
+                        build_context.paths.project_file
+                    ),
                 ),
 
                 CommandArgument(
@@ -117,11 +180,7 @@ class BuildStep(ProcessStep):
                 ),
 
                 CommandArgument(
-                    value=f"/p:Platform={project.platform}",
-                ),
-
-                CommandArgument(
-                    value="/restore",
+                    value=f"/p:Platform={platform}",
                 ),
             ]
 
@@ -136,7 +195,9 @@ class BuildStep(ProcessStep):
             ),
 
             CommandArgument(
-                value=build_context.paths.project_file.name,
+                value=str(
+                    build_context.paths.project_file
+                ),
             ),
 
             CommandArgument(

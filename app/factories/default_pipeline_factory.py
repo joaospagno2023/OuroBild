@@ -21,6 +21,9 @@ from app.models.project.project import (
 from app.pipeline.build_pipeline_definition import (
     BuildPipelineDefinition,
 )
+from app.services.msbuild_locator import (
+    MSBuildLocator,
+)
 
 
 class DefaultPipelineFactory(
@@ -33,11 +36,13 @@ class DefaultPipelineFactory(
     def __init__(
         self,
         process_service: ProcessService,
+        msbuild_locator: MSBuildLocator,
     ) -> None:
 
         self.__definition = (
             BuildPipelineDefinition(
                 process_service=process_service,
+                msbuild_locator=msbuild_locator,
             )
         )
 

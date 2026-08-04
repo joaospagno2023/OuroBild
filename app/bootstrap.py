@@ -72,7 +72,13 @@ from app.api.routers.publish_router import (
     router as publish_router,
 )
 
+from app.core.configuration.toolchain_loader import (
+    ToolchainLoader,
+)
 
+from app.services.msbuild_locator import (
+    MSBuildLocator,
+)
 
 
 class Bootstrap:
@@ -98,6 +104,21 @@ class Bootstrap:
             self.configuration_loader.load_settings()
         )
 
+        #
+        # Toolchain
+        #
+
+        self.toolchain = (
+            ToolchainLoader(
+                configuration_path=configuration_path,
+            ).load()
+        )
+
+        self.msbuild_locator = (
+            MSBuildLocator(
+                toolchain=self.toolchain,
+            )
+        )
         #
         # Repositórios
         #
@@ -125,6 +146,7 @@ class Bootstrap:
 
         self.pipeline_factory = DefaultPipelineFactory(
             process_service=self.process_service,
+            msbuild_locator=self.msbuild_locator,
         )
 
         self.build_context_factory = (

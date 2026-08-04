@@ -11,7 +11,7 @@
         "output_msi": "LinkPagamento.msi",
         "network_path": "\\\\Servidor\\Builds",
         "configuration": "Release",
-        "platform": "Any CPU",        
+        "platform": "AnyCPU",        
         "enabled": true,
         "pipeline": {
             "restore": true,

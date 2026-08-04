@@ -22,6 +22,9 @@ from app.pipeline.steps.publish_step import (
 from app.pipeline.steps.restore_step import (
     RestoreStep,
 )
+from app.services.msbuild_locator import (
+    MSBuildLocator,
+)
 
 
 class BuildPipelineDefinition:
@@ -32,10 +35,15 @@ class BuildPipelineDefinition:
     def __init__(
         self,
         process_service: ProcessService,
+        msbuild_locator: MSBuildLocator,
     ) -> None:
 
         self.__process_service = (
             process_service
+        )
+
+        self.__msbuild_locator = (
+            msbuild_locator
         )
 
     def create_steps(
@@ -44,14 +52,9 @@ class BuildPipelineDefinition:
     ) -> list[PipelineStep]:
         """
         Cria as Steps da Pipeline.
-
-        Nesta primeira versão o projeto ainda não é
-        utilizado. O parâmetro foi adicionado para
-        permitir que futuras versões montem a Pipeline
-        dinamicamente conforme a configuração do projeto.
         """
 
-        steps: list[PipelineStep] = [
+        return [
 
             RestoreStep(
                 process_service=self.__process_service,
@@ -59,11 +62,10 @@ class BuildPipelineDefinition:
 
             BuildStep(
                 process_service=self.__process_service,
+                msbuild_locator=self.__msbuild_locator,
             ),
 
             PublishStep(
                 process_service=self.__process_service,
             ),
         ]
-
-        return steps

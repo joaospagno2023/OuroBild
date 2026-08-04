@@ -23,11 +23,19 @@ class MsBuildParser(OutputParser):
     """
 
     ERROR_PATTERN = re.compile(
-        r"^(?P<file>.+?)\((?P<line>\d+),(?P<column>\d+)\): error (?P<code>[A-Z]+\d+): (?P<message>.+)$"
+        r"^(?P<file>.+?)"
+        r"\((?P<line>\d+),(?P<column>\d+)\): "
+        r"error(?: (?P<code>[A-Z]+\d+))?: "
+        r"(?P<message>.+)$",
+        re.IGNORECASE,
     )
 
     WARNING_PATTERN = re.compile(
-        r"^(?P<file>.+?)\((?P<line>\d+),(?P<column>\d+)\): warning (?P<code>[A-Z]+\d+): (?P<message>.+)$"
+        r"^(?P<file>.+?)"
+        r"\((?P<line>\d+),(?P<column>\d+)\): "
+        r"warning(?: (?P<code>[A-Z]+\d+))?: "
+        r"(?P<message>.+)$",
+        re.IGNORECASE,
     )
 
     PROJECT_PATTERN = re.compile(
@@ -118,7 +126,7 @@ class MsBuildParser(OutputParser):
             file=match.group("file"),
             line=int(match.group("line")),
             column=int(match.group("column")),
-            code=match.group("code"),
+            code=match.group("code") or "",
             message=match.group("message"),
         )
 
