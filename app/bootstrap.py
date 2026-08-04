@@ -60,6 +60,20 @@ from app.api.exception_handlers import (
     register_exception_handlers,
 )
 
+from app.factories.publish_context_factory import (
+    PublishContextFactory,
+)
+
+from app.use_cases.execute_publish_use_case import (
+    ExecutePublishUseCase,
+)
+
+from app.api.routers.publish_router import (
+    router as publish_router,
+)
+
+
+
 
 class Bootstrap:
     """
@@ -119,7 +133,12 @@ class Bootstrap:
                 environment_repository=self.environment_repository,
             )
         )
-
+        self.publish_context_factory = (
+            PublishContextFactory(
+                project_repository=self.project_repository,
+                environment_repository=self.environment_repository,
+            )
+        )
         #
         # Use Cases
         #
@@ -139,6 +158,12 @@ class Bootstrap:
         self.execute_build_use_case = (
             ExecuteBuildUseCase(
                 build_context_factory=self.build_context_factory,
+                pipeline_factory=self.pipeline_factory,
+            )
+        )
+        self.execute_publish_use_case = (
+            ExecutePublishUseCase(
+                publish_context_factory=self.publish_context_factory,
                 pipeline_factory=self.pipeline_factory,
             )
         )
@@ -187,5 +212,7 @@ class Bootstrap:
         app.include_router(
             build_router,
         )
-
+        app.include_router(
+            publish_router,
+        )
         return app

@@ -29,7 +29,7 @@ from app.pipeline.runner.step_executor import (
 
 class PipelineRunner:
     """
-    Executa todas as etapas de uma Pipeline.
+    Executa todas as etapas da Pipeline.
     """
 
     def __init__(
@@ -77,15 +77,17 @@ class PipelineRunner:
                     analysis,
                     BuildExecution,
                 ):
-
                     result.build = analysis
 
                 elif isinstance(
                     analysis,
                     PublishExecution,
                 ):
-
                     result.publish = analysis
+
+                #
+                # Em caso de falha, encerra a Pipeline.
+                #
 
                 if step_result.status == StepStatus.FAILED:
 
@@ -93,10 +95,7 @@ class PipelineRunner:
                     result.failed_step = step_result.name
                     result.message = step_result.message
 
-                    if (
-                        not pipeline.configuration.continue_on_error
-                    ):
-                        break
+                    break
 
         finally:
 
@@ -107,10 +106,8 @@ class PipelineRunner:
             if result.started_at is not None:
 
                 result.elapsed_seconds = (
-
                     finished_at
                     - result.started_at
-
                 ).total_seconds()
 
         return result

@@ -8,10 +8,17 @@ Descrição : Modelo que representa um projeto configurado para build.
 
 from pydantic import BaseModel
 
-from app.models.pipeline.pipeline_configuration import (
-    PipelineConfiguration,
+from app.models.build.compilation_engine import (
+    CompilationEngine,
 )
 
+from app.models.build.compilation_engine import (
+    CompilationEngine,
+)
+
+from app.models.build.compilation_target import (
+    CompilationTarget,
+)
 
 class Project(BaseModel):
     """
@@ -24,26 +31,42 @@ class Project(BaseModel):
 
     description: str
 
-    project_path: str
+    #
+    # Origem da compilação
+    #
 
-    aip_path: str
+    solution_path: str | None = None
+
+    project_path: str | None = None
+
+    compilation_target: CompilationTarget
+
+    compilation_engine: CompilationEngine
+
+    #
+    # Publicação
+    #
 
     publish_path: str
+
+    #
+    # Instalador
+    #
+
+    aip_path: str
 
     output_msi: str
 
     network_path: str
 
+    #
+    # Configuração
+    #
+
     configuration: str
 
     platform: str
 
+    compilation_engine: CompilationEngine
+
     enabled: bool
-
-    #
-    # Configuração da Pipeline.
-    #
-
-    pipeline: PipelineConfiguration = (
-        PipelineConfiguration()
-    )
