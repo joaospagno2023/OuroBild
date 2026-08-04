@@ -237,4 +237,5 @@ class Bootstrap:
         app.include_router(
             publish_router,
         )
+       
         return app
