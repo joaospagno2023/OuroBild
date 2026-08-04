@@ -79,7 +79,37 @@ from app.core.configuration.toolchain_loader import (
 from app.services.msbuild_locator import (
     MSBuildLocator,
 )
+from app.api.routers.analyze_router import (
+    router as analyze_router,
+)
 
+from app.analyzers.build_analyzer import (
+    BuildAnalyzer,
+)
+
+from app.analyzers.framework_analyzer import (
+    FrameworkAnalyzer,
+)
+
+from app.analyzers.project_analyzer import (
+    ProjectAnalyzer,
+)
+
+from app.factories.analysis_context_factory import (
+    AnalysisContextFactory,
+)
+
+from app.readers.project_reader import (
+    ProjectReader,
+)
+
+from app.use_cases.execute_analyze_use_case import (
+    ExecuteAnalyzeUseCase,
+)
+
+from app.validators.project_validator import (
+    ProjectValidator,
+)
 
 class Bootstrap:
     """
@@ -161,8 +191,33 @@ class Bootstrap:
                 environment_repository=self.environment_repository,
             )
         )
+        self.analysis_context_factory = (
+            AnalysisContextFactory()
+        )
         #
-        # Use Cases
+        # Analysis
+        #
+        self.project_reader = (
+                ProjectReader()
+            )
+    
+        self.project_analyzer = (
+                ProjectAnalyzer()
+            )
+    
+        self.framework_analyzer = (
+                FrameworkAnalyzer()
+            )
+    
+        self.build_analyzer = (
+                BuildAnalyzer()
+            )
+    
+        self.project_validator = (
+                ProjectValidator()
+            )
+        #
+        # Use Cases Sempre  deve ir por ultio
         #
 
         self.get_projects_use_case = (
@@ -189,6 +244,19 @@ class Bootstrap:
                 pipeline_factory=self.pipeline_factory,
             )
         )
+        self.execute_analyze_use_case = (
+            ExecuteAnalyzeUseCase(
+                analysis_context_factory=self.analysis_context_factory,
+                project_reader=self.project_reader,
+                project_analyzer=self.project_analyzer,
+                framework_analyzer=self.framework_analyzer,
+                build_analyzer=self.build_analyzer,
+                project_validator=self.project_validator,
+            )
+        )
+
+        
+
 
     def create_app(
         self,
@@ -237,5 +305,7 @@ class Bootstrap:
         app.include_router(
             publish_router,
         )
-       
+        app.include_router(
+            analyze_router,
+        )
         return app

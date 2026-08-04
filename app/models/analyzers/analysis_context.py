@@ -2,20 +2,15 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : analysis_context.py
-Descrição : Contexto utilizado durante a análise de um projeto.
+Descrição : Contexto utilizado durante a análise.
 --------------------------------------------------------------------
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 
-from app.models.analyzers.build_profile import (
-    BuildProfile,
-)
-from app.models.analyzers.framework_profile import (
-    FrameworkProfile,
-)
-from app.models.analyzers.project_profile import (
-    ProjectProfile,
+from app.models.analyzers.analyze_request import (
+    AnalyzeRequest,
 )
 
 
@@ -24,12 +19,10 @@ from app.models.analyzers.project_profile import (
 )
 class AnalysisContext:
     """
-    Armazena os resultados intermediários
-    produzidos durante a análise.
+    Contexto utilizado durante a execução
+    da análise.
     """
 
-    project: ProjectProfile
+    request: AnalyzeRequest
 
-    framework: FrameworkProfile
-
-    build: BuildProfile
+    project_file: Path

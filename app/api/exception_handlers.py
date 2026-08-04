@@ -13,8 +13,13 @@ from fastapi.responses import JSONResponse
 from app.exceptions.ourobuild_exception import (
     OuroBuildException,
 )
-from app.exceptions.project_not_found_exception import (
-    ProjectNotFoundException,
+
+from app.models.api.api_error_response import (
+    ApiErrorResponse,
+)
+
+from app.models.api.api_error_code import (
+    ErrorCode,
 )
 
 
@@ -26,22 +31,6 @@ def register_exception_handlers(
     """
 
     @app.exception_handler(
-        ProjectNotFoundException,
-    )
-    async def handle_project_not_found(
-        request: Request,
-        exception: ProjectNotFoundException,
-    ):
-        return JSONResponse(
-            status_code=404,
-            content={
-                "message": str(
-                    exception,
-                ),
-            },
-        )
-
-    @app.exception_handler(
         OuroBuildException,
     )
     async def handle_ourobuild_exception(
@@ -49,12 +38,17 @@ def register_exception_handlers(
         exception: OuroBuildException,
     ):
         return JSONResponse(
-            status_code=400,
-            content={
-                "message": str(
-                    exception,
-                ),
-            },
+
+            status_code=exception.status_code,
+
+            content=ApiErrorResponse(
+
+                code=exception.code,
+
+                message=exception.message,
+
+            ).model_dump(),
+
         )
 
     @app.exception_handler(
@@ -65,10 +59,15 @@ def register_exception_handlers(
         exception: Exception,
     ):
         return JSONResponse(
+
             status_code=500,
-            content={
-                "message": (
-                    "Erro interno da aplicação."
-                ),
-            },
+
+            content=ApiErrorResponse(
+
+                code=ErrorCode.INTERNAL_ERROR,
+
+                message="Erro interno da aplicação.",
+
+            ).model_dump(),
+
         )

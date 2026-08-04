@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : analyze_request.py
-Descrição : Modelo de requisição da análise de um projeto.
+Descrição : Modelo de requisição para análise de projeto.
 --------------------------------------------------------------------
 """
 
@@ -13,9 +13,11 @@ class AnalyzeRequest(
     BaseModel,
 ):
     """
-    Requisição para análise de um projeto.
+    Requisição utilizada para iniciar
+    uma análise de projeto.
     """
 
     project_file: str = Field(
         description="Caminho completo do arquivo .csproj.",
+        min_length=1,
     )

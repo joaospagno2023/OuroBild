@@ -9,7 +9,7 @@ Descrição : Responsável por validar um ProjectProfile.
 from app.models.analyzers.diagnostic import (
     Diagnostic,
 )
-from app.models.analyzers.diagnostic_code import (
+from app.models.analyzers.diagnostic_codes import (
     DiagnosticCode,
 )
 from app.models.analyzers.project_profile import (
