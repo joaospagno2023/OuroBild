@@ -39,7 +39,7 @@ class FrameworkAnalyzer:
         )
 
         tools_version = (
-            document.get_property(
+            document.get_attribute(
                 "ToolsVersion",
             )
         )

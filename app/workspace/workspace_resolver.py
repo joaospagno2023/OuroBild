@@ -2,8 +2,8 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : workspace_resolver.py
-Descrição : Responsável por resolver o caminho físico de um projeto
-             a partir do projeto e do ambiente informados.
+Descrição : Responsável por resolver as informações de um projeto
+             dentro de um Workspace.
 --------------------------------------------------------------------
 """
 
@@ -12,15 +12,25 @@ from pathlib import Path
 from app.abstractions.environment_repository import (
     EnvironmentRepository,
 )
+
 from app.abstractions.project_repository import (
     ProjectRepository,
 )
 
+from app.workspace.workspace_context import (
+    WorkspaceContext,
+)
+from app.exceptions.project_not_found_exception import (
+    ProjectNotFoundException,
+)
+from app.exceptions.environment_not_found_exception import (
+    EnvironmentNotFoundException,
+)
 
 class WorkspaceResolver:
     """
-    Responsável por resolver o caminho físico
-    de um projeto.
+    Responsável por resolver um projeto
+    dentro de um ambiente.
     """
 
     def __init__(
@@ -40,14 +50,14 @@ class WorkspaceResolver:
             environment_repository
         )
 
-    def resolve_project(
+    def resolve(
         self,
         project_id: str,
         environment_id: str,
-    ) -> Path:
+    ) -> WorkspaceContext:
         """
-        Resolve o caminho completo do arquivo
-        do projeto (.csproj).
+        Resolve todas as informações necessárias
+        para trabalhar com um projeto.
 
         Args:
             project_id:
@@ -57,7 +67,8 @@ class WorkspaceResolver:
                 Identificador do ambiente.
 
         Returns:
-            Caminho completo do arquivo .csproj.
+            WorkspaceContext contendo projeto,
+            ambiente e caminho do arquivo.
         """
 
         project = (
@@ -66,15 +77,33 @@ class WorkspaceResolver:
             )
         )
 
+        if project is None:
+            raise ProjectNotFoundException(
+                project_id=project_id,
+        )
         environment = (
             self.__environment_repository.get_by_id(
                 environment_id=environment_id,
             )
         )
+        if environment is None:
+            raise EnvironmentNotFoundException(
+                environment_id=environment_id,
+            )
 
-        return (
+        project_file = (
             Path(
                 environment.root_path,
             )
             / project.project_path
+        )
+
+        return WorkspaceContext(
+
+            project=project,
+
+            environment=environment,
+
+            project_file=project_file,
+
         )

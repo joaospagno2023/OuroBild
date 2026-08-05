@@ -121,6 +121,17 @@ from app.services.default_process_service import (
     DefaultProcessService,
 )
 
+from app.repositories.json_project_metadata_repository import (
+    JsonProjectMetadataRepository,
+)
+from app.services.hash_service import (
+    HashService,
+)
+
+from app.services.project_metadata_service import (
+    ProjectMetadataService,
+)
+
 class Bootstrap:
     """
     Responsável por criar e inicializar a aplicação.
@@ -173,6 +184,12 @@ class Bootstrap:
                 configuration_path=configuration_path,
             )
         )
+
+        self.project_metadata_repository = (
+            JsonProjectMetadataRepository(
+                metadata_path=Path("metadata"),
+            )
+        )
 #
         # Workspace
         #
@@ -189,6 +206,15 @@ class Bootstrap:
         #
 
         self.process_service = DefaultProcessService()
+
+        self.hash_service = (HashService() )
+
+        self.project_metadata_service = (
+            ProjectMetadataService(
+                repository=self.project_metadata_repository,
+                hash_service=self.hash_service,
+            )
+        )
 
         #
         # Factories
@@ -270,6 +296,7 @@ class Bootstrap:
         )
         self.execute_analyze_use_case = (
             ExecuteAnalyzeUseCase(
+                project_metadata_service=self.project_metadata_service,
                 workspace_resolver=self.workspace_resolver,
                 analysis_context_factory=self.analysis_context_factory,
                 project_reader=self.project_reader,

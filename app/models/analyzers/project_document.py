@@ -65,7 +65,22 @@ class ProjectDocument:
                 return element.text.strip()
 
         return default
+    def get_attribute(
+        self,
+        name: str,
+        default: str = "",
+    ) -> str:
+        """
+        Retorna o valor de um atributo
+        do elemento raiz do projeto.
+        """
 
+        value = self.root.attrib.get(name)
+
+        if value is None:
+            return default
+
+        return value.strip()
     def has_property(
         self,
         name: str,

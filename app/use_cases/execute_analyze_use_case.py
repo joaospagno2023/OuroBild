@@ -43,6 +43,10 @@ from app.workspace.workspace_resolver import (
     WorkspaceResolver,
 )
 
+from app.services.project_metadata_service import (
+    ProjectMetadataService,
+)
+
 class ExecuteAnalyzeUseCase:
     """
     Responsável por executar a análise
@@ -51,6 +55,7 @@ class ExecuteAnalyzeUseCase:
 
     def __init__(
         self,
+        project_metadata_service: ProjectMetadataService,
         workspace_resolver: WorkspaceResolver,
         analysis_context_factory: AnalysisContextFactory,
         project_reader: ProjectReader,
@@ -59,6 +64,13 @@ class ExecuteAnalyzeUseCase:
         build_analyzer: BuildAnalyzer,
         project_validator: ProjectValidator,
     ) -> None:
+
+        self.__project_metadata_service = (
+            project_metadata_service
+        )
+        self.__workspace_resolver = (
+            workspace_resolver
+        )
 
         self.__analysis_context_factory = (
             analysis_context_factory
@@ -83,9 +95,6 @@ class ExecuteAnalyzeUseCase:
         self.__project_validator = (
             project_validator
         )
-        self.__workspace_resolver = (
-            workspace_resolver
-        )
 
     def execute(
         self,
@@ -94,31 +103,26 @@ class ExecuteAnalyzeUseCase:
         """
         Executa uma análise de projeto.
         """
+
         #
         # Resolve o projeto
         #
 
-        project_file = (
-            self.__workspace_resolver.resolve_project(
+        workspace = (
+        self.__workspace_resolver.resolve(
                 project_id=request.project,
                 environment_id=request.environment,
             )
         )
+
         #
         # Cria o contexto
         #
 
-        resolved_project_file = (
-            self.__workspace_resolver.resolve_project(
-                project_id=request.project,
-                environment_id=request.environment,
-            )
-        )
-
         context = (
             self.__analysis_context_factory.create(
                 request=request,
-                project_file=project_file,
+                project_file=workspace.project_file,
             )
         )
 
@@ -158,7 +162,7 @@ class ExecuteAnalyzeUseCase:
         # Executa os validators
         #
 
-        diagnostics = []
+        diagnostics: list[Diagnostic] = []
 
         diagnostics.extend(
             self.__project_validator.validate(
@@ -178,7 +182,7 @@ class ExecuteAnalyzeUseCase:
         # Resultado
         #
 
-        return AnalysisResult(
+        result = AnalysisResult(
 
             status=status,
 
@@ -192,6 +196,11 @@ class ExecuteAnalyzeUseCase:
 
             recommendations=[],
         )
+        self.__project_metadata_service.update_from_analysis(
+            project_id=request.project,
+            project_file=context.project_file,
+        )
+        return result
 
     def __calculate_status(
         self,

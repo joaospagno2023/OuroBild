@@ -1,12 +1,10 @@
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
-Arquivo : project_file_not_found_exception.py
-Descrição : Exceção lançada quando o arquivo do projeto não existe.
+Arquivo : project_not_found_exception.py
+Descrição : Projeto não encontrado.
 --------------------------------------------------------------------
 """
-
-from pathlib import Path
 
 from app.exceptions.ourobuild_exception import (
     OuroBuildException,
@@ -17,28 +15,22 @@ from app.models.api.api_error_code import (
 )
 
 
-class ProjectFileNotFoundException(
+class ProjectNotFoundException(
     OuroBuildException,
 ):
     """
-    Arquivo .csproj não encontrado.
+    Projeto solicitado não foi encontrado.
     """
 
     def __init__(
         self,
-        project_file: Path,
+        project_id: str,
     ) -> None:
 
         super().__init__(
-
-            code=ErrorCode.PROJECT_FILE_NOT_FOUND,
-
+            code=ErrorCode.PROJECT_NOT_FOUND,
             message=(
-                f"Arquivo do projeto não encontrado: "
-                f"{project_file}"
+                f"Projeto '{project_id}' não foi encontrado."
             ),
-
             status_code=404,
         )
-
-        self.project_file = project_file

@@ -44,4 +44,7 @@ class ProjectAnalyzer:
             project_guid=document.get_property(
                 "ProjectGuid",
             ),
+            output_type=document.get_property(
+                "OutputType",
+            ),
         )
