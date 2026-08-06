@@ -56,3 +56,13 @@ class BuildPaths:
         #
 
         self.logs_root: Path | None = None
+
+        #
+        # Código fonte
+        #
+
+        self.source_root: Path | None = None
+
+        self.project_file: Path | None = None
+
+        self.solution_file: Path | None = None

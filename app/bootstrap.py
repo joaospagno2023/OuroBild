@@ -132,6 +132,10 @@ from app.services.project_metadata_service import (
     ProjectMetadataService,
 )
 
+from app.services.workspace.solution_locator_service import (
+    SolutionLocatorService,
+)
+
 class Bootstrap:
     """
     Responsável por criar e inicializar a aplicação.
@@ -245,27 +249,34 @@ class Bootstrap:
         # Analysis
         #
         self.project_reader = (
-                ProjectReader()
+            ProjectReader()
         )
     
         self.project_analyzer = (
-                ProjectAnalyzer()
+            ProjectAnalyzer()
         )
     
         self.framework_analyzer = (
-                FrameworkAnalyzer()
+            FrameworkAnalyzer()
         )
     
         self.build_analyzer = (
-                BuildAnalyzer()
+            BuildAnalyzer()
         )
     
         self.project_validator = (
-                ProjectValidator()
+            ProjectValidator()
         )
+        #
+        # DEMAIS ARQUIVOS
+        #
+    
+
+        self.solution_locator_service = (
+            SolutionLocatorService()
+        )
+
         
-
-
         #
         # Use Cases Sempre  deve ir por ultio
         #
@@ -286,12 +297,14 @@ class Bootstrap:
             ExecuteBuildUseCase(
                 build_context_factory=self.build_context_factory,
                 pipeline_factory=self.pipeline_factory,
+                solution_locator=self.solution_locator_service,
             )
         )
         self.execute_publish_use_case = (
             ExecutePublishUseCase(
                 publish_context_factory=self.publish_context_factory,
                 pipeline_factory=self.pipeline_factory,
+                solution_locator=self.solution_locator_service,
             )
         )
         self.execute_analyze_use_case = (

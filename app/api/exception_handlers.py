@@ -6,6 +6,8 @@ Descrição : Registro dos tratadores globais de exceção da API.
 --------------------------------------------------------------------
 """
 
+import traceback
+
 from fastapi import FastAPI
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -37,6 +39,12 @@ def register_exception_handlers(
         request: Request,
         exception: OuroBuildException,
     ):
+        #
+        # Durante o desenvolvimento, imprime o erro.
+        #
+
+        traceback.print_exc()
+
         return JSONResponse(
 
             status_code=exception.status_code,
@@ -58,16 +66,28 @@ def register_exception_handlers(
         request: Request,
         exception: Exception,
     ):
-        return JSONResponse(
+        #
+        # Durante o desenvolvimento, deixa o Uvicorn
+        # exibir o stack trace completo.
+        #
 
-            status_code=500,
+        traceback.print_exc()
 
-            content=ApiErrorResponse(
+        raise exception
 
-                code=ErrorCode.INTERNAL_ERROR,
-
-                message="Erro interno da aplicação.",
-
-            ).model_dump(),
-
-        )
+        #
+        # Em produção, substituir pelo código abaixo:
+        #
+        # return JSONResponse(
+        #
+        #     status_code=500,
+        #
+        #     content=ApiErrorResponse(
+        #
+        #         code=ErrorCode.INTERNAL_ERROR,
+        #
+        #         message="Erro interno da aplicação.",
+        #
+        #     ).model_dump(),
+        #
+        # )

@@ -26,6 +26,9 @@ from app.services.msbuild_locator import (
     MSBuildLocator,
 )
 
+from app.pipeline.steps.clean_step import (
+    CleanStep,
+)
 
 class BuildPipelineDefinition:
     """
@@ -58,6 +61,11 @@ class BuildPipelineDefinition:
 
             RestoreStep(
                 process_service=self.__process_service,
+                msbuild_locator=self.__msbuild_locator,
+            ),
+            CleanStep(
+                process_service=self.__process_service,
+                msbuild_locator=self.__msbuild_locator,
             ),
 
             BuildStep(

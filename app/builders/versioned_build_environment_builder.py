@@ -13,6 +13,9 @@ from app.abstractions.build_environment_builder import (
     BuildEnvironmentBuilder,
 )
 from app.models.build.build_context import BuildContext
+from app.services.workspace.solution_locator_service import (
+    SolutionLocatorService,
+)
 
 
 class VersionedBuildEnvironmentBuilder(
@@ -21,6 +24,13 @@ class VersionedBuildEnvironmentBuilder(
     """
     Prepara o contexto para um ambiente versionado.
     """
+
+    def __init__(
+        self,
+        solution_locator: SolutionLocatorService,
+    ) -> None:
+
+        self.__solution_locator = solution_locator
 
     def build(
         self,
@@ -56,6 +66,12 @@ class VersionedBuildEnvironmentBuilder(
         context.paths.project_file = (
             workspace /
             Path(context.project.project_path)
+        )
+
+        context.paths.solution_file = (
+            self.__solution_locator.find_solution(
+                context.paths.project_file,
+            )
         )
 
         context.paths.source_root = (

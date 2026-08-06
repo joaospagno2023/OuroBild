@@ -17,7 +17,9 @@ from app.models.build.build_request import BuildRequest
 from app.models.pipeline.pipeline_context import PipelineContext
 from app.models.pipeline.pipeline_result import PipelineResult
 from app.pipeline.runner.pipeline_runner import PipelineRunner
-
+from app.services.workspace.solution_locator_service import (
+    SolutionLocatorService,
+)
 
 class ExecuteBuildUseCase:
     """
@@ -28,6 +30,7 @@ class ExecuteBuildUseCase:
         self,
         build_context_factory: BuildContextFactory,
         pipeline_factory: PipelineFactory,
+        solution_locator: SolutionLocatorService,
     ) -> None:
 
         self.__build_context_factory = (
@@ -39,7 +42,9 @@ class ExecuteBuildUseCase:
         )
 
         self.__builder_factory = (
-            BuildEnvironmentBuilderFactory()
+            BuildEnvironmentBuilderFactory(
+                 solution_locator=solution_locator
+            ) 
         )
 
     def execute(

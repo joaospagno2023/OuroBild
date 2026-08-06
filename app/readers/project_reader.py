@@ -13,7 +13,7 @@ from app.exceptions.invalid_project_file_exception import (
     InvalidProjectFileException,
 )
 from app.exceptions.project_file_not_found_exception import (
-    ProjectFileNotFoundException,
+    ProjectNotFoundException,
 )
 from app.models.analyzers.project_document import (
     ProjectDocument,

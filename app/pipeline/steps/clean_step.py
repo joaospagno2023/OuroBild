@@ -1,8 +1,8 @@
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
-Arquivo : restore_step.py
-Descrição : Etapa responsável pela execução do Restore.
+Arquivo : clean_step.py
+Descrição : Etapa responsável pela limpeza do projeto.
 --------------------------------------------------------------------
 """
 
@@ -28,16 +28,16 @@ from app.services.msbuild_locator import (
 )
 
 
-class RestoreStep(ProcessStep):
+class CleanStep(ProcessStep):
     """
-    Executa o Restore do projeto.
+    Executa a limpeza do projeto.
     """
 
     @property
     def name(
         self,
     ) -> str:
-        return "Restore"
+        return "Clean"
 
     def __init__(
         self,
@@ -51,6 +51,40 @@ class RestoreStep(ProcessStep):
 
         self.__msbuild_locator = (
             msbuild_locator
+        )
+
+    def __normalize_platform(
+        self,
+        platform: str,
+    ) -> str:
+
+        if not platform:
+            return platform
+
+        normalized = (
+            platform.strip()
+            .replace(
+                " ",
+                "",
+            )
+        )
+
+        aliases = {
+
+            "ANYCPU": "AnyCPU",
+
+            "X64": "x64",
+
+            "X86": "x86",
+
+            "WIN32": "Win32",
+
+            "MIXEDPLATFORMS": "Mixed Platforms",
+        }
+
+        return aliases.get(
+            normalized.upper(),
+            normalized,
         )
 
     def get_executable(
@@ -75,7 +109,9 @@ class RestoreStep(ProcessStep):
                 self.__msbuild_locator.get_msbuild_path()
             )
 
-        return Path("dotnet")
+        return Path(
+            "dotnet",
+        )
 
     def get_working_directory(
         self,
@@ -112,37 +148,41 @@ class RestoreStep(ProcessStep):
             == CompilationEngine.MSBUILD
         ):
 
-            restore_target = (
-                build_context.paths.solution_file
-                or build_context.paths.project_file
+            platform = (
+                self.__normalize_platform(
+                    project.platform,
+                )
             )
-            print("=" * 80)
-            print("PROJECT :", build_context.paths.project_file)
-            print("SOLUTION:", build_context.paths.solution_file)
-            print("=" * 80)
 
             return [
 
                 CommandArgument(
                     value=str(
-                        restore_target,
+                        build_context.paths.project_file,
                     ),
                 ),
 
                 CommandArgument(
-                    value="/restore",
+                    value="/t:Clean",
                 ),
 
+                CommandArgument(
+                    value=f"/p:Configuration={project.configuration}",
+                ),
+
+                CommandArgument(
+                    value=f"/p:Platform={platform}",
+                ),
             ]
 
         #
-        # DotNet
+        # Dotnet
         #
 
         return [
 
             CommandArgument(
-                value="restore",
+                value="clean",
             ),
 
             CommandArgument(
@@ -151,4 +191,11 @@ class RestoreStep(ProcessStep):
                 ),
             ),
 
+            CommandArgument(
+                value="--configuration",
+            ),
+
+            CommandArgument(
+                value=project.configuration,
+            ),
         ]
