@@ -13,7 +13,9 @@
         "robocopy_path": "C:\\Windows\\System32\\robocopy.exe"
     },
     "logging": {
-        "level": "INFO"
+        "enabled": true,
+        "path": "C:\\Custom\\ourobuild\\app\\logs",
+        "level": "DEBUG"
     },
     "storage": {
         "root_path": "C:/Custom/OuroBuild"
