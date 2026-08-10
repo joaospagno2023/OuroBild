@@ -14,5 +14,8 @@
     },
     "logging": {
         "level": "INFO"
+    },
+    "storage": {
+        "root_path": "C:/Custom/OuroBuild"
     }
 }

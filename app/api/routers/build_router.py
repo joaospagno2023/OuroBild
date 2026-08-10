@@ -28,10 +28,7 @@ def execute_build(
 
     import traceback
 
-    print("=" * 80)
-    print("ENTROU NO ENDPOINT /builds")
-    print("=" * 80)
-
+   
     bootstrap = request.app.state.bootstrap
 
     try:
@@ -40,21 +37,8 @@ def execute_build(
             build_request,
         )
 
-        print("=" * 80)
-        print("BUILD EXECUTADO COM SUCESSO")
-        print("=" * 80)
-
         return result
 
     except Exception as ex:
-
-        print("=" * 80)
-        print("ERRO NO ENDPOINT BUILD")
-        print("=" * 80)
-
         traceback.print_exc()
-
-        print(type(ex))
-        print(ex)
-
         raise

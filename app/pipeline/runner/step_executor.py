@@ -6,6 +6,8 @@ Descrição : Responsável por executar uma etapa da Pipeline.
 --------------------------------------------------------------------
 """
 
+import traceback
+
 from app.models.pipeline.pipeline import Pipeline
 from app.models.pipeline.pipeline_context import PipelineContext
 from app.models.pipeline.step_result import StepResult
@@ -30,22 +32,23 @@ class StepExecutor:
 
         try:
 
+            
+
             step_result = step.execute(
                 context,
             )
+
+            
 
             if not step_result.name:
                 step_result.name = step.name
 
             return step_result
 
-        except Exception as exception:
+        except Exception:
 
-            return StepResult(
-                name=step.name,
-                status=StepStatus.FAILED,
-                message=str(exception),
-                errors=[
-                    str(exception),
-                ],
-            )
+            
+            traceback.print_exc()
+
+            # Durante a depuração queremos ver a exceção real.
+            raise

@@ -46,6 +46,23 @@ class ProcessStep(
 
         return None
 
+    def _log(
+        self,
+        message: str,
+    ) -> None:
+        """
+        Grava informações de depuração.
+        """
+
+        Path(
+            r"C:\Logs"
+        ).mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        
+
     def execute(
         self,
         context: PipelineContext,
@@ -53,6 +70,15 @@ class ProcessStep(
         """
         Executa a Step.
         """
+
+        self._log("")
+        self._log("=" * 80)
+        self._log(f"STEP : {self.name}")
+        self._log("=" * 80)
+
+        #
+        # Command
+        #
 
         command = Command(
             executable=self.get_executable(
@@ -66,22 +92,118 @@ class ProcessStep(
             ),
         )
 
+        self._log(f"Executável : {command.executable}")
+        self._log(f"Diretório  : {command.working_directory}")
+
+        #
+        # Processo
+        #
+
         result = self._process_service.execute(
             command,
         )
 
-        analysis = None
+        self._log("")
+        self._log("PROCESS RESULT")
+
+        self._log(
+            f"Status      : {result.status}"
+        )
+
+        self._log(
+            f"Stdout Size : {len(result.stdout)}"
+        )
+
+        self._log(
+            f"Stderr Size : {len(result.stderr)}"
+        )
+
+        #
+        # Guarda saída completa do MSBuild
+        #
+
+        with open(
+            r"C:\Logs\msbuild_output.txt",
+            "w",
+            encoding="utf-8",
+        ) as file:
+
+            file.write(
+                result.stdout,
+            )
+
+        #
+        # Parser
+        #
 
         parser = self.get_output_parser()
 
-        if parser is not None:
+        analysis = None
+
+        if parser is None:
+
+            self._log(
+                "Parser : None"
+            )
+
+        else:
+
+            self._log(
+                f"Parser : {parser.__class__.__name__}"
+            )
 
             analysis = parser.parse(
                 output=result.stdout,
                 context=context,
             )
 
-        return StepResult(
+        self._log("")
+        self._log("PARSER RESULT")
+
+        self._log(
+            f"Analysis Type : {type(analysis)}"
+        )
+
+        if analysis is not None:
+
+            if hasattr(
+                analysis,
+                "warnings",
+            ):
+
+                self._log(
+                    f"Warnings : {len(analysis.warnings)}"
+                )
+
+            if hasattr(
+                analysis,
+                "errors",
+            ):
+
+                self._log(
+                    f"Errors   : {len(analysis.errors)}"
+                )
+
+            if hasattr(
+                analysis,
+                "summary",
+            ):
+
+                self._log(
+                    f"Summary  : {analysis.summary}"
+                )
+
+        else:
+
+            self._log(
+                "Analysis : None"
+            )
+
+        #
+        # StepResult
+        #
+
+        step_result = StepResult(
             name=self.name,
             status=(
                 StepStatus.SUCCESS
@@ -92,6 +214,41 @@ class ProcessStep(
             elapsed_seconds=result.duration,
             analysis=analysis,
         )
+
+        self._log("")
+        self._log("STEP RESULT")
+
+        self._log(
+            f"Status : {step_result.status}"
+        )
+
+        self._log(
+            f"Analysis : {type(step_result.analysis)}"
+        )
+
+        if step_result.analysis is not None:
+
+            if hasattr(
+                step_result.analysis,
+                "warnings",
+            ):
+
+                self._log(
+                    f"Warnings : {len(step_result.analysis.warnings)}"
+                )
+
+            if hasattr(
+                step_result.analysis,
+                "errors",
+            ):
+
+                self._log(
+                    f"Errors   : {len(step_result.analysis.errors)}"
+                )
+
+        self._log("=" * 80)
+
+        return step_result
 
     @property
     @abstractmethod

@@ -35,21 +35,6 @@ class DefaultProcessService(ProcessService):
             #
             # Diagnóstico da execução.
             #
-
-            print()
-            print("=" * 80)
-            print("OUROBUILD - EXECUÇÃO DO PROCESSO")
-            print("=" * 80)
-            print(f"Executável : {command.executable}")
-            print(f"Diretório  : {command.working_directory}")
-            print("Argumentos :")
-
-            for argument in command.arguments:
-                print(f"   {argument.value}")
-
-            print("=" * 80)
-            print()
-           
             result = subprocess.run(
                 args=[
                     str(command.executable),
@@ -94,4 +79,17 @@ class DefaultProcessService(ProcessService):
             stdout=stdout,
             stderr=stderr,
             duration=duration,
+            started_at=started_at,
+            finished_at=finished_at,
+            executable=str(command.executable),
+            working_directory=str(command.working_directory),
+            command_line=" ".join(
+                [
+                    str(command.executable),
+                    *[
+                        argument.value
+                        for argument in command.arguments
+                    ],
+                ],
+            ),
         )

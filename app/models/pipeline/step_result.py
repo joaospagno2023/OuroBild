@@ -6,13 +6,23 @@ Descrição : Resultado retornado por uma etapa da Pipeline.
 --------------------------------------------------------------------
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
-from app.models.pipeline.step_status import StepStatus
+from app.models.pipeline.step_status import (
+    StepStatus,
+)
+from app.models.process.process_result import (
+    ProcessResult,
+)
 
 
-@dataclass(slots=True)
+@dataclass(
+    slots=True,
+)
 class StepResult:
     """
     Representa o resultado da execução de uma etapa da Pipeline.
@@ -32,6 +42,10 @@ class StepResult:
 
     message: str = ""
 
+    started_at: datetime | None = None
+
+    finished_at: datetime | None = None
+
     elapsed_seconds: float = 0.0
 
     #
@@ -47,12 +61,19 @@ class StepResult:
     )
 
     #
-    # Resultado produzido por um OutputParser.
+    # Processo executado
     #
-    # Exemplo:
-    #   - BuildExecution
-    #   - TestExecution
-    #   - InstallerExecution
+
+    process: ProcessResult | None = None
+
+    #
+    # Arquivos produzidos
+    #
+
+    output_log: Path | None = None
+
+    #
+    # Resultado produzido pelo OutputParser
     #
 
     analysis: Any | None = None

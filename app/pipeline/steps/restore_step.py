@@ -116,10 +116,7 @@ class RestoreStep(ProcessStep):
                 build_context.paths.solution_file
                 or build_context.paths.project_file
             )
-            print("=" * 80)
-            print("PROJECT :", build_context.paths.project_file)
-            print("SOLUTION:", build_context.paths.solution_file)
-            print("=" * 80)
+           
 
             return [
 
@@ -130,7 +127,7 @@ class RestoreStep(ProcessStep):
                 ),
 
                 CommandArgument(
-                    value="/restore",
+                    value="/t:Restore",
                 ),
 
             ]

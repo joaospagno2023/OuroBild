@@ -30,11 +30,7 @@ def main():
 
     path = locator.get_msbuild_path()
 
-    print()
-    print("MSBuild encontrado:")
-    print(path)
-    print()
-
+   
 
 if __name__ == "__main__":
     main()

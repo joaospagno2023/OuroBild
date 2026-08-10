@@ -42,6 +42,8 @@ class ProductionBuildEnvironmentBuilder(
         Prepara os caminhos do ambiente.
         """
 
+
+
         if context.environment is None:
             raise ValueError(
                 "Environment não informado."
@@ -69,11 +71,7 @@ class ProductionBuildEnvironmentBuilder(
             )
         )
 
-        print("=" * 80)
-        print("PRODUCTION BUILDER")
-        print("PROJECT :", context.paths.project_file)
-        print("SOLUTION:", context.paths.solution_file)
-        print("=" * 80)
+       
 
         context.paths.source_root = (
             context.paths.project_file.parent

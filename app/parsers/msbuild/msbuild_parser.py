@@ -60,6 +60,8 @@ class MsBuildParser(OutputParser):
 
             line = line.strip()
 
+            
+
             if not line:
                 continue
 
@@ -113,7 +115,7 @@ class MsBuildParser(OutputParser):
         match = self.ERROR_PATTERN.match(
             line,
         )
-
+        
         if match is None:
             return None
 

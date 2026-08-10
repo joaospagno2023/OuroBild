@@ -6,12 +6,18 @@ Descrição : Resultado da execução de um processo.
 --------------------------------------------------------------------
 """
 
+from datetime import datetime
+
 from pydantic import BaseModel
 
-from app.models.process.process_status import ProcessStatus
+from app.models.process.process_status import (
+    ProcessStatus,
+)
 
 
-class ProcessResult(BaseModel):
+class ProcessResult(
+    BaseModel,
+):
     """
     Resultado da execução de um processo.
     """
@@ -25,3 +31,13 @@ class ProcessResult(BaseModel):
     stderr: str
 
     duration: float
+
+    started_at: datetime
+
+    finished_at: datetime
+
+    executable: str
+
+    working_directory: str
+
+    command_line: str

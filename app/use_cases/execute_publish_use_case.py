@@ -31,10 +31,15 @@ class ExecutePublishUseCase:
         publish_context_factory: PublishContextFactory,
         pipeline_factory: PipelineFactory,
         solution_locator: SolutionLocatorService,
+        pipeline_runner: PipelineRunner,
     ) -> None:
 
         self.__publish_context_factory = (
             publish_context_factory
+        )
+
+        self.__pipeline_runner = (
+            pipeline_runner
         )
 
         self.__pipeline_factory = (
@@ -131,9 +136,7 @@ class ExecutePublishUseCase:
         # Executa
         #
 
-        runner = PipelineRunner()
-
-        return runner.execute(
+        return self.__pipeline_runner.execute(
             pipeline=pipeline,
             context=pipeline_context,
         )

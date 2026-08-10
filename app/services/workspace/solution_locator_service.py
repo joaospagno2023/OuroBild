@@ -22,13 +22,12 @@ class SolutionLocatorService:
         """
         Localiza a Solution correspondente ao projeto.
         """
-        print("=" * 80)
-        print("PROJECT FILE SOLUTION LOCATOR :", project_file)
+       
 
         workspace = self.__find_workspace_root(
             project_file,
         )
-        print("WORKSPACE :", workspace)
+        
 
         if workspace is None:
             return None

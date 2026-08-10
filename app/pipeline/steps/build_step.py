@@ -1,9 +1,9 @@
 """
---------------------------------------------------------------------
+---------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : build_step.py
-Descrição : Etapa responsável pela execução da compilação.
---------------------------------------------------------------------
+Descrição: Executa a etapa de compilação da Pipeline.
+---------------------------------------------------------------------
 """
 
 from pathlib import Path
@@ -28,6 +28,9 @@ from app.pipeline.steps.process_step import (
 )
 from app.services.msbuild_locator import (
     MSBuildLocator,
+)
+from app.utils.pipeline_logger import (
+    PipelineLogger,
 )
 
 
@@ -163,9 +166,78 @@ class BuildStep(ProcessStep):
             == CompilationEngine.MSBUILD
         ):
 
-            platform = self.__normalize_platform(
-                project.platform,
+            platform = (
+                self.__normalize_platform(
+                    project.platform,
+                )
             )
+
+            #
+            # DEBUG MSBUILD
+            #
+
+            PipelineLogger.info(
+                "MSBUILD CONFIGURATION",
+            )
+
+            PipelineLogger.info(
+                f"Project........: "
+                f"{project.name}",
+            )
+
+            PipelineLogger.info(
+                f"Project File...: "
+                f"{build_context.paths.project_file}",
+            )
+
+            PipelineLogger.info(
+                f"Configuration..: "
+                f"{project.configuration}",
+            )
+
+            PipelineLogger.info(
+                f"Platform.......: "
+                f"{project.platform}",
+            )
+
+            PipelineLogger.info(
+                f"Normalized.....: "
+                f"{platform}",
+            )
+
+            PipelineLogger.info(
+                f"MSBuild........: "
+                f"{self.__msbuild_locator.get_msbuild_path()}",
+            )
+
+            #
+            # ARGUMENTOS MSBUILD
+            #
+
+            PipelineLogger.info(
+                "MSBUILD ARGUMENTS",
+            )
+
+            PipelineLogger.info(
+                f"Project........: "
+                f"{build_context.paths.project_file}",
+            )
+
+            PipelineLogger.info(
+                f"Configuration..: "
+                f"/p:Configuration="
+                f"{project.configuration}",
+            )
+
+            PipelineLogger.info(
+                f"Platform.......: "
+                f"/p:Platform="
+                f"{platform}",
+            )
+
+            #
+            # Retorna argumentos
+            #
 
             return [
 
@@ -176,11 +248,17 @@ class BuildStep(ProcessStep):
                 ),
 
                 CommandArgument(
-                    value=f"/p:Configuration={project.configuration}",
+                    value=(
+                        f"/p:Configuration="
+                        f"{project.configuration}"
+                    ),
                 ),
 
                 CommandArgument(
-                    value=f"/p:Platform={platform}",
+                    value=(
+                        f"/p:Platform="
+                        f"{platform}"
+                    ),
                 ),
             ]
 

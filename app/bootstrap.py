@@ -6,6 +6,7 @@ Descrição : Responsável por inicializar a aplicação e criar as
              dependências da aplicação.
 --------------------------------------------------------------------
 """
+import inspect
 
 from pathlib import Path
 
@@ -33,6 +34,7 @@ from app.factories.default_pipeline_factory import (
 )
 
 # Repositories
+from app.pipeline.runner.pipeline_runner import PipelineRunner
 from app.repositories.json_environment_repository import (
     JsonEnvironmentRepository,
 )
@@ -135,6 +137,12 @@ from app.services.project_metadata_service import (
 from app.services.workspace.solution_locator_service import (
     SolutionLocatorService,
 )
+from app.pipeline.runner.pipeline_runner import (
+    PipelineRunner,
+)
+from app.repositories.json_pipeline_execution_repository import (
+    JsonPipelineExecutionRepository,
+)
 
 class Bootstrap:
     """
@@ -209,9 +217,13 @@ class Bootstrap:
         # Services
         #
 
-        self.process_service = DefaultProcessService()
+        self.process_service = (
+            DefaultProcessService()
+        )
 
-        self.hash_service = (HashService() )
+        self.hash_service = (
+            HashService() 
+        )
 
         self.project_metadata_service = (
             ProjectMetadataService(
@@ -219,6 +231,45 @@ class Bootstrap:
                 hash_service=self.hash_service,
             )
         )
+        #
+        # Repositório de execuções
+        #
+
+        self.pipeline_execution_repository = (
+            JsonPipelineExecutionRepository(
+                settings=self.settings,
+            )
+        )
+       
+
+        #
+        # Pipeline Runner
+        #
+        print()
+        print("=" * 80)
+        print("DEBUG PIPELINE RUNNER")
+        print("=" * 80)
+        print("ARQUIVO:", inspect.getfile(PipelineRunner))
+        print("CLASSE:", PipelineRunner)
+        print("INIT:", inspect.signature(PipelineRunner.__init__))
+        print("=" * 80) 
+        
+        self.pipeline_runner = (
+            PipelineRunner(
+                repository=self.pipeline_execution_repository,
+            )
+        )
+
+            
+
+        self.project_metadata_service = (
+            ProjectMetadataService(
+                repository=self.project_metadata_repository,
+                hash_service=self.hash_service,
+            )
+        )
+
+       
 
         #
         # Factories
@@ -298,6 +349,8 @@ class Bootstrap:
                 build_context_factory=self.build_context_factory,
                 pipeline_factory=self.pipeline_factory,
                 solution_locator=self.solution_locator_service,
+                pipeline_runner=self.pipeline_runner,
+                publish_context_factory=self.publish_context_factory,
             )
         )
         self.execute_publish_use_case = (
@@ -305,6 +358,7 @@ class Bootstrap:
                 publish_context_factory=self.publish_context_factory,
                 pipeline_factory=self.pipeline_factory,
                 solution_locator=self.solution_locator_service,
+                pipeline_runner=self.pipeline_runner,
             )
         )
         self.execute_analyze_use_case = (
