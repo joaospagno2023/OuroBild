@@ -2,24 +2,35 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : publish_step.py
-Descrição : Etapa responsável pela execução do dotnet publish.
+Descrição : Etapa responsável pela execução do Publish via MSBuild.
 --------------------------------------------------------------------
 """
 
 from pathlib import Path
 
-from app.abstractions.process_service import ProcessService
-from app.models.pipeline.pipeline_context import PipelineContext
-from app.models.process.command_argument import CommandArgument
+from app.abstractions.process_service import (
+    ProcessService,
+)
+from app.models.pipeline.pipeline_context import (
+    PipelineContext,
+)
+from app.models.process.command_argument import (
+    CommandArgument,
+)
 from app.parsers.publish.publish_parser import (
     PublishParser,
 )
-from app.pipeline.steps.process_step import ProcessStep
+from app.pipeline.steps.process_step import (
+    ProcessStep,
+)
+from app.services.msbuild_locator import (
+    MSBuildLocator,
+)
 
 
 class PublishStep(ProcessStep):
     """
-    Executa o comando dotnet publish.
+    Executa a etapa de Publish utilizando MSBuild.
     """
 
     @property
@@ -31,18 +42,28 @@ class PublishStep(ProcessStep):
     def __init__(
         self,
         process_service: ProcessService,
+        msbuild_locator: MSBuildLocator,
     ) -> None:
 
         super().__init__(
             process_service=process_service,
         )
 
+        self.__msbuild_locator = (
+            msbuild_locator
+        )
+
     def get_executable(
         self,
         context: PipelineContext,
     ) -> Path:
+        """
+        Retorna o MSBuild utilizado pelo Visual Studio.
+        """
 
-        return Path("dotnet")
+        return (
+            self.__msbuild_locator.get_msbuild_path()
+        )
 
     def get_working_directory(
         self,
@@ -71,29 +92,20 @@ class PublishStep(ProcessStep):
         arguments: list[CommandArgument] = [
 
             CommandArgument(
-                value="publish",
-            ),
-
-            CommandArgument(
-                value=(
-                    publish_context.paths.project_file.name
+                value=str(
+                    publish_context.paths.project_file
                 ),
             ),
 
             CommandArgument(
-                value="--configuration",
+                value="/t:Publish",
             ),
 
             CommandArgument(
-                value=request.configuration,
-            ),
-
-            #
-            # Nunca recompila.
-            #
-
-            CommandArgument(
-                value="--no-build",
+                value=(
+                    f"/p:Configuration="
+                    f"{request.configuration}"
+                ),
             ),
         ]
 
@@ -106,10 +118,10 @@ class PublishStep(ProcessStep):
             arguments.extend(
                 [
                     CommandArgument(
-                        value="--runtime",
-                    ),
-                    CommandArgument(
-                        value=request.runtime,
+                        value=(
+                            f"/p:RuntimeIdentifier="
+                            f"{request.runtime}"
+                        ),
                     ),
                 ]
             )
@@ -123,10 +135,10 @@ class PublishStep(ProcessStep):
             arguments.extend(
                 [
                     CommandArgument(
-                        value="--framework",
-                    ),
-                    CommandArgument(
-                        value=request.framework,
+                        value=(
+                            f"/p:TargetFramework="
+                            f"{request.framework}"
+                        ),
                     ),
                 ]
             )
@@ -140,10 +152,10 @@ class PublishStep(ProcessStep):
             arguments.extend(
                 [
                     CommandArgument(
-                        value="--output",
-                    ),
-                    CommandArgument(
-                        value=request.output_directory,
+                        value=(
+                            f"/p:PublishDir="
+                            f"{request.output_directory}"
+                        ),
                     ),
                 ]
             )
@@ -156,7 +168,9 @@ class PublishStep(ProcessStep):
 
             arguments.append(
                 CommandArgument(
-                    value="--self-contained",
+                    value=(
+                        "/p:SelfContained=true"
+                    ),
                 )
             )
 
@@ -169,7 +183,8 @@ class PublishStep(ProcessStep):
             arguments.append(
                 CommandArgument(
                     value=(
-                        f"/p:PublishProfile={request.publish_profile}"
+                        f"/p:PublishProfile="
+                        f"{request.publish_profile}"
                     ),
                 )
             )
@@ -182,7 +197,9 @@ class PublishStep(ProcessStep):
 
             arguments.append(
                 CommandArgument(
-                    value="/p:PublishSingleFile=true",
+                    value=(
+                        "/p:PublishSingleFile=true"
+                    ),
                 )
             )
 
@@ -194,7 +211,9 @@ class PublishStep(ProcessStep):
 
             arguments.append(
                 CommandArgument(
-                    value="/p:PublishReadyToRun=true",
+                    value=(
+                        "/p:PublishReadyToRun=true"
+                    ),
                 )
             )
 
@@ -206,7 +225,9 @@ class PublishStep(ProcessStep):
 
             arguments.append(
                 CommandArgument(
-                    value="/p:PublishTrimmed=true",
+                    value=(
+                        "/p:PublishTrimmed=true"
+                    ),
                 )
             )
 

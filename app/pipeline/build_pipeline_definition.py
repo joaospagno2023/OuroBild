@@ -9,19 +9,25 @@ Descrição : Define a Pipeline padrão de Build.
 from app.abstractions.process_service import (
     ProcessService,
 )
+
 from app.models.project.project import Project
+
 from app.pipeline.abstractions.pipeline_step import (
     PipelineStep,
 )
+
 from app.pipeline.steps.build_step import (
     BuildStep,
 )
+
 from app.pipeline.steps.publish_step import (
     PublishStep,
 )
+
 from app.pipeline.steps.restore_step import (
     RestoreStep,
 )
+
 from app.services.msbuild_locator import (
     MSBuildLocator,
 )
@@ -29,6 +35,7 @@ from app.services.msbuild_locator import (
 from app.pipeline.steps.clean_step import (
     CleanStep,
 )
+
 
 class BuildPipelineDefinition:
     """
@@ -63,6 +70,7 @@ class BuildPipelineDefinition:
                 process_service=self.__process_service,
                 msbuild_locator=self.__msbuild_locator,
             ),
+
             CleanStep(
                 process_service=self.__process_service,
                 msbuild_locator=self.__msbuild_locator,
@@ -75,5 +83,6 @@ class BuildPipelineDefinition:
 
             PublishStep(
                 process_service=self.__process_service,
+                msbuild_locator=self.__msbuild_locator,
             ),
         ]
