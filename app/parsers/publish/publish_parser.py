@@ -2,18 +2,25 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : publish_parser.py
-Descrição : Responsável por interpretar a saída do dotnet publish.
+Descrição : Responsável por interpretar a saída do Publish.
 --------------------------------------------------------------------
 """
 
 import re
 from typing import Any
 
-from app.abstractions.output_parser import OutputParser
-from app.models.publish.publish_error import PublishError
+from app.abstractions.output_parser import (
+    OutputParser,
+)
+
+from app.models.publish.publish_error import (
+    PublishError,
+)
+
 from app.models.publish.publish_execution import (
     PublishExecution,
 )
+
 from app.models.publish.publish_warning import (
     PublishWarning,
 )
@@ -21,7 +28,8 @@ from app.models.publish.publish_warning import (
 
 class PublishParser(OutputParser):
     """
-    Responsável por interpretar a saída do dotnet publish.
+    Responsável por interpretar a saída do Publish
+    executado pelo MSBuild.
     """
 
     OUTPUT_PATTERN = re.compile(
@@ -29,11 +37,26 @@ class PublishParser(OutputParser):
     )
 
     ERROR_PATTERN = re.compile(
-        r": error (?P<code>[A-Z]+\d+): (?P<message>.+)"
+        r": error (?P<code>[A-Z]+\d+): (?P<message>.+)",
+        re.IGNORECASE,
     )
 
     WARNING_PATTERN = re.compile(
-        r": warning (?P<code>[A-Z]+\d+): (?P<message>.+)"
+        r": warning (?P<code>[A-Z]+\d+): (?P<message>.+)",
+        re.IGNORECASE,
+    )
+
+    SUCCESS_PATTERNS = (
+        "compilação com êxito.",
+        "compilacao com exito.",
+        "build succeeded.",
+        "build succeeded",
+        "publish succeeded.",
+        "publish succeeded",
+        "publicação concluída.",
+        "publicação concluída",
+        "publicacao concluida.",
+        "publicacao concluida",
     )
 
     def parse(
@@ -52,28 +75,23 @@ class PublishParser(OutputParser):
         )
 
         self.__parse_request(
-            execution,
-            publish_context,
-        )
-
-        self.__parse_summary(
-            execution,
-            output,
+            execution=execution,
+            publish_context=publish_context,
         )
 
         self.__parse_output_directory(
-            execution,
-            output,
+            execution=execution,
+            output=output,
         )
 
         self.__parse_errors(
-            execution,
-            output,
+            execution=execution,
+            output=output,
         )
 
         self.__parse_warnings(
-            execution,
-            output,
+            execution=execution,
+            output=output,
         )
 
         execution.summary.total_errors = (
@@ -82,6 +100,11 @@ class PublishParser(OutputParser):
 
         execution.summary.total_warnings = (
             len(execution.warnings)
+        )
+
+        self.__parse_summary(
+            execution=execution,
+            output=output,
         )
 
         return execution
@@ -138,15 +161,18 @@ class PublishParser(OutputParser):
         output: str,
     ) -> None:
 
-        output = output.lower()
+        normalized_output = (
+            output.lower()
+        )
+
+        has_success_message = any(
+            pattern in normalized_output
+            for pattern in self.SUCCESS_PATTERNS
+        )
 
         execution.summary.published = (
-
-            "publish succeeded" in output
-
-            or
-
-            "publicação concluída" in output
+            has_success_message
+            and execution.summary.total_errors == 0
         )
 
     def __parse_output_directory(
@@ -184,14 +210,10 @@ class PublishParser(OutputParser):
                 continue
 
             execution.errors.append(
-
                 PublishError(
-
                     code=match.group("code"),
-
                     message=match.group("message"),
                 )
-
             )
 
     def __parse_warnings(
@@ -210,12 +232,8 @@ class PublishParser(OutputParser):
                 continue
 
             execution.warnings.append(
-
                 PublishWarning(
-
                     code=match.group("code"),
-
                     message=match.group("message"),
                 )
-
             )
