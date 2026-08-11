@@ -14,7 +14,7 @@ class PublishRequest(BaseModel):
     Representa uma solicitação de execução de Publish.
     """
 
-    project_id: str
+    project_id: str | None = None
 
     environment_id: str
 

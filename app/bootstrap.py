@@ -355,10 +355,12 @@ class Bootstrap:
         )
         self.execute_publish_use_case = (
             ExecutePublishUseCase(
+                build_context_factory=self.build_context_factory,
                 publish_context_factory=self.publish_context_factory,
                 pipeline_factory=self.pipeline_factory,
                 solution_locator=self.solution_locator_service,
                 pipeline_runner=self.pipeline_runner,
+                project_repository=self.project_repository,
             )
         )
         self.execute_analyze_use_case = (

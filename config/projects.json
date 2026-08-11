@@ -12,14 +12,21 @@
         "network_path": "\\\\Servidor\\Builds",
         "configuration": "Release",
         "platform": "AnyCPU",        
-        "enabled": true,
-        "pipeline": {
-            "restore": true,
-            "build": true,
-            "test": false,
-            "publish": true,
-            "installer": false,
-            "deploy": false
-        }
+        "enabled": true
+    },
+    {
+        "id": "ourocce",
+        "name": "Ouro Service CCe",
+        "description": "Serviço responsável pelo CCe",
+        "project_path": "02-Source\\01-Client\\OuroNet.Client.WinService.Cce\\PROJETO_TESTE_INEXISTENTE.csproj",
+        "compilation_target": "solution",
+        "compilation_engine": "msbuild",
+        "aip_path": "",
+        "publish_path": "",
+        "output_msi": "",
+        "network_path": "\\\\Servidor\\Builds",
+        "configuration": "Release",
+        "platform": "AnyCPU",        
+        "enabled": true
     }
 ]
