@@ -58,33 +58,47 @@ class JsonProjectMetadataRepository(
     ) -> ProjectMetadata | None:
         """
         Carrega a metadata do projeto.
+
+        Retorna None quando o arquivo não existe
+        ou quando está vazio.
+
+        Um arquivo vazio representa um projeto
+        que ainda não possui metadata persistida.
         """
 
         file = self.__get_file(
             project_id,
         )
 
-        if not file.exists():
+        #
+        # Metadata ainda não criada
+        #
 
+        if not file.exists():
             return None
 
         #
-        # Nesta Sprint retornaremos o JSON.
-        #
-        # A reconstrução completa do
-        # ProjectMetadata será implementada
-        # na próxima Sprint.
+        # Lê o conteúdo
         #
 
-        with open(
-            file,
-            "r",
+        content = file.read_text(
             encoding="utf-8",
-        ) as fp:
+        )
 
-            data = json.load(
-                fp,
-            )
+        #
+        # Arquivo vazio
+        #
+
+        if not content.strip():
+            return None
+
+        #
+        # JSON
+        #
+
+        data = json.loads(
+            content,
+        )
 
         return ProjectMetadata(
             **data,
@@ -114,17 +128,12 @@ class JsonProjectMetadataRepository(
         ) as fp:
 
             json.dump(
-
                 asdict(
                     metadata,
                 ),
-
                 fp,
-
                 indent=4,
-
                 ensure_ascii=False,
-
                 default=str,
             )
 
@@ -133,12 +142,22 @@ class JsonProjectMetadataRepository(
         project_id: str,
     ) -> bool:
         """
-        Verifica se existe metadata.
+        Verifica se existe metadata válida
+        para o projeto.
         """
 
-        return self.__get_file(
+        file = self.__get_file(
             project_id,
-        ).exists()
+        )
+
+        if not file.exists():
+            return False
+
+        return bool(
+            file.read_text(
+                encoding="utf-8",
+            ).strip()
+        )
 
     def delete(
         self,
@@ -153,5 +172,4 @@ class JsonProjectMetadataRepository(
         )
 
         if file.exists():
-
             file.unlink()

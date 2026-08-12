@@ -278,6 +278,9 @@ class Bootstrap:
         self.pipeline_factory = DefaultPipelineFactory(
             process_service=self.process_service,
             msbuild_locator=self.msbuild_locator,
+            project_metadata_service=(
+                self.project_metadata_service
+            ),
         )
 
         self.build_context_factory = (

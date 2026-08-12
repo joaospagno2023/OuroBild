@@ -24,6 +24,9 @@ from app.pipeline.build_pipeline_definition import (
 from app.services.msbuild_locator import (
     MSBuildLocator,
 )
+from app.services.project_metadata_service import (
+    ProjectMetadataService,
+)
 
 
 class DefaultPipelineFactory(
@@ -37,12 +40,16 @@ class DefaultPipelineFactory(
         self,
         process_service: ProcessService,
         msbuild_locator: MSBuildLocator,
+        project_metadata_service: ProjectMetadataService,
     ) -> None:
 
         self.__definition = (
             BuildPipelineDefinition(
                 process_service=process_service,
                 msbuild_locator=msbuild_locator,
+                project_metadata_service=(
+                    project_metadata_service
+                ),
             )
         )
 
@@ -55,9 +62,7 @@ class DefaultPipelineFactory(
         """
 
         return Pipeline(
-
             name="Build Pipeline",
-
             steps=self.__definition.create_steps(
                 project=project,
             ),

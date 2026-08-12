@@ -10,13 +10,27 @@ from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
 
-from app.abstractions.process_service import ProcessService
-from app.models.pipeline.pipeline_context import PipelineContext
-from app.models.pipeline.step_result import StepResult
-from app.models.pipeline.step_status import StepStatus
-from app.models.process.command import Command
-from app.models.process.command_argument import CommandArgument
-from app.pipeline.abstractions.pipeline_step import PipelineStep
+from app.abstractions.process_service import (
+    ProcessService,
+)
+from app.models.pipeline.pipeline_context import (
+    PipelineContext,
+)
+from app.models.pipeline.step_result import (
+    StepResult,
+)
+from app.models.pipeline.step_status import (
+    StepStatus,
+)
+from app.models.process.command import (
+    Command,
+)
+from app.models.process.command_argument import (
+    CommandArgument,
+)
+from app.pipeline.abstractions.pipeline_step import (
+    PipelineStep,
+)
 
 
 class ProcessStep(
@@ -32,7 +46,9 @@ class ProcessStep(
         process_service: ProcessService,
     ) -> None:
 
-        self._process_service = process_service
+        self._process_service = (
+            process_service
+        )
 
     def get_output_parser(
         self,
@@ -45,6 +61,21 @@ class ProcessStep(
         """
 
         return None
+
+    def should_execute(
+        self,
+        context: PipelineContext,
+    ) -> bool:
+        """
+        Define se a Step deve executar.
+
+        Por padrão todas as Steps executam.
+
+        Steps que possuem regras específicas podem
+        sobrescrever este método.
+        """
+
+        return True
 
     def _log(
         self,
@@ -61,7 +92,15 @@ class ProcessStep(
             exist_ok=True,
         )
 
-        
+        with open(
+            r"C:\Logs\pipeline_debug.txt",
+            "a",
+            encoding="utf-8",
+        ) as file:
+
+            file.write(
+                f"{message}\n",
+            )
 
     def execute(
         self,
@@ -73,8 +112,40 @@ class ProcessStep(
 
         self._log("")
         self._log("=" * 80)
-        self._log(f"STEP : {self.name}")
+        self._log(
+            f"STEP : {self.name}"
+        )
         self._log("=" * 80)
+
+        #
+        # Verifica se a Step deve executar
+        #
+
+        if not self.should_execute(
+            context,
+        ):
+
+            self._log(
+                "Step não precisa ser executada.",
+            )
+
+            result = StepResult(
+                name=self.name,
+                status=StepStatus.SKIPPED,
+                message=(
+                    "Step ignorada. "
+                    "A execução não é necessária."
+                ),
+                elapsed_seconds=0.0,
+            )
+
+            self._log(
+                f"Status : {result.status}"
+            )
+
+            self._log("=" * 80)
+
+            return result
 
         #
         # Command
@@ -84,16 +155,24 @@ class ProcessStep(
             executable=self.get_executable(
                 context,
             ),
-            working_directory=self.get_working_directory(
-                context,
+            working_directory=(
+                self.get_working_directory(
+                    context,
+                )
             ),
             arguments=self.get_arguments(
                 context,
             ),
         )
 
-        self._log(f"Executável : {command.executable}")
-        self._log(f"Diretório  : {command.working_directory}")
+        self._log(
+            f"Executável : {command.executable}"
+        )
+
+        self._log(
+            f"Diretório  : "
+            f"{command.working_directory}"
+        )
 
         #
         # Processo
@@ -104,22 +183,26 @@ class ProcessStep(
         )
 
         self._log("")
-        self._log("PROCESS RESULT")
+        self._log(
+            "PROCESS RESULT"
+        )
 
         self._log(
             f"Status      : {result.status}"
         )
 
         self._log(
-            f"Stdout Size : {len(result.stdout)}"
+            f"Stdout Size : "
+            f"{len(result.stdout)}"
         )
 
         self._log(
-            f"Stderr Size : {len(result.stderr)}"
+            f"Stderr Size : "
+            f"{len(result.stderr)}"
         )
 
         #
-        # Guarda saída completa do MSBuild
+        # Guarda saída completa do processo
         #
 
         with open(
@@ -149,7 +232,8 @@ class ProcessStep(
         else:
 
             self._log(
-                f"Parser : {parser.__class__.__name__}"
+                f"Parser : "
+                f"{parser.__class__.__name__}"
             )
 
             analysis = parser.parse(
@@ -158,10 +242,13 @@ class ProcessStep(
             )
 
         self._log("")
-        self._log("PARSER RESULT")
+        self._log(
+            "PARSER RESULT"
+        )
 
         self._log(
-            f"Analysis Type : {type(analysis)}"
+            f"Analysis Type : "
+            f"{type(analysis)}"
         )
 
         if analysis is not None:
@@ -172,7 +259,8 @@ class ProcessStep(
             ):
 
                 self._log(
-                    f"Warnings : {len(analysis.warnings)}"
+                    f"Warnings : "
+                    f"{len(analysis.warnings)}"
                 )
 
             if hasattr(
@@ -181,7 +269,8 @@ class ProcessStep(
             ):
 
                 self._log(
-                    f"Errors   : {len(analysis.errors)}"
+                    f"Errors   : "
+                    f"{len(analysis.errors)}"
                 )
 
             if hasattr(
@@ -190,7 +279,8 @@ class ProcessStep(
             ):
 
                 self._log(
-                    f"Summary  : {analysis.summary}"
+                    f"Summary  : "
+                    f"{analysis.summary}"
                 )
 
         else:
@@ -210,20 +300,27 @@ class ProcessStep(
                 if result.status.value == "success"
                 else StepStatus.FAILED
             ),
-            message=result.stdout or result.stderr,
+            message=(
+                result.stdout
+                or result.stderr
+            ),
             elapsed_seconds=result.duration,
+            process=result,
             analysis=analysis,
         )
 
         self._log("")
-        self._log("STEP RESULT")
+        self._log(
+            "STEP RESULT"
+        )
 
         self._log(
             f"Status : {step_result.status}"
         )
 
         self._log(
-            f"Analysis : {type(step_result.analysis)}"
+            f"Analysis : "
+            f"{type(step_result.analysis)}"
         )
 
         if step_result.analysis is not None:
@@ -234,7 +331,8 @@ class ProcessStep(
             ):
 
                 self._log(
-                    f"Warnings : {len(step_result.analysis.warnings)}"
+                    f"Warnings : "
+                    f"{len(step_result.analysis.warnings)}"
                 )
 
             if hasattr(
@@ -243,7 +341,8 @@ class ProcessStep(
             ):
 
                 self._log(
-                    f"Errors   : {len(step_result.analysis.errors)}"
+                    f"Errors   : "
+                    f"{len(step_result.analysis.errors)}"
                 )
 
         self._log("=" * 80)
@@ -258,6 +357,7 @@ class ProcessStep(
         """
         Nome amigável da Step.
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -268,6 +368,7 @@ class ProcessStep(
         """
         Retorna o executável da Step.
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -278,6 +379,7 @@ class ProcessStep(
         """
         Retorna o diretório de trabalho da Step.
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -288,4 +390,5 @@ class ProcessStep(
         """
         Retorna os argumentos da linha de comando.
         """
+
         raise NotImplementedError

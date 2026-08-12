@@ -28,6 +28,8 @@ class ProjectMetadata:
 
     project_hash: str
 
+    restore_hash: str | None = None
+
     project_last_write: datetime | None = None
 
     last_analysis: datetime | None = None
