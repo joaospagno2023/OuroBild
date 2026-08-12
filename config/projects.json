@@ -28,5 +28,20 @@
         "configuration": "Release",
         "platform": "AnyCPU",        
         "enabled": true
+    },
+    {
+        "id": "wcfcadastro",
+        "name": "Ouro Net Server Cadastro",
+        "description": "Serviço responsável pelo Server de Cadastro",
+        "project_path": "02-Source\\02-Server\\OuroNet.Server.WCF.Cadastre\\OuroNet.Server.WCF.Cadastre.csproj",
+        "compilation_target": "solution",
+        "compilation_engine": "msbuild",
+        "aip_path": "",
+        "publish_path": "",
+        "output_msi": "",
+        "network_path": "\\\\Servidor\\Builds",
+        "configuration": "Release",
+        "platform": "AnyCPU",        
+        "enabled": true
     }
 ]

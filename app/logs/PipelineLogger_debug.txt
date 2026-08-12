@@ -5999,3 +5999,391 @@ Opção: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Clie
 2026-08-11 23:14:05 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
 2026-08-11 23:14:05 | INFO    | PipelineLogger.write | Steps............: 3
 2026-08-11 23:14:05 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Pipeline.......: Build Pipeline
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Quantidade Steps: 3
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | 
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Restore
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | STEP CLASS.....: RestoreStep
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | 
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Step............: Restore
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Status..........: StepStatus.SKIPPED
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Analysis........: <class 'NoneType'>
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | 
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Build
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | STEP CLASS.....: BuildStep
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | MSBUILD CONFIGURATION
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Project........: WinService LinkPagamento
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Project File...: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.LinkPagamento\OuroNet.Client.WinService.LinkPagamento.csproj
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Configuration..: Release
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Platform.......: AnyCPU
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Normalized.....: AnyCPU
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | MSBuild........: C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\MSBuild.exe
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | MSBUILD ARGUMENTS
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Project........: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.LinkPagamento\OuroNet.Client.WinService.LinkPagamento.csproj
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Configuration..: /p:Configuration=Release
+2026-08-11 23:29:47 | INFO    | PipelineLogger.write | Platform.......: /p:Platform=AnyCPU
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | 
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | Step............: Build
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.build.build_execution.BuildExecution'>
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | Warnings........: 2
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | 
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | BUILD EXECUTION
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | Warnings........: 2
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | BUILD ARMAZENADO EM PipelineResult
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | 
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | STEP CLASS.....: PublishStep
+2026-08-11 23:29:53 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | 
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Step............: Publish
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Warnings........: 630
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | 
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | 
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Success.........: True
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Elapsed.........: 17.776503
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Build Warnings..: 2
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Build Errors....: 0
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Steps executadas: 3
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | 
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Build............: <class 'app.models.build.build_execution.BuildExecution'>
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | Steps............: 3
+2026-08-11 23:30:04 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | Pipeline.......: Build Pipeline
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | Quantidade Steps: 3
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Restore
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | STEP CLASS.....: RestoreStep
+2026-08-11 23:57:15 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Step............: Restore
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Analysis........: <class 'NoneType'>
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Build
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | STEP CLASS.....: BuildStep
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | MSBUILD CONFIGURATION
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Project........: Ouro Net Server Cadastro
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Project File...: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\02-Server\OuroNet.Server.WCF.Cadastre\OuroNet.Server.WCF.Cadastre.csproj
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Configuration..: Release
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Platform.......: AnyCPU
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Normalized.....: AnyCPU
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | MSBuild........: C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\MSBuild.exe
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | MSBUILD ARGUMENTS
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Project........: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\02-Server\OuroNet.Server.WCF.Cadastre\OuroNet.Server.WCF.Cadastre.csproj
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Configuration..: /p:Configuration=Release
+2026-08-11 23:57:18 | INFO    | PipelineLogger.write | Platform.......: /p:Platform=AnyCPU
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Step............: Build
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.build.build_execution.BuildExecution'>
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Warnings........: 2
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | BUILD EXECUTION
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Warnings........: 2
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | BUILD ARMAZENADO EM PipelineResult
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | STEP CLASS.....: PublishStep
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Step............: Publish
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Success.........: True
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Elapsed.........: 23.606816
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Build Warnings..: 2
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Build Errors....: 0
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Steps executadas: 3
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | 
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Build............: <class 'app.models.build.build_execution.BuildExecution'>
+2026-08-11 23:57:38 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-08-11 23:57:39 | INFO    | PipelineLogger.write | Steps............: 3
+2026-08-11 23:57:39 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Pipeline.......: Build Pipeline
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Quantidade Steps: 3
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Restore
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | STEP CLASS.....: RestoreStep
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Step............: Restore
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Status..........: StepStatus.SKIPPED
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Analysis........: <class 'NoneType'>
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Build
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | STEP CLASS.....: BuildStep
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | MSBUILD CONFIGURATION
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Project........: Ouro Net Server Cadastro
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Project File...: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\02-Server\OuroNet.Server.WCF.Cadastre\OuroNet.Server.WCF.Cadastre.csproj
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Configuration..: Release
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Platform.......: AnyCPU
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Normalized.....: AnyCPU
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | MSBuild........: C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\MSBuild.exe
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | MSBUILD ARGUMENTS
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Project........: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\02-Server\OuroNet.Server.WCF.Cadastre\OuroNet.Server.WCF.Cadastre.csproj
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Configuration..: /p:Configuration=Release
+2026-08-11 23:58:20 | INFO    | PipelineLogger.write | Platform.......: /p:Platform=AnyCPU
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Step............: Build
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.build.build_execution.BuildExecution'>
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Warnings........: 2
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | BUILD EXECUTION
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Warnings........: 2
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | BUILD ARMAZENADO EM PipelineResult
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | STEP CLASS.....: PublishStep
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Step............: Publish
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Success.........: True
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Elapsed.........: 24.485981
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Build Warnings..: 2
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Build Errors....: 0
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Steps executadas: 3
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | 
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Build............: <class 'app.models.build.build_execution.BuildExecution'>
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | Steps............: 3
+2026-08-11 23:58:44 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Pipeline.......: Build Pipeline
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Quantidade Steps: 3
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Restore
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | STEP CLASS.....: RestoreStep
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Step............: Restore
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Status..........: StepStatus.SKIPPED
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Analysis........: <class 'NoneType'>
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Build
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | STEP CLASS.....: BuildStep
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | MSBUILD CONFIGURATION
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Project........: WinService LinkPagamento
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Project File...: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.LinkPagamento\OuroNet.Client.WinService.LinkPagamento.csproj
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Configuration..: Release
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Platform.......: AnyCPU
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Normalized.....: AnyCPU
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | MSBuild........: C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\MSBuild.exe
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | MSBUILD ARGUMENTS
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Project........: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.LinkPagamento\OuroNet.Client.WinService.LinkPagamento.csproj
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Configuration..: /p:Configuration=Release
+2026-08-12 13:00:02 | INFO    | PipelineLogger.write | Platform.......: /p:Platform=AnyCPU
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | Step............: Build
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.build.build_execution.BuildExecution'>
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | Warnings........: 352
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | BUILD EXECUTION
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | Warnings........: 352
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | BUILD ARMAZENADO EM PipelineResult
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | STEP CLASS.....: PublishStep
+2026-08-12 13:00:38 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:55 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:55 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:55 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-08-12 13:00:55 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:55 | INFO    | PipelineLogger.write | Step............: Publish
+2026-08-12 13:00:55 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-08-12 13:00:55 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-08-12 13:00:55 | INFO    | PipelineLogger.write | Warnings........: 630
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Success.........: True
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Elapsed.........: 53.761359
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Build Warnings..: 352
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Build Errors....: 0
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Steps executadas: 3
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | 
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Build............: <class 'app.models.build.build_execution.BuildExecution'>
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | Steps............: 3
+2026-08-12 13:00:56 | INFO    | PipelineLogger.write | ================================================================================
