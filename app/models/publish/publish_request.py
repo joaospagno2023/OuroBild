@@ -14,11 +14,29 @@ class PublishRequest(BaseModel):
     Representa uma solicitação de execução de Publish.
     """
 
+    #
+    # Identificação
+    #
+
     project_id: str | None = None
 
-    environment_id: str
+    environment_id: str | None = None
+
+    workspace: str | None = None
+
+    version: str | None = None
+
+    revision: int | None = None
+
+    #
+    # Configuração
+    #
 
     configuration: str = "Release"
+
+    #
+    # Publicação
+    #
 
     output_directory: str | None = None
 

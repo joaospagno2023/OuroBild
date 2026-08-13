@@ -11,36 +11,47 @@ from datetime import datetime
 from app.abstractions.pipeline_factory import (
     PipelineFactory,
 )
+
 from app.abstractions.project_repository import (
     ProjectRepository,
 )
+
 from app.factories.build_context_factory import (
     BuildContextFactory,
 )
+
 from app.factories.build_environment_builder_factory import (
     BuildEnvironmentBuilderFactory,
 )
+
 from app.factories.publish_context_factory import (
     PublishContextFactory,
 )
+
 from app.models.build.build_request import (
     BuildRequest,
 )
+
 from app.models.pipeline.pipeline_context import (
     PipelineContext,
 )
+
 from app.models.pipeline.pipeline_result import (
     PipelineResult,
 )
+
 from app.models.publish.publish_batch_result import (
     PublishBatchResult,
 )
+
 from app.models.publish.publish_request import (
     PublishRequest,
 )
+
 from app.pipeline.runner.pipeline_runner import (
     PipelineRunner,
 )
+
 from app.services.workspace.solution_locator_service import (
     SolutionLocatorService,
 )
@@ -105,6 +116,14 @@ class ExecutePublishUseCase:
         """
 
         #
+        # Normaliza e valida o ambiente.
+        #
+
+        request = self.__normalize_request(
+            request,
+        )
+
+        #
         # Publish individual
         #
 
@@ -141,6 +160,9 @@ class ExecutePublishUseCase:
             #
             # Cria uma requisição específica para
             # o projeto atual.
+            #
+            # Mantemos workspace, version, revision,
+            # environment_id e demais opções de Publish.
             #
 
             project_request = request.model_copy(
@@ -216,6 +238,124 @@ class ExecutePublishUseCase:
 
         return batch_result
 
+    def __normalize_request(
+        self,
+        request: PublishRequest,
+    ) -> PublishRequest:
+        """
+        Normaliza a requisição de Publish.
+
+        O workspace determina o ambiente:
+
+        production
+            -> environment_id = production
+
+        versioned
+            -> environment_id = versioned
+            -> exige version e revision
+        """
+
+        #
+        # Workspace informado.
+        #
+
+        if request.workspace is not None:
+
+            workspace = (
+                request.workspace
+                .strip()
+                .lower()
+            )
+
+            #
+            # Production.
+            #
+
+            if workspace == "production":
+
+                return request.model_copy(
+                    update={
+                        "environment_id": "production",
+                    },
+                )
+
+            #
+            # Versionado.
+            #
+
+            if workspace == "versioned":
+
+                if not request.version:
+
+                    raise ValueError(
+                        "A versão é obrigatória "
+                        "para o workspace 'versioned'."
+                    )
+
+                if request.revision is None:
+
+                    raise ValueError(
+                        "A revisão é obrigatória "
+                        "para o workspace 'versioned'."
+                    )
+
+                return request.model_copy(
+                    update={
+                        "environment_id": "versioned",
+                    },
+                )
+
+            #
+            # Workspace inválido.
+            #
+
+            raise ValueError(
+                f"Workspace não suportado: "
+                f"{request.workspace}"
+            )
+
+        #
+        # Compatibilidade com chamadas antigas
+        # que já enviam environment_id.
+        #
+
+        if request.environment_id:
+
+            #
+            # Se for versioned, exige version
+            # e revision.
+            #
+
+            if (
+                request.environment_id
+                == "versioned"
+            ):
+
+                if not request.version:
+
+                    raise ValueError(
+                        "A versão é obrigatória "
+                        "para o ambiente 'versioned'."
+                    )
+
+                if request.revision is None:
+
+                    raise ValueError(
+                        "A revisão é obrigatória "
+                        "para o ambiente 'versioned'."
+                    )
+
+            return request
+
+        #
+        # Nenhum ambiente informado.
+        #
+
+        raise ValueError(
+            "O workspace ou environment_id "
+            "deve ser informado."
+        )
+
     def __execute_project(
         self,
         request: PublishRequest,
@@ -227,12 +367,15 @@ class ExecutePublishUseCase:
         #
         # Cria o BuildRequest.
         #
+        # A versão e a revisão são preservadas
+        # para o ambiente versionado.
+        #
 
         build_request = BuildRequest(
             project_id=request.project_id,
             environment_id=request.environment_id,
-            version=None,
-            revision=None,
+            version=request.version,
+            revision=request.revision,
         )
 
         #

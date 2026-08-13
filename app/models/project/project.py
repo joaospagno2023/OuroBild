@@ -12,13 +12,10 @@ from app.models.build.compilation_engine import (
     CompilationEngine,
 )
 
-from app.models.build.compilation_engine import (
-    CompilationEngine,
-)
-
 from app.models.build.compilation_target import (
     CompilationTarget,
 )
+
 
 class Project(BaseModel):
     """
@@ -49,6 +46,8 @@ class Project(BaseModel):
 
     publish_path: str
 
+    publish_profile: str | None = None
+
     #
     # Instalador
     #
@@ -66,7 +65,5 @@ class Project(BaseModel):
     configuration: str
 
     platform: str
-
-    compilation_engine: CompilationEngine
 
     enabled: bool

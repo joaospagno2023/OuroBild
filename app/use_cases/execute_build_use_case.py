@@ -110,8 +110,8 @@ class ExecuteBuildUseCase:
         # Cria o PublishRequest
         #
         # O BuildRequest não possui as opções específicas
-        # de Publish. Portanto, usamos somente os dados
-        # necessários para identificar o projeto e ambiente.
+        # de Publish. Portanto, usamos os dados do projeto
+        # para preencher as opções configuradas para Publish.
         #
         # Os demais campos utilizam os valores padrão
         # definidos em PublishRequest.
@@ -123,6 +123,9 @@ class ExecuteBuildUseCase:
             ),
             environment_id=(
                 build_context.environment.id
+            ),
+            publish_profile=(
+                build_context.project.publish_profile
             ),
         )
 

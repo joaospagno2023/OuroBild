@@ -7,6 +7,7 @@ Descrição: Responsável por executar todas as etapas da Pipeline.
 """
 
 from datetime import datetime
+from pathlib import Path
 import inspect
 
 from app.abstractions.pipeline_execution_repository import (
@@ -258,6 +259,30 @@ class PipelineRunner:
 
                     result.publish = analysis
 
+                    publish_execution = (
+                            step_result.analysis
+                        )
+
+                    output_directory = (
+                        publish_execution.summary.output_directory
+                    )
+
+                    if output_directory:
+
+                        output_folder = Path(
+                            output_directory,
+                        )
+
+                        result.output_folder = (
+                            output_folder
+                        )
+
+                        if output_folder.exists():
+                            result.artifacts = [
+                                path
+                                for path in output_folder.iterdir()
+                                if path.is_file()
+                            ]
                     PipelineLogger.info(
                         "PUBLISH ARMAZENADO EM PipelineResult",
                     )

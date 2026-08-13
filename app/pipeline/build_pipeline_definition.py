@@ -9,24 +9,39 @@ Descrição : Define a Pipeline padrão de Build.
 from app.abstractions.process_service import (
     ProcessService,
 )
+
+from app.factories.publish_command_factory import (
+    PublishCommandFactory,
+)
+
 from app.models.project.project import (
     Project,
 )
+
 from app.pipeline.abstractions.pipeline_step import (
     PipelineStep,
 )
+
 from app.pipeline.steps.build_step import (
     BuildStep,
 )
+
+from app.pipeline.steps.clean_step import (
+    CleanStep,
+)
+
 from app.pipeline.steps.publish_step import (
     PublishStep,
 )
+
 from app.pipeline.steps.restore_step import (
     RestoreStep,
 )
+
 from app.services.msbuild_locator import (
     MSBuildLocator,
 )
+
 from app.services.project_metadata_service import (
     ProjectMetadataService,
 )
@@ -56,6 +71,14 @@ class BuildPipelineDefinition:
             project_metadata_service
         )
 
+        self.__publish_command_factory = (
+            PublishCommandFactory(
+                msbuild_locator=(
+                    self.__msbuild_locator
+                ),
+            )
+        )
+
     def create_steps(
         self,
         project: Project,
@@ -64,23 +87,55 @@ class BuildPipelineDefinition:
         Cria as Steps da Pipeline.
         """
 
-        return [
+        steps = [
 
             RestoreStep(
-                process_service=self.__process_service,
-                msbuild_locator=self.__msbuild_locator,
+                process_service=(
+                    self.__process_service
+                ),
+                msbuild_locator=(
+                    self.__msbuild_locator
+                ),
                 project_metadata_service=(
                     self.__project_metadata_service
                 ),
             ),
-
-            BuildStep(
-                process_service=self.__process_service,
-                msbuild_locator=self.__msbuild_locator,
-            ),
-
-            PublishStep(
-                process_service=self.__process_service,
-                msbuild_locator=self.__msbuild_locator,
-            ),
         ]
+
+        if project.publish_profile:
+
+            steps.append(
+                CleanStep(
+                    process_service=(
+                        self.__process_service
+                    ),
+                    msbuild_locator=(
+                        self.__msbuild_locator
+                    ),
+                )
+            )
+
+        steps.extend(
+            [
+
+                BuildStep(
+                    process_service=(
+                        self.__process_service
+                    ),
+                    msbuild_locator=(
+                        self.__msbuild_locator
+                    ),
+                ),
+
+                PublishStep(
+                    process_service=(
+                        self.__process_service
+                    ),
+                    publish_command_factory=(
+                        self.__publish_command_factory
+                    ),
+                ),
+            ]
+        )
+
+        return steps

@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : publish_step.py
-Descrição : Etapa responsável pela execução do Publish via MSBuild.
+Descrição : Etapa responsável pela execução do Publish.
 --------------------------------------------------------------------
 """
 
@@ -11,26 +11,29 @@ from pathlib import Path
 from app.abstractions.process_service import (
     ProcessService,
 )
+
+from app.factories.publish_command_factory import (
+    PublishCommandFactory,
+)
+
 from app.models.pipeline.pipeline_context import (
     PipelineContext,
 )
+
 from app.models.process.command_argument import (
     CommandArgument,
 )
-from app.parsers.publish.publish_parser import (
-    PublishParser,
-)
+
 from app.pipeline.steps.process_step import (
     ProcessStep,
 )
-from app.services.msbuild_locator import (
-    MSBuildLocator,
-)
 
 
-class PublishStep(ProcessStep):
+class PublishStep(
+    ProcessStep,
+):
     """
-    Executa a etapa de Publish utilizando MSBuild.
+    Executa a etapa de Publish.
     """
 
     @property
@@ -42,15 +45,32 @@ class PublishStep(ProcessStep):
     def __init__(
         self,
         process_service: ProcessService,
-        msbuild_locator: MSBuildLocator,
+        publish_command_factory: PublishCommandFactory,
     ) -> None:
+        """
+        Inicializa a Step.
+        """
 
         super().__init__(
             process_service=process_service,
         )
 
-        self.__msbuild_locator = (
-            msbuild_locator
+        self.__publish_command_factory = (
+            publish_command_factory
+        )
+
+    def __get_command(
+        self,
+        context: PipelineContext,
+    ):
+        """
+        Obtém o Command através da Factory.
+        """
+
+        return (
+            self.__publish_command_factory.create(
+                context,
+            )
         )
 
     def get_executable(
@@ -58,187 +78,41 @@ class PublishStep(ProcessStep):
         context: PipelineContext,
     ) -> Path:
         """
-        Retorna o MSBuild utilizado pelo Visual Studio.
+        Retorna o executável definido pelo CommandFactory.
         """
 
-        return (
-            self.__msbuild_locator.get_msbuild_path()
+        command = self.__get_command(
+            context,
         )
+
+        return command.executable
 
     def get_working_directory(
         self,
         context: PipelineContext,
     ) -> Path:
+        """
+        Retorna o diretório de trabalho definido
+        pelo CommandFactory.
+        """
 
-        publish_context = (
-            context.variables["publish_context"]
+        command = self.__get_command(
+            context,
         )
 
-        return (
-            publish_context.paths.project_file.parent
-        )
+        return command.working_directory
 
     def get_arguments(
         self,
         context: PipelineContext,
     ) -> list[CommandArgument]:
+        """
+        Retorna os argumentos definidos pelo
+        CommandFactory.
+        """
 
-        publish_context = (
-            context.variables["publish_context"]
+        command = self.__get_command(
+            context,
         )
 
-        request = publish_context.request
-
-        arguments: list[CommandArgument] = [
-
-            CommandArgument(
-                value=str(
-                    publish_context.paths.project_file
-                ),
-            ),
-
-            CommandArgument(
-                value="/t:Publish",
-            ),
-
-            CommandArgument(
-                value=(
-                    f"/p:Configuration="
-                    f"{request.configuration}"
-                ),
-            ),
-        ]
-
-        #
-        # Runtime
-        #
-
-        if request.runtime:
-
-            arguments.extend(
-                [
-                    CommandArgument(
-                        value=(
-                            f"/p:RuntimeIdentifier="
-                            f"{request.runtime}"
-                        ),
-                    ),
-                ]
-            )
-
-        #
-        # Framework
-        #
-
-        if request.framework:
-
-            arguments.extend(
-                [
-                    CommandArgument(
-                        value=(
-                            f"/p:TargetFramework="
-                            f"{request.framework}"
-                        ),
-                    ),
-                ]
-            )
-
-        #
-        # Pasta de saída
-        #
-
-        if request.output_directory:
-
-            arguments.extend(
-                [
-                    CommandArgument(
-                        value=(
-                            f"/p:PublishDir="
-                            f"{request.output_directory}"
-                        ),
-                    ),
-                ]
-            )
-
-        #
-        # Self Contained
-        #
-
-        if request.self_contained:
-
-            arguments.append(
-                CommandArgument(
-                    value=(
-                        "/p:SelfContained=true"
-                    ),
-                )
-            )
-
-        #
-        # Publish Profile
-        #
-
-        if request.publish_profile:
-
-            arguments.append(
-                CommandArgument(
-                    value=(
-                        f"/p:PublishProfile="
-                        f"{request.publish_profile}"
-                    ),
-                )
-            )
-
-        #
-        # Single File
-        #
-
-        if request.single_file:
-
-            arguments.append(
-                CommandArgument(
-                    value=(
-                        "/p:PublishSingleFile=true"
-                    ),
-                )
-            )
-
-        #
-        # ReadyToRun
-        #
-
-        if request.ready_to_run:
-
-            arguments.append(
-                CommandArgument(
-                    value=(
-                        "/p:PublishReadyToRun=true"
-                    ),
-                )
-            )
-
-        #
-        # Trimmed
-        #
-
-        if request.trimmed:
-
-            arguments.append(
-                CommandArgument(
-                    value=(
-                        "/p:PublishTrimmed=true"
-                    ),
-                )
-            )
-
-        return arguments
-
-    def get_output_parser(
-        self,
-    ):
-        """
-        Retorna o parser responsável por interpretar
-        a saída do processo de Publish.
-        """
-
-        return PublishParser()
+        return command.arguments
