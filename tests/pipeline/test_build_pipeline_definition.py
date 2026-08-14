@@ -15,7 +15,7 @@ from app.models.project.project import (
 from app.pipeline.build_pipeline_definition import (
     BuildPipelineDefinition,
 )
-
+from app.models.project.project_type import ProjectType
 
 def create_definition():
     """
@@ -50,6 +50,7 @@ def create_project(
         name="Projeto Teste",
         description="Projeto utilizado nos testes",
         solution_path=None,
+        type=ProjectType.CLIENT,
         project_path="Projeto.csproj",
         compilation_target="project",
         compilation_engine="msbuild",

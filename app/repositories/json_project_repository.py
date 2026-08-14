@@ -9,34 +9,39 @@ Descrição : Repositório responsável pela leitura dos projetos.
 import json
 from pathlib import Path
 
-from app.abstractions.project_repository import ProjectRepository
-from app.models.configuration.app_settings import AppSettings
-from app.models.project.project import Project
+from app.abstractions.project_repository import (
+    ProjectRepository,
+)
+
+from app.models.project.project import (
+    Project,
+)
 
 
-class JsonProjectRepository(ProjectRepository):
+class JsonProjectRepository(
+    ProjectRepository,
+):
     """
-    Implementação do repositório de projetos baseada em JSON.
+    Implementação do repositório de projetos
+    baseada em JSON.
     """
 
     def __init__(
         self,
         configuration_path: Path,
-        settings: AppSettings,
     ) -> None:
         """
         Inicializa o repositório.
 
         Args:
-            configuration_path: Caminho da pasta de configuração.
-            settings: Configurações da aplicação.
+            configuration_path:
+                Caminho da pasta de configuração.
         """
 
         self.__projects_file = (
-            configuration_path / "projects.json"
+            configuration_path
+            / "projects.json"
         )
-
-        self.__settings = settings
 
     def get_all(
         self,
@@ -57,10 +62,12 @@ class JsonProjectRepository(ProjectRepository):
         for item in data:
 
             project = Project.model_validate(
-                self.__resolve_project(item),
+                item,
             )
 
-            projects.append(project)
+            projects.append(
+                project,
+            )
 
         return projects
 
@@ -78,39 +85,3 @@ class JsonProjectRepository(ProjectRepository):
                 return project
 
         return None
-
-    def __resolve_project(
-        self,
-        project: dict,
-    ) -> dict:
-        """
-        Resolve as variáveis existentes no projects.json.
-        """
-
-        resolved = project.copy()
-
-        replacements = {
-            "{BASE_PATH}": str(self.__settings.base_path),
-            "{INSTALLER_PATH}": str(
-                self.__settings.installer_path,
-            ),
-            "{PUBLISH_PATH}": str(
-                self.__settings.publish_path,
-            ),
-        }
-
-        for key, value in resolved.items():
-
-            if not isinstance(value, str):
-                continue
-
-            for placeholder, replacement in replacements.items():
-
-                value = value.replace(
-                    placeholder,
-                    replacement,
-                )
-
-            resolved[key] = value
-
-        return resolved

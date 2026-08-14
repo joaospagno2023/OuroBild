@@ -12,11 +12,18 @@
         "advanced_installer_path": "C:\\Program Files\\Caphyon\\Advanced Installer 23.7\\bin\\x86\\AdvancedInstaller.com",
         "robocopy_path": "C:\\Windows\\System32\\robocopy.exe"
     },
+
+    "setup": {
+        "engine": "visual_studio",
+        "output_root": "C:\\Setups"
+    },
+
     "logging": {
         "enabled": true,
         "path": "C:\\Custom\\ourobuild\\app\\logs",
         "level": "DEBUG"
     },
+
     "storage": {
         "root_path": "C:/Custom/OuroBuild"
     }

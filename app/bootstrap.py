@@ -143,6 +143,33 @@ from app.pipeline.runner.pipeline_runner import (
 from app.repositories.json_pipeline_execution_repository import (
     JsonPipelineExecutionRepository,
 )
+from app.services.setup.windows_visual_studio_locator import (
+    WindowsVisualStudioLocator,
+)
+
+from app.services.setup.visual_studio_installer_service import (
+    VisualStudioInstallerService,
+)
+
+from app.services.setup.setup_factory import (
+    DefaultSetupFactory,
+)
+
+from app.services.setup.setup_path_resolver import (
+    SetupPathResolver,
+)
+
+from app.services.setup.visual_studio_setup_definition_loader import (
+    VisualStudioSetupDefinitionLoader,
+)
+
+from app.services.setup.setup_orchestrator import (
+    DefaultSetupOrchestrator,
+)
+from app.use_cases.execute_setup_use_case import (
+    DefaultExecuteSetupUseCase,
+)
+
 
 class Bootstrap:
     """
@@ -187,8 +214,7 @@ class Bootstrap:
         #
 
         self.project_repository = JsonProjectRepository(
-            configuration_path=configuration_path,
-            settings=self.settings,
+            configuration_path=configuration_path,            
         )
 
         self.environment_repository = (
@@ -245,14 +271,7 @@ class Bootstrap:
         #
         # Pipeline Runner
         #
-        print()
-        print("=" * 80)
-        print("DEBUG PIPELINE RUNNER")
-        print("=" * 80)
-        print("ARQUIVO:", inspect.getfile(PipelineRunner))
-        print("CLASSE:", PipelineRunner)
-        print("INIT:", inspect.signature(PipelineRunner.__init__))
-        print("=" * 80) 
+        
         
         self.pipeline_runner = (
             PipelineRunner(
@@ -330,6 +349,67 @@ class Bootstrap:
             SolutionLocatorService()
         )
 
+        #
+        # Setup
+        #
+
+        self.visual_studio_locator = (
+            WindowsVisualStudioLocator()
+        )
+
+        
+        self.visual_studio_installer_service = (
+            VisualStudioInstallerService(
+                process_service=self.process_service,
+                visual_studio_locator=(
+                    self.visual_studio_locator
+                ),
+            )
+        )
+
+        self.setup_factory = (
+            DefaultSetupFactory(
+                visual_studio_installer=(
+                    self.visual_studio_installer_service
+                ),
+            )
+        )
+
+        self.setup_path_resolver = (
+            SetupPathResolver()
+        )
+
+        self.visual_studio_setup_definition_loader = (
+            VisualStudioSetupDefinitionLoader()
+        )
+
+        self.setup_orchestrator = (
+            DefaultSetupOrchestrator(
+                workspace_resolver=(
+                    self.workspace_resolver
+                ),
+                setup_path_resolver=(
+                    self.setup_path_resolver
+                ),
+                solution_locator=(
+                    self.solution_locator_service
+                ),
+                definition_loader=(
+                    self.visual_studio_setup_definition_loader
+                ),
+                setup_factory=(
+                    self.setup_factory
+                ),
+                settings=self.settings,
+            )
+        )
+        self.execute_setup_use_case = (
+            DefaultExecuteSetupUseCase(
+                setup_orchestrator=(
+                    self.setup_orchestrator
+                ),
+            )
+        )
         
         #
         # Use Cases Sempre  deve ir por ultio

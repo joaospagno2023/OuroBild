@@ -70,6 +70,12 @@ class MSBuildPublishCommandFactory:
         #
         # Argumentos
         #
+        # A ordem é importante:
+        #
+        # 1. Projeto
+        # 2. Propriedades /p:*
+        # 3. Target /t:Publish
+        #
 
         arguments: list[CommandArgument] = [
 
@@ -86,22 +92,6 @@ class MSBuildPublishCommandFactory:
                 ),
             ),
         ]
-
-        #
-        # Publish
-        #
-        # Quando não existe PublishProfile,
-        # mantém o comportamento original utilizando
-        # diretamente o target Publish.
-        #
-
-        if not request.publish_profile:
-
-            arguments.append(
-                CommandArgument(
-                    value="/t:Publish",
-                )
-            )
 
         #
         # Runtime
@@ -175,6 +165,11 @@ class MSBuildPublishCommandFactory:
                 )
             )
 
+            #
+            # Quando utilizamos PublishProfile,
+            # habilitamos o DeployOnBuild.
+            #
+
             arguments.append(
                 CommandArgument(
                     value="/p:DeployOnBuild=true",
@@ -216,6 +211,26 @@ class MSBuildPublishCommandFactory:
                     value="/p:PublishTrimmed=true",
                 )
             )
+
+        #
+        # Target
+        #
+        # Quando existe PublishProfile, o MSBuild utiliza
+        # o DeployOnBuild e não devemos adicionar
+        # explicitamente o target /t:Publish.
+        #
+
+        if not request.publish_profile:
+
+            arguments.append(
+                CommandArgument(
+                    value="/t:Publish",
+                )
+            )
+
+        #
+        # Resultado
+        #
 
         return Command(
             executable=executable,

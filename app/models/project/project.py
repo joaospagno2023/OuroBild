@@ -15,6 +15,9 @@ from app.models.build.compilation_engine import (
 from app.models.build.compilation_target import (
     CompilationTarget,
 )
+from app.models.project.project_type import (
+    ProjectType,
+)
 
 
 class Project(BaseModel):
@@ -27,6 +30,8 @@ class Project(BaseModel):
     name: str
 
     description: str
+
+    type: ProjectType
 
     #
     # Origem da compilação
@@ -67,3 +72,5 @@ class Project(BaseModel):
     platform: str
 
     enabled: bool
+
+    

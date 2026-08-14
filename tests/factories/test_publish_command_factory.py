@@ -39,7 +39,7 @@ from app.models.publish.publish_context import (
 from app.models.publish.publish_request import (
     PublishRequest,
 )
-
+from app.models.project.project_type import ProjectType
 
 def create_context(
     tmp_path: Path,
@@ -63,6 +63,7 @@ def create_context(
         id="projeto",
         name="Projeto Teste",
         description="Projeto utilizado nos testes.",
+        type=ProjectType.CLIENT,
         solution_path=None,
         project_path=str(
             tmp_path / "Projeto.csproj"
