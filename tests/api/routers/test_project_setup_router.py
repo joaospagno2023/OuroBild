@@ -64,7 +64,6 @@ def test_deve_executar_setup_do_projeto():
             "environment_id": "producao",
             "version": "1.0.0",
             "revision": 1,
-            "configuration": "Release",
         },
     )
 
@@ -117,7 +116,3 @@ def test_deve_usar_project_id_da_url():
     )
 
     assert request.revision == 3
-
-    assert request.configuration == (
-        "Release"
-    )

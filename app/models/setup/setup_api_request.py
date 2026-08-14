@@ -13,7 +13,7 @@ class SetupApiRequest(
     BaseModel,
 ):
     """
-    Dados recebidos pela API para geração do Setup.
+    Dados recebidos pela API para geração de Setup.
 
     O project_id não pertence ao body porque é informado
     através da URL.
@@ -24,5 +24,3 @@ class SetupApiRequest(
     version: str | None = None
 
     revision: int | None = None
-
-    configuration: str = "Release"

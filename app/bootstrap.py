@@ -34,7 +34,7 @@ from app.factories.default_pipeline_factory import (
 )
 
 # Repositories
-from app.pipeline.runner.pipeline_runner import PipelineRunner
+
 from app.repositories.json_environment_repository import (
     JsonEnvironmentRepository,
 )
@@ -119,9 +119,6 @@ from app.workspace.workspace_resolver import (
 )
 
 # Services
-from app.services.default_process_service import (
-    DefaultProcessService,
-)
 
 from app.repositories.json_project_metadata_repository import (
     JsonProjectMetadataRepository,

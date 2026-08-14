@@ -158,8 +158,10 @@ class DefaultSetupOrchestrator:
                         workspace.project_file.parent
                     ),
                     installer_root=(
-                        self.__settings.installer_path
+                        self.__settings.setup.output_root
                     ),
+                    version=request.version,
+                    revision=request.revision,
                 )
             )
 
@@ -203,7 +205,7 @@ class DefaultSetupOrchestrator:
                         solution_path
                     ),
                     configuration=(
-                        request.configuration
+                        workspace.project.configuration
                     ),
                     platform=(
                         workspace.project.platform

@@ -12,6 +12,10 @@ from app.models.project.project import (
     Project,
 )
 
+from app.models.project.project_type import (
+    ProjectType,
+)
+
 from app.models.setup.setup_paths import (
     SetupPaths,
 )
@@ -38,6 +42,13 @@ class SetupPathResolver:
     installer_path
         É a pasta configurada nas configurações do OuroBuild
         onde os instaladores serão armazenados.
+
+    Estrutura de saída:
+
+        installer_root
+            └── {version}.{revision}
+                ├── Cliente
+                └── Server
     """
 
     def resolve(
@@ -45,6 +56,8 @@ class SetupPathResolver:
         project: Project,
         project_root: Path,
         installer_root: Path,
+        version: str | None = None,
+        revision: int | None = None,
     ) -> SetupPaths:
         """
         Resolve todos os caminhos necessários para o Setup.
@@ -59,6 +72,12 @@ class SetupPathResolver:
             installer_root:
                 Diretório configurado em settings.json
                 para armazenamento dos instaladores.
+
+            version:
+                Versão do Setup.
+
+            revision:
+                Revisão do Setup.
 
         Returns:
             SetupPaths contendo os caminhos resolvidos.
@@ -121,22 +140,27 @@ class SetupPathResolver:
         )
 
         #
+        # Pasta de saída dos instaladores
+        #
+
+        resolved_installer_path = (
+            self.__resolve_installer_path(
+                installer_root=installer_root,
+                project=project,
+                version=version,
+                revision=revision,
+            )
+        )
+
+        #
         # Nome do MSI
         #
 
         output_msi = (
             self.__resolve_output_msi(
                 value=project.output_msi,
-                installer_path=installer_root,
+                installer_path=resolved_installer_path,
             )
-        )
-
-        #
-        # Pasta dos instaladores
-        #
-
-        resolved_installer_path = (
-            installer_root
         )
 
         #
@@ -190,6 +214,103 @@ class SetupPathResolver:
             setup_output_path=resolved_installer_path,
             output_msi=output_msi,
             aip_path=aip_path,
+        )
+
+    def __resolve_installer_path(
+        self,
+        installer_root: Path,
+        project: Project,
+        version: str | None,
+        revision: int | None,
+    ) -> Path:
+        """
+        Resolve a pasta de saída do Setup.
+
+        Quando version e revision são informados,
+        utiliza a estrutura:
+
+            {installer_root}
+                └── {version}.{revision}
+                    └── Cliente / Server
+
+        Quando não são informados, mantém o comportamento
+        anterior utilizando diretamente installer_root.
+        """
+
+        #
+        # Mantém compatibilidade com o comportamento antigo.
+        #
+
+        if version is None and revision is None:
+            return installer_root
+
+        #
+        # A versão é obrigatória quando a revisão
+        # for utilizada.
+        #
+
+        if version is None or not str(version).strip():
+            raise ValueError(
+                "A versão do Setup não foi informada."
+            )
+
+        if revision is None:
+            raise ValueError(
+                "A revisão do Setup não foi informada."
+            )
+
+        if revision < 0:
+            raise ValueError(
+                "A revisão do Setup não pode ser negativa."
+            )
+
+        #
+        # Monta a versão completa.
+        #
+
+        version_value = (
+            str(version).strip()
+        )
+
+        version_folder = (
+            f"{version_value}.{revision}"
+        )
+
+        #
+        # Resolve o tipo do projeto.
+        #
+
+        project_type_folder = (
+            self.__resolve_project_type_folder(
+                project.type,
+            )
+        )
+
+        return (
+            installer_root
+            / version_folder
+            / project_type_folder
+        )
+
+    def __resolve_project_type_folder(
+        self,
+        project_type: ProjectType,
+    ) -> str:
+        """
+        Converte o tipo do projeto para o nome
+        da pasta de saída.
+        """
+
+        if project_type == ProjectType.CLIENT:
+            return "Cliente"
+
+        if project_type == ProjectType.SERVER:
+            return "Server"
+
+        raise ValueError(
+            "O tipo do projeto não é suportado "
+            "para geração do Setup: "
+            f"{project_type}"
         )
 
     def __resolve_project_path(

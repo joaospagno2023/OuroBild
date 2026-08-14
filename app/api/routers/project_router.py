@@ -70,7 +70,6 @@ def execute_setup(
         ),
         version=setup_request.version,
         revision=setup_request.revision,
-        configuration=setup_request.configuration,
     )
 
     return (

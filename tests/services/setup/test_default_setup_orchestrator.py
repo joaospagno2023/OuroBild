@@ -97,7 +97,6 @@ def create_request() -> SetupRequest:
         environment_id="producao",
         version="1.0.0",
         revision=1,
-        configuration="Release",
     )
 
 
@@ -217,7 +216,7 @@ def create_definition() -> SetupDefinition:
         ),
         setup_project_path=Path(
             r"C:\Projetos\Projeto"
-            r"\Setup\Teste.vdproj"
+            r"\Setup\Teste.aip"
         ),
         output_msi=Path(
             r"C:\Installers\Teste.msi"
@@ -234,14 +233,29 @@ def create_settings() -> AppSettings:
         spec=AppSettings,
     )
 
+    #
+    # Configuração antiga.
+    #
+    # Mantida porque outros componentes do
+    # AppSettings ainda podem utilizá-la.
+    #
+
     settings.installer_path = (
         Path(r"C:\Installers")
     )
+
+    #
+    # Configuração de Setup.
+    #
 
     settings.setup = MagicMock()
 
     settings.setup.engine = (
         SetupEngine.VISUAL_STUDIO
+    )
+
+    settings.setup.output_root = (
+        Path(r"C:\Setups")
     )
 
     return settings
@@ -365,8 +379,10 @@ def test_deve_executar_setup_visual_studio():
             workspace_context.project_file.parent
         ),
         installer_root=Path(
-            r"C:\Installers"
+            r"C:\Setups"
         ),
+        version="1.0.0",
+        revision=1,
     )
 
     solution_locator.find_solution.assert_called_once_with(
