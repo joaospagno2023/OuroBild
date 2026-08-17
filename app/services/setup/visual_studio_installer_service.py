@@ -244,9 +244,7 @@ class VisualStudioInstallerService(
             ),
 
             CommandArgument(
-                value=str(
-                    definition.setup_project_path,
-                ),
+                value=definition.setup_project_path.stem,
             ),
 
             CommandArgument(

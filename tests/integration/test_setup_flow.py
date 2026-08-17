@@ -534,7 +534,7 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     )
 
     assert (
-        str(setup_project_file)
+        setup_project_file.stem
         in [
             argument.value
             for argument in command.arguments

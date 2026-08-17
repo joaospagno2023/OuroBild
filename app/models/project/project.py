@@ -58,9 +58,8 @@ class Project(BaseModel):
     #
 
     aip_path: str
-
+    visualstudio_setup_path: str | None = None
     output_msi: str
-
     network_path: str
 
     #

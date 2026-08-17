@@ -157,6 +157,9 @@ class DefaultSetupOrchestrator:
                     project_root=(
                         workspace.project_file.parent
                     ),
+                    workspace_root=(
+                        workspace.environment.root_path
+                    ),
                     installer_root=(
                         self.__settings.setup.output_root
                     ),
@@ -199,7 +202,9 @@ class DefaultSetupOrchestrator:
             definition = (
                 self.__definition_loader.load(
                     setup_project_path=(
-                        paths.aip_path
+                         paths.visualstudio_setup_path
+                            if paths.visualstudio_setup_path is not None
+                            else paths.aip_path
                     ),
                     solution_path=(
                         solution_path

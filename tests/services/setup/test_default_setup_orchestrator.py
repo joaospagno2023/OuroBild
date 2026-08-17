@@ -190,12 +190,12 @@ def create_workspace_context() -> WorkspaceContext:
     """
 
     return WorkspaceContext(
-        project=create_project(),
-        environment=create_environment(),
-        project_file=Path(
-            r"C:\Projetos\Projeto\Projeto.csproj"
-        ),
-    )
+    project=create_project(),
+    environment=create_environment(),
+    project_file=Path(
+        r"C:\Projetos\Projeto\Projeto.csproj"
+    ),
+)
 
 
 def create_definition() -> SetupDefinition:
@@ -377,6 +377,9 @@ def test_deve_executar_setup_visual_studio():
         project=workspace_context.project,
         project_root=(
             workspace_context.project_file.parent
+        ),
+        workspace_root=(
+            workspace_context.environment.root_path
         ),
         installer_root=Path(
             r"C:\Setups"

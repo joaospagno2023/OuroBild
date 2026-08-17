@@ -362,9 +362,7 @@ def test_deve_montar_comando_visual_studio(
         "/Build",
         "Release",
         "/Project",
-        str(
-            definition.setup_project_path,
-        ),
+        definition.setup_project_path.stem,
         "/ProjectConfig",
         "Release",
     ]

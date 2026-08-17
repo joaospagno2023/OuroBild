@@ -540,3 +540,68 @@ def test_deve_compor_versao_com_revision(
         / "10.4.12"
         / "Cliente"
     )
+def test_deve_resolver_visualstudio_setup_path_relativo(
+    tmp_path: Path,
+):
+    """
+    Deve resolver o caminho do projeto de Setup
+    do Visual Studio relativo à raiz do projeto.
+    """
+
+    project = create_project(
+        "bin",
+    )
+
+    project.visualstudio_setup_path = (
+        "04-Setup\\"
+        "OuroNet.Client.WinServiceLinkPagamento.Setup\\"
+        "OuroNet.Client.WinServiceLinkPagamento.Setup.vdproj"
+    )
+
+    project_root = (
+        tmp_path
+        / "Projeto"
+    )
+
+    installer_root = (
+        tmp_path
+        / "Setups"
+    )
+
+    resolver = SetupPathResolver()
+
+    result = resolver.resolve(
+        project=project,
+        project_root=project_root,
+        installer_root=installer_root,
+    )
+
+    assert result.visualstudio_setup_path == (
+        project_root
+        / "04-Setup"
+        / "OuroNet.Client.WinServiceLinkPagamento.Setup"
+        / "OuroNet.Client.WinServiceLinkPagamento.Setup.vdproj"
+    )
+def test_deve_retornar_none_quando_visualstudio_setup_path_nao_for_configurado(
+    tmp_path: Path,
+):
+    """
+    Deve retornar None quando o projeto não possuir
+    Setup do Visual Studio configurado.
+    """
+
+    project = create_project(
+        "bin",
+    )
+
+    project.visualstudio_setup_path = None
+
+    resolver = SetupPathResolver()
+
+    result = resolver.resolve(
+        project=project,
+        project_root=tmp_path / "Projeto",
+        installer_root=tmp_path / "Setups",
+    )
+
+    assert result.visualstudio_setup_path is None

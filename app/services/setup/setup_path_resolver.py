@@ -56,6 +56,7 @@ class SetupPathResolver:
         project: Project,
         project_root: Path,
         installer_root: Path,
+        workspace_root: Path | None = None,
         version: str | None = None,
         revision: int | None = None,
     ) -> SetupPaths:
@@ -68,6 +69,9 @@ class SetupPathResolver:
 
             project_root:
                 Diretório físico onde o projeto está localizado.
+
+            workspace_root:
+                Diretório físico raiz do workspace.
 
             installer_root:
                 Diretório configurado em settings.json
@@ -102,6 +106,7 @@ class SetupPathResolver:
                 "A raiz do projeto não foi informada."
             )
 
+
         if installer_root is None:
             raise ValueError(
                 "A raiz dos instaladores não foi informada."
@@ -109,6 +114,13 @@ class SetupPathResolver:
 
         project_root = Path(
             project_root,
+        )
+
+        if workspace_root is None:
+            workspace_root = project_root
+
+        workspace_root = Path(
+            workspace_root,
         )
 
         installer_root = Path(
@@ -138,7 +150,12 @@ class SetupPathResolver:
                 field_name="aip_path",
             )
         )
-
+        visualstudio_setup_path = (
+            self.__resolve_optional_workspace_path(
+                value=project.visualstudio_setup_path,
+                workspace_root=workspace_root,
+            )
+        )
         #
         # Pasta de saída dos instaladores
         #
@@ -214,6 +231,7 @@ class SetupPathResolver:
             setup_output_path=resolved_installer_path,
             output_msi=output_msi,
             aip_path=aip_path,
+            visualstudio_setup_path=visualstudio_setup_path,
         )
 
     def __resolve_installer_path(
@@ -353,6 +371,74 @@ class SetupPathResolver:
 
         return (
             project_root / path
+        )
+    def __resolve_optional_project_path(
+        self,
+        value: str | None,
+        project_root: Path,
+    ) -> Path | None:
+        """
+        Resolve um caminho opcional configurado no Project.
+
+        Caminhos absolutos são respeitados.
+
+        Caminhos relativos são considerados relativos
+        à raiz física do projeto.
+
+        Quando o valor não estiver configurado,
+        retorna None.
+        """
+
+        if value is None:
+            return None
+
+        if not value.strip():
+            return None
+
+        path = Path(
+            value.strip(),
+        )
+
+        if path.is_absolute():
+            return path
+
+        return (
+            project_root / path
+        )
+
+    def __resolve_optional_workspace_path(
+        self,
+        value: str | None,
+        workspace_root: Path,
+    ) -> Path | None:
+        """
+        Resolve um caminho opcional configurado no Project
+        relativo à raiz física do workspace.
+
+        Caminhos absolutos são respeitados.
+
+        Caminhos relativos são considerados relativos
+        à raiz física do workspace.
+
+        Quando o valor não estiver configurado,
+        retorna None.
+        """
+
+        if value is None:
+            return None
+
+        if not value.strip():
+            return None
+
+        path = Path(
+            value.strip(),
+        )
+
+        if path.is_absolute():
+            return path
+
+        return (
+            workspace_root / path
         )
 
     def __resolve_output_msi(

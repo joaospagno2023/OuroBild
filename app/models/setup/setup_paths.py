@@ -20,6 +20,7 @@ class SetupPaths:
         setup_output_path: Path,
         output_msi: Path,
         aip_path: Path,
+        visualstudio_setup_path: Path | None = None,
     ) -> None:
 
         self.publish_path = (
@@ -36,4 +37,7 @@ class SetupPaths:
 
         self.aip_path = (
             aip_path
+        )
+        self.visualstudio_setup_path = (
+            visualstudio_setup_path
         )
