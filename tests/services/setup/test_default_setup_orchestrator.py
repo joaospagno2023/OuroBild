@@ -70,6 +70,10 @@ from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
 )
 
+from app.services.setup.setup_project_preparer import (
+    SetupProjectPreparer,
+)
+
 from app.services.setup.visual_studio_setup_definition_loader import (
     VisualStudioSetupDefinitionLoader,
 )
@@ -84,6 +88,9 @@ from app.workspace.workspace_context import (
 
 from app.workspace.workspace_resolver import (
     WorkspaceResolver,
+)
+from app.services.setup.visual_studio_setup_preparer import (
+    VisualStudioSetupPreparer,
 )
 
 
@@ -147,39 +154,27 @@ def create_project() -> Project:
         id="teste",
         name="Projeto Teste",
         description="Projeto utilizado nos testes.",
-
         type=ProjectType.CLIENT,
-
         solution_path=(
             r"C:\Projetos\Projeto\Projeto.sln"
         ),
-
         project_path=(
             r"C:\Projetos\Projeto\Projeto.csproj"
         ),
-
         compilation_target=(
             CompilationTarget.PROJECT
         ),
-
         compilation_engine=(
             CompilationEngine.MSBUILD
         ),
-
         publish_path="publish",
-
         aip_path=(
             r"Setup\Projeto.vdproj"
         ),
-
         output_msi="Projeto.msi",
-
         network_path="",
-
         configuration="Release",
-
         platform="AnyCPU",
-
         enabled=True,
     )
 
@@ -190,12 +185,12 @@ def create_workspace_context() -> WorkspaceContext:
     """
 
     return WorkspaceContext(
-    project=create_project(),
-    environment=create_environment(),
-    project_file=Path(
-        r"C:\Projetos\Projeto\Projeto.csproj"
-    ),
-)
+        project=create_project(),
+        environment=create_environment(),
+        project_file=Path(
+            r"C:\Projetos\Projeto\Projeto.csproj"
+        ),
+    )
 
 
 def create_definition() -> SetupDefinition:
@@ -267,17 +262,51 @@ def create_orchestrator(
     solution_locator,
     definition_loader,
     setup_factory,
+    setup_project_preparer=None,
+    visual_studio_setup_preparer=None,
 ):
     """
     Cria o Orchestrator com suas dependências.
+
+    O SetupProjectPreparer é opcional no helper para manter
+    os testes existentes compatíveis com cenários que não
+    utilizam preparação de projeto Visual Studio Setup.
     """
 
+    if setup_project_preparer is None:
+
+        setup_project_preparer = MagicMock(
+            spec=SetupProjectPreparer,
+        )
+
+    if visual_studio_setup_preparer is None:
+
+        visual_studio_setup_preparer = MagicMock(
+            spec=VisualStudioSetupPreparer,
+        )
+
     return DefaultSetupOrchestrator(
-        workspace_resolver=workspace_resolver,
-        setup_path_resolver=setup_path_resolver,
-        solution_locator=solution_locator,
-        definition_loader=definition_loader,
-        setup_factory=setup_factory,
+        workspace_resolver=(
+            workspace_resolver
+        ),
+        setup_path_resolver=(
+            setup_path_resolver
+        ),
+        solution_locator=(
+            solution_locator
+        ),
+        definition_loader=(
+            definition_loader
+        ),
+        setup_factory=(
+            setup_factory
+        ),
+        setup_project_preparer=(
+            setup_project_preparer
+        ),
+        visual_studio_setup_preparer=(
+            visual_studio_setup_preparer
+        ),
         settings=create_settings(),
     )
 
@@ -354,12 +383,29 @@ def test_deve_executar_setup_visual_studio():
         installer
     )
 
+    setup_project_preparer = MagicMock(
+        spec=SetupProjectPreparer,
+    )
+
     orchestrator = create_orchestrator(
-        workspace_resolver=workspace_resolver,
-        setup_path_resolver=setup_path_resolver,
-        solution_locator=solution_locator,
-        definition_loader=definition_loader,
-        setup_factory=setup_factory,
+        workspace_resolver=(
+            workspace_resolver
+        ),
+        setup_path_resolver=(
+            setup_path_resolver
+        ),
+        solution_locator=(
+            solution_locator
+        ),
+        definition_loader=(
+            definition_loader
+        ),
+        setup_factory=(
+            setup_factory
+        ),
+        setup_project_preparer=(
+            setup_project_preparer
+        ),
     )
 
     result = orchestrator.execute(
@@ -413,6 +459,13 @@ def test_deve_executar_setup_visual_studio():
         paths=paths,
     )
 
+    #
+    # Como este teste utiliza AIP e não .vdproj,
+    # o preparador não deve ser executado.
+    #
+
+    setup_project_preparer.prepare.assert_not_called()
+
 
 def test_deve_retornar_falha_quando_solution_nao_for_encontrada():
     """
@@ -459,12 +512,29 @@ def test_deve_retornar_falha_quando_solution_nao_for_encontrada():
         spec=DefaultSetupFactory,
     )
 
+    setup_project_preparer = MagicMock(
+        spec=SetupProjectPreparer,
+    )
+
     orchestrator = create_orchestrator(
-        workspace_resolver=workspace_resolver,
-        setup_path_resolver=setup_path_resolver,
-        solution_locator=solution_locator,
-        definition_loader=definition_loader,
-        setup_factory=setup_factory,
+        workspace_resolver=(
+            workspace_resolver
+        ),
+        setup_path_resolver=(
+            setup_path_resolver
+        ),
+        solution_locator=(
+            solution_locator
+        ),
+        definition_loader=(
+            definition_loader
+        ),
+        setup_factory=(
+            setup_factory
+        ),
+        setup_project_preparer=(
+            setup_project_preparer
+        ),
     )
 
     result = orchestrator.execute(
@@ -484,6 +554,8 @@ def test_deve_retornar_falha_quando_solution_nao_for_encontrada():
     definition_loader.load.assert_not_called()
 
     setup_factory.create.assert_not_called()
+
+    setup_project_preparer.prepare.assert_not_called()
 
 
 def test_deve_nao_executar_instalador_quando_definition_falhar():
@@ -542,12 +614,29 @@ def test_deve_nao_executar_instalador_quando_definition_falhar():
         spec=DefaultSetupFactory,
     )
 
+    setup_project_preparer = MagicMock(
+        spec=SetupProjectPreparer,
+    )
+
     orchestrator = create_orchestrator(
-        workspace_resolver=workspace_resolver,
-        setup_path_resolver=setup_path_resolver,
-        solution_locator=solution_locator,
-        definition_loader=definition_loader,
-        setup_factory=setup_factory,
+        workspace_resolver=(
+            workspace_resolver
+        ),
+        setup_path_resolver=(
+            setup_path_resolver
+        ),
+        solution_locator=(
+            solution_locator
+        ),
+        definition_loader=(
+            definition_loader
+        ),
+        setup_factory=(
+            setup_factory
+        ),
+        setup_project_preparer=(
+            setup_project_preparer
+        ),
     )
 
     result = orchestrator.execute(
@@ -566,3 +655,5 @@ def test_deve_nao_executar_instalador_quando_definition_falhar():
     )
 
     setup_factory.create.assert_not_called()
+
+    setup_project_preparer.prepare.assert_not_called()

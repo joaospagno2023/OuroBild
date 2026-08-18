@@ -17,168 +17,239 @@ from app.services.setup.setup_workspace_service import (
 
 def test_deve_criar_copia_do_setup(tmp_path: Path):
     """
-    Deve criar uma cópia do arquivo .vdproj.
+    Deve criar uma cópia independente do .vdproj.
     """
 
-    original = (
+    setup_file = (
         tmp_path
-        / "original"
-        / "MeuSetup.vdproj"
+        / "Original.Setup.vdproj"
     )
 
-    output = (
-        tmp_path
-        / "workspace"
-    )
-
-    original.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    original.write_text(
-        "CONTEUDO ORIGINAL",
+    setup_file.write_text(
+        "conteudo original",
         encoding="utf-8",
     )
 
-    service = SetupWorkspaceService()
-
-    working_setup = service.create(
-        setup_project_path=original,
-        setup_output_path=output,
-    )
-
-    assert working_setup.exists()
-
-    assert working_setup == (
-        output / "MeuSetup.vdproj"
-    )
-
-    assert (
-        working_setup.read_text(
-            encoding="utf-8"
-        )
-        == "CONTEUDO ORIGINAL"
-    )
-
-    assert (
-        original.read_text(
-            encoding="utf-8"
-        )
-        == "CONTEUDO ORIGINAL"
-    )
-
-
-def test_deve_criar_diretorio_de_trabalho(
-    tmp_path: Path,
-):
-    """
-    Deve criar o diretório de trabalho
-    quando ele não existir.
-    """
-
-    original = (
-        tmp_path
-        / "MeuSetup.vdproj"
-    )
-
-    output = (
+    workspace_root = (
         tmp_path
         / "workspace"
-        / "setup"
     )
 
-    original.write_text(
-        "SETUP",
+    service = (
+        SetupWorkspaceService()
+    )
+
+    result = service.create_workspace(
+        setup_project_path=setup_file,
+        workspace_root=workspace_root,
+    )
+
+    assert result.exists()
+
+    assert result != setup_file
+
+    assert (
+        result.read_text(
+            encoding="utf-8",
+        )
+        == "conteudo original"
+    )
+
+    assert (
+        setup_file.read_text(
+            encoding="utf-8",
+        )
+        == "conteudo original"
+    )
+
+
+def test_deve_ler_workspace(tmp_path: Path):
+    """
+    Deve ler o conteúdo do projeto de trabalho.
+    """
+
+    setup_file = (
+        tmp_path
+        / "Setup.vdproj"
+    )
+
+    setup_file.write_text(
+        "conteudo",
         encoding="utf-8",
     )
 
-    service = SetupWorkspaceService()
-
-    working_setup = service.create(
-        setup_project_path=original,
-        setup_output_path=output,
+    service = (
+        SetupWorkspaceService()
     )
 
-    assert output.exists()
-    assert working_setup.exists()
+    result = service.read(
+        workspace_project_path=setup_file,
+    )
+
+    assert result == "conteudo"
 
 
-def test_deve_falhar_quando_setup_nao_existir(
+def test_deve_escrever_workspace(tmp_path: Path):
+    """
+    Deve escrever no projeto de trabalho.
+    """
+
+    setup_file = (
+        tmp_path
+        / "Setup.vdproj"
+    )
+
+    setup_file.write_text(
+        "original",
+        encoding="utf-8",
+    )
+
+    service = (
+        SetupWorkspaceService()
+    )
+
+    service.write(
+        workspace_project_path=setup_file,
+        content="alterado",
+    )
+
+    assert (
+        setup_file.read_text(
+            encoding="utf-8",
+        )
+        == "alterado"
+    )
+
+
+def test_deve_preservar_original_apos_alterar_copia(
     tmp_path: Path,
 ):
     """
-    Deve falhar quando o .vdproj original
-    não existir.
+    Deve garantir que alterar a cópia não altera
+    o arquivo original.
     """
 
-    original = (
+    setup_file = (
         tmp_path
-        / "NaoExiste.vdproj"
+        / "Setup.vdproj"
     )
 
-    output = (
+    setup_file.write_text(
+        "original",
+        encoding="utf-8",
+    )
+
+    workspace_root = (
         tmp_path
         / "workspace"
     )
 
-    service = SetupWorkspaceService()
+    service = (
+        SetupWorkspaceService()
+    )
+
+    workspace_file = (
+        service.create_workspace(
+            setup_project_path=setup_file,
+            workspace_root=workspace_root,
+        )
+    )
+
+    service.write(
+        workspace_project_path=workspace_file,
+        content="alterado",
+    )
+
+    assert (
+        setup_file.read_text(
+            encoding="utf-8",
+        )
+        == "original"
+    )
+
+    assert (
+        workspace_file.read_text(
+            encoding="utf-8",
+        )
+        == "alterado"
+    )
+
+
+def test_deve_remover_workspace(
+    tmp_path: Path,
+):
+    """
+    Deve remover o workspace temporário.
+    """
+
+    workspace_root = (
+        tmp_path
+        / "workspace"
+    )
+
+    workspace_root.mkdir()
+
+    (
+        workspace_root
+        / "Setup.vdproj"
+    ).write_text(
+        "teste",
+        encoding="utf-8",
+    )
+
+    service = (
+        SetupWorkspaceService()
+    )
+
+    service.cleanup(
+        workspace_root=workspace_root,
+    )
+
+    assert not workspace_root.exists()
+
+
+def test_deve_rejeitar_setup_inexistente(
+    tmp_path: Path,
+):
+    """
+    Deve rejeitar um Setup que não existe.
+    """
+
+    service = (
+        SetupWorkspaceService()
+    )
 
     with pytest.raises(
         FileNotFoundError,
-        match="Projeto de Setup não encontrado",
     ):
-        service.create(
-            setup_project_path=original,
-            setup_output_path=output,
+        service.create_workspace(
+            setup_project_path=(
+                tmp_path
+                / "nao_existe.vdproj"
+            ),
+            workspace_root=(
+                tmp_path
+                / "workspace"
+            ),
         )
 
 
-def test_nao_deve_alterar_setup_original(
-    tmp_path: Path,
-):
+def test_deve_rejeitar_workspace_none():
     """
-    Deve preservar o conteúdo do Setup original.
+    Deve rejeitar WorkspaceRoot não informado.
     """
 
-    original = (
-        tmp_path
-        / "MeuSetup.vdproj"
+    service = (
+        SetupWorkspaceService()
     )
 
-    output = (
-        tmp_path
-        / "workspace"
-    )
-
-    conteudo = """
-"ProductName" = "8:Meu Produto"
-"Version" = "8:10.4.8"
-"""
-
-    original.write_text(
-        conteudo,
-        encoding="utf-8",
-    )
-
-    service = SetupWorkspaceService()
-
-    working_setup = service.create(
-        setup_project_path=original,
-        setup_output_path=output,
-    )
-
-    working_setup.write_text(
-        conteudo.replace(
-            "10.4.8",
-            "10.4.9",
-        ),
-        encoding="utf-8",
-    )
-
-    assert (
-        original.read_text(
-            encoding="utf-8"
+    with pytest.raises(
+        ValueError,
+        match="WorkspaceRoot não foi informado.",
+    ):
+        service.create_workspace(
+            setup_project_path=Path(
+                "Setup.vdproj"
+            ),
+            workspace_root=None,
         )
-        == conteudo
-    )

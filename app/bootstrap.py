@@ -167,6 +167,53 @@ from app.use_cases.execute_setup_use_case import (
     DefaultExecuteSetupUseCase,
 )
 
+from app.services.setup.setup_file_change_applier import (
+    SetupFileChangeApplier,
+)
+
+from app.services.setup.setup_file_synchronizer import (
+    SetupFileSynchronizer,
+)
+
+from app.services.setup.setup_file_template_provider import (
+    SetupFileTemplateProvider,
+)
+
+from app.services.setup.setup_project_preparer import (
+    SetupProjectPreparer,
+)
+
+from app.services.setup.visual_studio_setup_preparer import (
+    VisualStudioSetupPreparer,
+)
+
+from app.services.setup.setup_workspace_service import (
+    SetupWorkspaceService,
+)
+
+from app.services.setup.vdproj_block_parser import (
+    VdprojBlockParser,
+)
+
+from app.services.setup.vdproj_component_identity_generator import (
+    VdprojComponentIdentityGenerator,
+)
+
+from app.services.setup.vdproj_file_block_builder import (
+    VdprojFileBlockBuilder,
+)
+
+from app.services.setup.vdproj_file_block_inserter import (
+    VdprojFileBlockInserter,
+)
+
+from app.services.setup.vdproj_file_modifier import (
+    VdprojFileModifier,
+)
+
+from app.services.setup.vdproj_setup_file_loader import (
+    VdprojSetupFileLoader,
+)
 
 class Bootstrap:
     """
@@ -225,7 +272,7 @@ class Bootstrap:
                 metadata_path=Path("metadata"),
             )
         )
-#
+        #
         # Workspace
         #
 
@@ -285,8 +332,6 @@ class Bootstrap:
             )
         )
 
-       
-
         #
         # Factories
         #
@@ -337,11 +382,11 @@ class Bootstrap:
         self.project_validator = (
             ProjectValidator()
         )
+
         #
         # DEMAIS ARQUIVOS
         #
     
-
         self.solution_locator_service = (
             SolutionLocatorService()
         )
@@ -380,6 +425,93 @@ class Bootstrap:
             VisualStudioSetupDefinitionLoader()
         )
 
+        #
+        # Preparação do projeto Visual Studio Setup
+        #
+
+        self.vdproj_block_parser = (
+            VdprojBlockParser()
+        )
+
+        self.vdproj_setup_file_loader = (
+            VdprojSetupFileLoader(
+                parser=self.vdproj_block_parser,
+            )
+        )
+
+        self.setup_file_synchronizer = (
+            SetupFileSynchronizer()
+        )
+
+        self.setup_file_template_provider = (
+            SetupFileTemplateProvider(
+                parser=self.vdproj_block_parser,
+            )
+        )
+
+        self.vdproj_file_modifier = (
+            VdprojFileModifier(
+                parser=self.vdproj_block_parser,
+            )
+        )
+
+        self.vdproj_component_identity_generator = (
+            VdprojComponentIdentityGenerator()
+        )
+
+        self.vdproj_file_block_builder = (
+            VdprojFileBlockBuilder()
+        )
+
+        self.vdproj_file_block_inserter = (
+            VdprojFileBlockInserter()
+        )
+
+        self.setup_file_change_applier = (
+            SetupFileChangeApplier(
+                modifier=(
+                    self.vdproj_file_modifier
+                ),
+                template_provider=(
+                    self.setup_file_template_provider
+                ),
+                identity_generator=(
+                    self.vdproj_component_identity_generator
+                ),
+                block_builder=(
+                    self.vdproj_file_block_builder
+                ),
+                block_inserter=(
+                    self.vdproj_file_block_inserter
+                ),
+            )
+        )
+
+        self.setup_workspace_service = (
+            SetupWorkspaceService()
+        )
+
+        self.setup_project_preparer = (
+            SetupProjectPreparer(
+                workspace_service=(
+                    self.setup_workspace_service
+                ),
+                setup_file_loader=(
+                    self.vdproj_setup_file_loader
+                ),
+                synchronizer=(
+                    self.setup_file_synchronizer
+                ),
+                change_applier=(
+                    self.setup_file_change_applier
+                ),
+            )
+        )
+
+        self.visual_studio_setup_preparer = (
+            VisualStudioSetupPreparer()
+        )
+
         self.setup_orchestrator = (
             DefaultSetupOrchestrator(
                 workspace_resolver=(
@@ -397,9 +529,16 @@ class Bootstrap:
                 setup_factory=(
                     self.setup_factory
                 ),
+                setup_project_preparer=(
+                    self.setup_project_preparer
+                ),
+                visual_studio_setup_preparer=(
+                    self.visual_studio_setup_preparer
+                ),
                 settings=self.settings,
             )
         )
+        
         self.execute_setup_use_case = (
             DefaultExecuteSetupUseCase(
                 setup_orchestrator=(

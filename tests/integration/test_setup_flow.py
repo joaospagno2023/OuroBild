@@ -41,12 +41,20 @@ from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
 )
 
+from app.services.setup.setup_project_preparer import (
+    SetupProjectPreparer,
+)
+
 from app.services.setup.visual_studio_installer_service import (
     VisualStudioInstallerService,
 )
 
 from app.services.setup.visual_studio_setup_definition_loader import (
     VisualStudioSetupDefinitionLoader,
+)
+
+from app.services.setup.visual_studio_setup_preparer import (
+    VisualStudioSetupPreparer,
 )
 
 from app.use_cases.execute_setup_use_case import (
@@ -198,7 +206,36 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     )
 
     setup_project_file.write_text(
-        "",
+        """
+"FileSystem"
+{
+    "DefaultLocation" = "8:[ProgramFilesFolder][Manufacturer]\\[ProductName]"
+
+    "{AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA}:_11111111111111111111111111111111"
+    {
+        "AssemblyRegister" = "3:1"
+        "AssemblyIsInGAC" = "11:FALSE"
+        "AssemblyAsmDisplayName" = "8:Teste, Version=1.0.0.0"
+
+        "ScatterAssemblies"
+        {
+            "_111111"
+            {
+                "Name" = "8:Teste.dll"
+                "Attributes" = "3:512"
+            }
+        }
+
+        "SourcePath" = "8:Teste.dll"
+        "TargetName" = "8:"
+        "Tag" = "8:"
+        "Folder" = "8:_AAAAAA"
+        "Condition" = "8:"
+        "Transitive" = "11:FALSE"
+        "Vital" = "11:TRUE"
+    }
+}
+""".strip(),
         encoding="utf-8",
     )
 
@@ -214,6 +251,9 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
             / "Teste.msi"
         ),
         aip_path=setup_project_file,
+        visualstudio_setup_path=(
+            setup_project_file
+        ),
     )
 
     #
@@ -312,6 +352,59 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
 
     definition_loader.load.return_value = (
         definition
+    )
+
+    #
+    # Setup Project Preparer
+    #
+    # O teste não deve executar a preparação real
+    # do .vdproj.
+    #
+    # Aqui simulamos somente o resultado esperado:
+    # uma cópia preparada do projeto Setup.
+    #
+
+    setup_project_preparer = MagicMock(
+        spec=SetupProjectPreparer,
+    )
+
+    setup_project_preparer.prepare.return_value = (
+        setup_project_file
+    )
+
+    #
+    # Visual Studio Setup Preparer
+    #
+    # O teste não deve criar uma Solution real.
+    #
+    # Simulamos apenas o resultado esperado:
+    # uma Solution preparada.
+    #
+
+    visual_studio_setup_preparer = MagicMock(
+        spec=VisualStudioSetupPreparer,
+    )
+
+    prepared_solution_file = (
+    setup_output_path
+    / ".workspace"
+    / "Projeto.sln"
+    )
+
+    prepared_solution_file.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    prepared_solution_file.write_text(
+        solution_file.read_text(
+            encoding="utf-8",
+        ),
+        encoding="utf-8",
+    )
+
+    visual_studio_setup_preparer.prepare.return_value = (
+        prepared_solution_file
     )
 
     #
@@ -433,6 +526,12 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
             setup_factory=(
                 setup_factory
             ),
+            setup_project_preparer=(
+                setup_project_preparer
+            ),
+            visual_studio_setup_preparer=(
+                visual_studio_setup_preparer
+            ),
             settings=settings,
         )
     )
@@ -487,6 +586,10 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         == b"MSI_TESTE"
     )
 
+    #
+    # Verificações do fluxo
+    #
+
     workspace_resolver.resolve.assert_called_once()
 
     setup_path_resolver.resolve.assert_called_once()
@@ -495,9 +598,35 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
 
     definition_loader.load.assert_called_once()
 
+    setup_project_preparer.prepare.assert_called_once()
+
+    visual_studio_setup_preparer.prepare.assert_called_once()
+
     visual_studio_locator.locate.assert_called_once()
 
     process_service.execute.assert_called_once()
+
+    #
+    # Verifica a preparação da Solution.
+    #
+
+    visual_studio_setup_preparer.prepare.assert_called_once_with(
+        solution_path=solution_file,
+        original_setup_project_path=(
+            setup_project_file
+        ),
+        prepared_setup_project_path=(
+            setup_project_file
+        ),
+        workspace_root=(
+            setup_output_path
+            / ".workspace"
+        ),
+    )
+
+    #
+    # Comando executado
+    #
 
     command = (
         process_service
@@ -509,8 +638,13 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         visual_studio_locator.locate.return_value
     )
 
+    #
+    # O Installer deve utilizar a
+    # Solution preparada.
+    #
+
     assert (
-        str(solution_file)
+        str(prepared_solution_file)
         in [
             argument.value
             for argument in command.arguments

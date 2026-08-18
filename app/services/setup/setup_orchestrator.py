@@ -6,6 +6,8 @@ Descrição : Orquestra o processo de geração do Setup.
 --------------------------------------------------------------------
 """
 
+from pathlib import Path
+
 from app.models.configuration.app_settings import (
     AppSettings,
 )
@@ -26,8 +28,16 @@ from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
 )
 
+from app.services.setup.setup_project_preparer import (
+    SetupProjectPreparer,
+)
+
 from app.services.setup.visual_studio_setup_definition_loader import (
     VisualStudioSetupDefinitionLoader,
+)
+
+from app.services.setup.visual_studio_setup_preparer import (
+    VisualStudioSetupPreparer,
 )
 
 from app.services.workspace.solution_locator_service import (
@@ -49,6 +59,9 @@ class DefaultSetupOrchestrator:
     - Resolver os caminhos do Setup.
     - Localizar a Solution.
     - Carregar a definição do Setup.
+    - Preparar uma cópia do projeto Visual Studio Setup.
+    - Preparar uma Solution temporária para utilizar
+      o projeto Setup preparado.
     - Selecionar o mecanismo configurado.
     - Executar o InstallerService.
     """
@@ -60,6 +73,10 @@ class DefaultSetupOrchestrator:
         solution_locator: SolutionLocatorService,
         definition_loader: VisualStudioSetupDefinitionLoader,
         setup_factory: DefaultSetupFactory,
+        setup_project_preparer: SetupProjectPreparer,
+        visual_studio_setup_preparer: (
+            VisualStudioSetupPreparer
+        ),
         settings: AppSettings,
     ) -> None:
         """
@@ -92,6 +109,18 @@ class DefaultSetupOrchestrator:
                 "SetupFactory não foi informado."
             )
 
+        if setup_project_preparer is None:
+            raise ValueError(
+                "SetupProjectPreparer "
+                "não foi informado."
+            )
+
+        if visual_studio_setup_preparer is None:
+            raise ValueError(
+                "VisualStudioSetupPreparer "
+                "não foi informado."
+            )
+
         if settings is None:
             raise ValueError(
                 "AppSettings não foi informado."
@@ -115,6 +144,14 @@ class DefaultSetupOrchestrator:
 
         self.__setup_factory = (
             setup_factory
+        )
+
+        self.__setup_project_preparer = (
+            setup_project_preparer
+        )
+
+        self.__visual_studio_setup_preparer = (
+            visual_studio_setup_preparer
         )
 
         self.__settings = settings
@@ -196,15 +233,26 @@ class DefaultSetupOrchestrator:
                 )
 
             #
+            # Projeto Setup
+            #
+
+            setup_project_path = (
+                paths.visualstudio_setup_path
+                if (
+                    paths.visualstudio_setup_path
+                    is not None
+                )
+                else paths.aip_path
+            )
+
+            #
             # Definição do Setup
             #
 
             definition = (
                 self.__definition_loader.load(
                     setup_project_path=(
-                         paths.visualstudio_setup_path
-                            if paths.visualstudio_setup_path is not None
-                            else paths.aip_path
+                        setup_project_path
                     ),
                     solution_path=(
                         solution_path
@@ -217,6 +265,121 @@ class DefaultSetupOrchestrator:
                     ),
                 )
             )
+
+            #
+            # Preparação do projeto Visual Studio Setup
+            #
+            # Somente projetos .vdproj passam
+            # pela preparação neste momento.
+            #
+
+            if (
+                paths.visualstudio_setup_path
+                is not None
+            ):
+
+                #
+                # Workspace temporário
+                #
+
+                workspace_root = (
+                    paths.setup_output_path
+                    / ".workspace"
+                )
+
+                #
+                # Guarda o caminho original
+                # do VDPROJ.
+                #
+
+                original_setup_project_path = (
+                    paths.visualstudio_setup_path
+                )
+
+                #
+                # Localiza uma DLL existente
+                # para utilização como template.
+                #
+
+                template_file_name = (
+                    self.__resolve_template_file_name(
+                        setup_project_path=(
+                            original_setup_project_path
+                        ),
+                    )
+                )
+
+                #
+                # Prepara uma cópia do VDPROJ.
+                #
+
+                prepared_setup_path = (
+                    self.__setup_project_preparer
+                    .prepare(
+                        setup_project_path=(
+                            original_setup_project_path
+                        ),
+                        publish_path=(
+                            paths.publish_path
+                        ),
+                        workspace_root=(
+                            workspace_root
+                        ),
+                        template_file_name=(
+                            template_file_name
+                        ),
+                    )
+                )
+
+                #
+                # Prepara uma Solution temporária
+                # apontando para o VDPROJ preparado.
+                #
+
+                prepared_solution_path = (
+                    self.__visual_studio_setup_preparer
+                    .prepare(
+                        solution_path=(
+                            solution_path
+                        ),
+                        original_setup_project_path=(
+                            original_setup_project_path
+                        ),
+                        prepared_setup_project_path=(
+                            prepared_setup_path
+                        ),
+                        workspace_root=(
+                            workspace_root
+                        ),
+                    )
+                )
+
+                #
+                # O Installer passa a trabalhar
+                # com o VDPROJ preparado.
+                #
+
+                paths.visualstudio_setup_path = (
+                    prepared_setup_path
+                )
+
+                #
+                # Mantém a definição consistente
+                # com o projeto preparado.
+                #
+
+                definition.setup_project_path = (
+                    prepared_setup_path
+                )
+
+                #
+                # Mantém a definição consistente
+                # com a Solution preparada.
+                #
+
+                definition.solution_path = (
+                    prepared_solution_path
+                )
 
             #
             # Seleção do Installer
@@ -250,3 +413,50 @@ class DefaultSetupOrchestrator:
                     request.project_id
                 ),
             )
+
+    @staticmethod
+    def __resolve_template_file_name(
+        setup_project_path: Path,
+    ) -> str:
+        """
+        Localiza uma DLL existente no .vdproj para ser
+        utilizada como template de novos arquivos.
+        """
+
+        if setup_project_path is None:
+            raise ValueError(
+                "SetupProjectPath "
+                "não foi informado."
+            )
+
+        setup_project_path = Path(
+            setup_project_path,
+        )
+
+        if not setup_project_path.exists():
+            raise FileNotFoundError(
+                "SetupProjectPath não encontrado: "
+                f"{setup_project_path}"
+            )
+
+        content = (
+            setup_project_path.read_text(
+                encoding="utf-8",
+            )
+        )
+
+        import re
+
+        names = re.findall(
+            r'"Name"\s*=\s*"8:([^"]+\.dll)"',
+            content,
+            flags=re.IGNORECASE,
+        )
+
+        if not names:
+            raise ValueError(
+                "Nenhuma DLL foi encontrada no "
+                f"projeto Setup: {setup_project_path}"
+            )
+
+        return names[0]

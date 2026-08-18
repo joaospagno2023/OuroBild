@@ -2,92 +2,165 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : setup_workspace_service.py
-Descrição : Cria uma cópia de trabalho do arquivo de Setup.
+Descrição : Gerencia o workspace temporário utilizado na preparação
+            de projetos Visual Studio Setup.
 --------------------------------------------------------------------
 """
 
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 
 class SetupWorkspaceService:
     """
-    Responsável por criar o arquivo de Setup de trabalho.
+    Cria e gerencia uma cópia de trabalho do projeto Setup.
 
-    O arquivo original do TFS nunca é alterado.
+    O arquivo original do TFS nunca é alterado diretamente.
     """
 
-    def __init__(self) -> None:
-        """
-        Inicializa o serviço.
-        """
-
-    def create(
+    def create_workspace(
         self,
         setup_project_path: Path,
-        setup_output_path: Path,
+        workspace_root: Path,
     ) -> Path:
         """
-        Cria uma cópia de trabalho do arquivo de Setup.
+        Cria uma cópia de trabalho do arquivo .vdproj.
 
-        Parameters
-        ----------
-        setup_project_path:
-            Caminho do arquivo .vdproj original.
-
-        setup_output_path:
-            Diretório onde será criada a cópia de trabalho.
-
-        Returns
-        -------
-        Path
-            Caminho do arquivo .vdproj de trabalho.
+        Retorna o caminho do .vdproj temporário.
         """
 
         if setup_project_path is None:
             raise ValueError(
-                "setup_project_path não foi informado."
+                "Caminho do projeto Setup não foi informado."
             )
 
-        if setup_output_path is None:
+        if workspace_root is None:
             raise ValueError(
-                "setup_output_path não foi informado."
+                "WorkspaceRoot não foi informado."
             )
 
         setup_project_path = Path(
-            setup_project_path
+            setup_project_path,
         )
 
-        setup_output_path = Path(
-            setup_output_path
+        workspace_root = Path(
+            workspace_root,
         )
 
         if not setup_project_path.exists():
             raise FileNotFoundError(
-                "Projeto de Setup não encontrado: "
+                "Projeto Setup não encontrado: "
                 f"{setup_project_path}"
             )
 
         if not setup_project_path.is_file():
             raise ValueError(
-                "O caminho informado para o Projeto de Setup "
-                "não é um arquivo: "
+                "Projeto Setup não é um arquivo: "
                 f"{setup_project_path}"
             )
 
-        setup_output_path.mkdir(
+        workspace_root.mkdir(
             parents=True,
             exist_ok=True,
         )
 
-        working_setup_path = (
-            setup_output_path
+        destination = (
+            workspace_root
             / setup_project_path.name
         )
 
         shutil.copy2(
             setup_project_path,
-            working_setup_path,
+            destination,
         )
 
-        return working_setup_path
+        return destination
+
+    def read(
+        self,
+        workspace_project_path: Path,
+    ) -> str:
+        """
+        Lê o conteúdo do projeto Setup de trabalho.
+        """
+
+        if workspace_project_path is None:
+            raise ValueError(
+                "Caminho do projeto Setup "
+                "não foi informado."
+            )
+
+        workspace_project_path = Path(
+            workspace_project_path,
+        )
+
+        if not workspace_project_path.exists():
+            raise FileNotFoundError(
+                "Projeto Setup de trabalho "
+                "não encontrado: "
+                f"{workspace_project_path}"
+            )
+
+        return workspace_project_path.read_text(
+            encoding="utf-8",
+        )
+
+    def write(
+        self,
+        workspace_project_path: Path,
+        content: str,
+    ) -> None:
+        """
+        Salva o conteúdo no projeto Setup de trabalho.
+        """
+
+        if workspace_project_path is None:
+            raise ValueError(
+                "Caminho do projeto Setup "
+                "não foi informado."
+            )
+
+        if content is None:
+            raise ValueError(
+                "Conteúdo do projeto Setup "
+                "não foi informado."
+            )
+
+        workspace_project_path = Path(
+            workspace_project_path,
+        )
+
+        workspace_project_path.write_text(
+            content,
+            encoding="utf-8",
+        )
+
+    def cleanup(
+        self,
+        workspace_root: Path,
+    ) -> None:
+        """
+        Remove o workspace temporário.
+        """
+
+        if workspace_root is None:
+            raise ValueError(
+                "WorkspaceRoot não foi informado."
+            )
+
+        workspace_root = Path(
+            workspace_root,
+        )
+
+        if not workspace_root.exists():
+            return
+
+        if not workspace_root.is_dir():
+            raise ValueError(
+                "WorkspaceRoot não é um diretório: "
+                f"{workspace_root}"
+            )
+
+        shutil.rmtree(
+            workspace_root,
+        )
