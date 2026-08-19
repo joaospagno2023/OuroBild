@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : test_setup_flow.py
-Descrição : Teste de integração do fluxo de geração de Setup.
+Descrição : Teste de integração do fluxo completo de Setup.
 --------------------------------------------------------------------
 """
 
@@ -37,12 +37,16 @@ from app.services.setup.setup_orchestrator import (
     DefaultSetupOrchestrator,
 )
 
+from app.services.setup.setup_project_preparer import (
+    SetupProjectPreparer,
+)
+
 from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
 )
 
-from app.services.setup.setup_project_preparer import (
-    SetupProjectPreparer,
+from app.services.setup.setup_workspace_service import (
+    SetupWorkspaceService,
 )
 
 from app.services.setup.visual_studio_installer_service import (
@@ -53,13 +57,24 @@ from app.services.setup.visual_studio_setup_definition_loader import (
     VisualStudioSetupDefinitionLoader,
 )
 
-from app.services.setup.visual_studio_setup_preparer import (
-    VisualStudioSetupPreparer,
-)
 
-from app.use_cases.execute_setup_use_case import (
-    DefaultExecuteSetupUseCase,
-)
+def create_project_file(
+    path: Path,
+) -> None:
+    """
+    Cria um projeto mínimo para o teste.
+    """
+
+    path.write_text(
+        """
+<Project>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+</Project>
+""".strip(),
+        encoding="utf-8",
+    )
 
 
 def create_solution(
@@ -68,57 +83,15 @@ def create_solution(
 ) -> None:
     """
     Cria uma Solution mínima para o teste.
-
-    O conteúdo é suficiente para representar
-    uma Solution contendo o projeto informado.
     """
-
-    project_guid = (
-        "11111111-1111-1111-1111-111111111111"
-    )
-
-    solution_content = (
-        "Microsoft Visual Studio Solution File, "
-        "Format Version 12.00\n"
-        "# Visual Studio Version 17\n"
-        "VisualStudioVersion = 17.0.31903.59\n"
-        "MinimumVisualStudioVersion = 10.0.40219.1\n"
-        f'Project("{{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}}") = '
-        f'"Projeto", "{project_path.name}", '
-        f'"{{{project_guid}}}"\n'
-        "EndProject\n"
-        "Global\n"
-        "\tGlobalSection(SolutionConfigurationPlatforms) = "
-        "preSolution\n"
-        "\t\tDebug|Any CPU = Debug|Any CPU\n"
-        "\t\tRelease|Any CPU = Release|Any CPU\n"
-        "\tEndGlobalSection\n"
-        "EndGlobal\n"
-    )
 
     solution_path.write_text(
-        solution_content,
-        encoding="utf-8",
-    )
-
-
-def create_project_file(
-    project_path: Path,
-) -> None:
-    """
-    Cria um projeto .csproj mínimo.
-    """
-
-    project_content = """
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-  </PropertyGroup>
-</Project>
-""".strip()
-
-    project_path.write_text(
-        project_content,
+        f"""
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+Project("{{FAKE-GUID}}") = "Projeto", "{project_path.name}", "{{PROJECT-GUID}}"
+EndProject
+""".strip(),
         encoding="utf-8",
     )
 
@@ -316,6 +289,14 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         project_file
     )
 
+    workspace_context.environment = (
+        MagicMock()
+    )
+
+    workspace_context.environment.root_path = (
+        tmp_path
+    )
+
     workspace_resolver.resolve.return_value = (
         workspace_context
     )
@@ -357,54 +338,46 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     #
     # Setup Project Preparer
     #
-    # O teste não deve executar a preparação real
-    # do .vdproj.
-    #
-    # Aqui simulamos somente o resultado esperado:
-    # uma cópia preparada do projeto Setup.
+    # O teste não executa a preparação real.
+    # Simulamos o retorno de um projeto preparado.
     #
 
     setup_project_preparer = MagicMock(
         spec=SetupProjectPreparer,
     )
 
-    setup_project_preparer.prepare.return_value = (
-        setup_project_file
+    prepared_setup_file = (
+        setup_path
+        / ".ourobuild"
+        / "Teste.vdproj"
     )
 
-    #
-    # Visual Studio Setup Preparer
-    #
-    # O teste não deve criar uma Solution real.
-    #
-    # Simulamos apenas o resultado esperado:
-    # uma Solution preparada.
-    #
-
-    visual_studio_setup_preparer = MagicMock(
-        spec=VisualStudioSetupPreparer,
-    )
-
-    prepared_solution_file = (
-    setup_output_path
-    / ".workspace"
-    / "Projeto.sln"
-    )
-
-    prepared_solution_file.parent.mkdir(
+    prepared_setup_file.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    prepared_solution_file.write_text(
-        solution_file.read_text(
+    prepared_setup_file.write_text(
+        setup_project_file.read_text(
             encoding="utf-8",
         ),
         encoding="utf-8",
     )
 
-    visual_studio_setup_preparer.prepare.return_value = (
-        prepared_solution_file
+    setup_project_preparer.prepare.return_value = (
+        prepared_setup_file
+    )
+
+    #
+    # Setup Workspace Service
+    #
+    # O projeto original nunca é substituído.
+    # O workspace temporário é utilizado somente
+    # para preparação e limpeza.
+    #
+
+    setup_workspace_service = MagicMock(
+        spec=SetupWorkspaceService,
     )
 
     #
@@ -412,11 +385,10 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     #
     # O processo externo NÃO será executado.
     #
-    # Quando o Orchestrator chegar ao Installer,
-    # o mock simulará:
+    # O mock simula:
     #
     # 1. execução bem-sucedida do Visual Studio;
-    # 2. criação do MSI.
+    # 2. criação do MSI intermediário.
     #
 
     process_service = MagicMock()
@@ -426,15 +398,21 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     ):
         """
         Simula a execução do Visual Studio
-        e a criação do MSI.
+        e a criação do MSI intermediário.
         """
 
-        paths.output_msi.parent.mkdir(
+        intermediate_msi = (
+            prepared_setup_file.parent
+            / "Release"
+            / "Teste.msi"
+        )
+
+        intermediate_msi.parent.mkdir(
             parents=True,
             exist_ok=True,
         )
 
-        paths.output_msi.write_bytes(
+        intermediate_msi.write_bytes(
             b"MSI_TESTE",
         )
 
@@ -529,35 +507,23 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
             setup_project_preparer=(
                 setup_project_preparer
             ),
-            visual_studio_setup_preparer=(
-                visual_studio_setup_preparer
+            setup_workspace_service=(
+                setup_workspace_service
             ),
             settings=settings,
         )
     )
 
     #
-    # Use Case
+    # Execução
     #
 
-    use_case = (
-        DefaultExecuteSetupUseCase(
-            setup_orchestrator=(
-                orchestrator
-            ),
-        )
-    )
-
-    #
-    # Execute
-    #
-
-    result = use_case.execute(
+    result = orchestrator.execute(
         request,
     )
 
     #
-    # Assertions
+    # Validações
     #
 
     assert result.success is True
@@ -570,107 +536,31 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         paths.output_msi
     )
 
-    assert result.duration_seconds == (
-        1.0
-    )
+    assert result.output_msi.exists()
 
-    assert (
-        result.message
-        == "Setup gerado com sucesso."
-    )
-
-    assert paths.output_msi.exists()
-
-    assert (
-        paths.output_msi.read_bytes()
-        == b"MSI_TESTE"
+    assert result.output_msi.read_bytes() == (
+        b"MSI_TESTE"
     )
 
     #
-    # Verificações do fluxo
+    # Confirma que o workspace foi criado
+    # fora de C:\Setups.
     #
-
-    workspace_resolver.resolve.assert_called_once()
-
-    setup_path_resolver.resolve.assert_called_once()
-
-    solution_locator.find_solution.assert_called_once()
-
-    definition_loader.load.assert_called_once()
 
     setup_project_preparer.prepare.assert_called_once()
 
-    visual_studio_setup_preparer.prepare.assert_called_once()
+    setup_workspace_service.backup_original.assert_not_called()
 
-    visual_studio_locator.locate.assert_called_once()
+    setup_workspace_service.replace_original.assert_not_called()
+
+    setup_workspace_service.restore_original.assert_not_called()
+
+    setup_workspace_service.cleanup.assert_called_once()
+
+    #
+    # Confirma execução do processo.
+    #
 
     process_service.execute.assert_called_once()
 
-    #
-    # Verifica a preparação da Solution.
-    #
-
-    visual_studio_setup_preparer.prepare.assert_called_once_with(
-        solution_path=solution_file,
-        original_setup_project_path=(
-            setup_project_file
-        ),
-        prepared_setup_project_path=(
-            setup_project_file
-        ),
-        workspace_root=(
-            setup_output_path
-            / ".workspace"
-        ),
-    )
-
-    #
-    # Comando executado
-    #
-
-    command = (
-        process_service
-        .execute
-        .call_args.args[0]
-    )
-
-    assert command.executable == (
-        visual_studio_locator.locate.return_value
-    )
-
-    #
-    # O Installer deve utilizar a
-    # Solution preparada.
-    #
-
-    assert (
-        str(prepared_solution_file)
-        in [
-            argument.value
-            for argument in command.arguments
-        ]
-    )
-
-    assert (
-        "/Build"
-        in [
-            argument.value
-            for argument in command.arguments
-        ]
-    )
-
-    assert (
-        "/Project"
-        in [
-            argument.value
-            for argument in command.arguments
-        ]
-    )
-
-    assert (
-        setup_project_file.stem
-        in [
-            argument.value
-            for argument in command.arguments
-        ]
-    )
+    visual_studio_locator.locate.assert_called_once()

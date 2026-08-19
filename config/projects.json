@@ -9,7 +9,7 @@
         "compilation_target": "solution",
         "compilation_engine": "msbuild",
         "aip_path": "LinkPagamento.aip",
-        "publish_path": "bin\\Release",
+        "publish_path": "02-Source\\01-Client\\OuroNet.Client.WinService.LinkPagamento\\bin\\Release",
         "output_msi": "OuroNet.Client.WinServiceLinkPagamento.Setup.msi",
         "publish_profile": "",
         "network_path": "\\\\Servidor\\Builds",

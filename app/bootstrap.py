@@ -183,9 +183,6 @@ from app.services.setup.setup_project_preparer import (
     SetupProjectPreparer,
 )
 
-from app.services.setup.visual_studio_setup_preparer import (
-    VisualStudioSetupPreparer,
-)
 
 from app.services.setup.setup_workspace_service import (
     SetupWorkspaceService,
@@ -213,6 +210,9 @@ from app.services.setup.vdproj_file_modifier import (
 
 from app.services.setup.vdproj_setup_file_loader import (
     VdprojSetupFileLoader,
+)
+from app.services.setup.temporary_solution_service import (
+    TemporarySolutionService,
 )
 
 class Bootstrap:
@@ -490,7 +490,10 @@ class Bootstrap:
         self.setup_workspace_service = (
             SetupWorkspaceService()
         )
-
+        
+        self.temporary_solution_service = (
+            TemporarySolutionService()
+        )
         self.setup_project_preparer = (
             SetupProjectPreparer(
                 workspace_service=(
@@ -506,10 +509,6 @@ class Bootstrap:
                     self.setup_file_change_applier
                 ),
             )
-        )
-
-        self.visual_studio_setup_preparer = (
-            VisualStudioSetupPreparer()
         )
 
         self.setup_orchestrator = (
@@ -532,10 +531,12 @@ class Bootstrap:
                 setup_project_preparer=(
                     self.setup_project_preparer
                 ),
-                visual_studio_setup_preparer=(
-                    self.visual_studio_setup_preparer
+                setup_workspace_service=(
+                    self.setup_workspace_service
                 ),
-                settings=self.settings,
+                settings=(
+                    self.settings
+                ),
             )
         )
         

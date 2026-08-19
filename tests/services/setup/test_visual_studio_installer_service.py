@@ -221,7 +221,12 @@ def test_deve_gerar_setup_com_sucesso(
 ):
     """
     Deve gerar o Setup quando o processo
-    terminar com sucesso e o MSI existir.
+    terminar com sucesso e o MSI intermediário
+    existir.
+
+    O MSI intermediário é gerado no diretório
+    Release do projeto Setup e depois copiado
+    para paths.output_msi.
     """
 
     (
@@ -240,12 +245,26 @@ def test_deve_gerar_setup_com_sucesso(
         tmp_path,
     )
 
-    paths.output_msi.parent.mkdir(
+    #
+    # Caminho onde o Visual Studio deve gerar
+    # o MSI intermediário.
+    #
+
+    intermediate_msi = (
+        definition.setup_project_path.parent
+        / definition.configuration
+        / (
+            f"{definition.setup_project_path.stem}"
+            ".msi"
+        )
+    )
+
+    intermediate_msi.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    paths.output_msi.write_text(
+    intermediate_msi.write_text(
         "MSI",
         encoding="utf-8",
     )
@@ -281,6 +300,19 @@ def test_deve_gerar_setup_com_sucesso(
         2.5
     )
 
+    assert paths.output_msi.exists()
+
+    assert paths.output_msi.read_text(
+        encoding="utf-8",
+    ) == "MSI"
+
+    #
+    # O MSI intermediário deve ter sido
+    # removido depois da cópia.
+    #
+
+    assert not intermediate_msi.exists()
+
     visual_studio_locator.locate.assert_called_once()
 
     process_service.execute.assert_called_once()
@@ -310,12 +342,26 @@ def test_deve_montar_comando_visual_studio(
         tmp_path,
     )
 
-    paths.output_msi.parent.mkdir(
+    #
+    # Cria o MSI intermediário para que o
+    # serviço possa concluir normalmente.
+    #
+
+    intermediate_msi = (
+        definition.setup_project_path.parent
+        / definition.configuration
+        / (
+            f"{definition.setup_project_path.stem}"
+            ".msi"
+        )
+    )
+
+    intermediate_msi.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    paths.output_msi.write_text(
+    intermediate_msi.write_text(
         "MSI",
         encoding="utf-8",
     )
@@ -547,8 +593,9 @@ def test_deve_retorna_falha_quando_msi_nao_for_gerado(
 
     assert result.output_msi is None
 
-    assert "MSI não foi encontrado" in (
-        result.message
+    assert (
+        "MSI intermediário não foi encontrado"
+        in result.message
     )
 
     visual_studio_locator.locate.assert_called_once()

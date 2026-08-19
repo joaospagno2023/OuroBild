@@ -74,6 +74,10 @@ from app.services.setup.setup_project_preparer import (
     SetupProjectPreparer,
 )
 
+from app.services.setup.setup_workspace_service import (
+    SetupWorkspaceService,
+)
+
 from app.services.setup.visual_studio_setup_definition_loader import (
     VisualStudioSetupDefinitionLoader,
 )
@@ -88,9 +92,6 @@ from app.workspace.workspace_context import (
 
 from app.workspace.workspace_resolver import (
     WorkspaceResolver,
-)
-from app.services.setup.visual_studio_setup_preparer import (
-    VisualStudioSetupPreparer,
 )
 
 
@@ -263,7 +264,7 @@ def create_orchestrator(
     definition_loader,
     setup_factory,
     setup_project_preparer=None,
-    visual_studio_setup_preparer=None,
+    setup_workspace_service=None,
 ):
     """
     Cria o Orchestrator com suas dependências.
@@ -271,6 +272,10 @@ def create_orchestrator(
     O SetupProjectPreparer é opcional no helper para manter
     os testes existentes compatíveis com cenários que não
     utilizam preparação de projeto Visual Studio Setup.
+
+    O SetupWorkspaceService é opcional para manter os testes
+    simples e permitir que cada cenário utilize o mock
+    necessário.
     """
 
     if setup_project_preparer is None:
@@ -279,10 +284,10 @@ def create_orchestrator(
             spec=SetupProjectPreparer,
         )
 
-    if visual_studio_setup_preparer is None:
+    if setup_workspace_service is None:
 
-        visual_studio_setup_preparer = MagicMock(
-            spec=VisualStudioSetupPreparer,
+        setup_workspace_service = MagicMock(
+            spec=SetupWorkspaceService,
         )
 
     return DefaultSetupOrchestrator(
@@ -304,8 +309,8 @@ def create_orchestrator(
         setup_project_preparer=(
             setup_project_preparer
         ),
-        visual_studio_setup_preparer=(
-            visual_studio_setup_preparer
+        setup_workspace_service=(
+            setup_workspace_service
         ),
         settings=create_settings(),
     )
@@ -387,6 +392,10 @@ def test_deve_executar_setup_visual_studio():
         spec=SetupProjectPreparer,
     )
 
+    setup_workspace_service = MagicMock(
+        spec=SetupWorkspaceService,
+    )
+
     orchestrator = create_orchestrator(
         workspace_resolver=(
             workspace_resolver
@@ -405,6 +414,9 @@ def test_deve_executar_setup_visual_studio():
         ),
         setup_project_preparer=(
             setup_project_preparer
+        ),
+        setup_workspace_service=(
+            setup_workspace_service
         ),
     )
 
@@ -466,6 +478,14 @@ def test_deve_executar_setup_visual_studio():
 
     setup_project_preparer.prepare.assert_not_called()
 
+    setup_workspace_service.backup_original.assert_not_called()
+
+    setup_workspace_service.replace_original.assert_not_called()
+
+    setup_workspace_service.restore_original.assert_not_called()
+
+    setup_workspace_service.cleanup.assert_not_called()
+
 
 def test_deve_retornar_falha_quando_solution_nao_for_encontrada():
     """
@@ -516,6 +536,10 @@ def test_deve_retornar_falha_quando_solution_nao_for_encontrada():
         spec=SetupProjectPreparer,
     )
 
+    setup_workspace_service = MagicMock(
+        spec=SetupWorkspaceService,
+    )
+
     orchestrator = create_orchestrator(
         workspace_resolver=(
             workspace_resolver
@@ -534,6 +558,9 @@ def test_deve_retornar_falha_quando_solution_nao_for_encontrada():
         ),
         setup_project_preparer=(
             setup_project_preparer
+        ),
+        setup_workspace_service=(
+            setup_workspace_service
         ),
     )
 
@@ -556,6 +583,14 @@ def test_deve_retornar_falha_quando_solution_nao_for_encontrada():
     setup_factory.create.assert_not_called()
 
     setup_project_preparer.prepare.assert_not_called()
+
+    setup_workspace_service.backup_original.assert_not_called()
+
+    setup_workspace_service.replace_original.assert_not_called()
+
+    setup_workspace_service.restore_original.assert_not_called()
+
+    setup_workspace_service.cleanup.assert_not_called()
 
 
 def test_deve_nao_executar_instalador_quando_definition_falhar():
@@ -618,6 +653,10 @@ def test_deve_nao_executar_instalador_quando_definition_falhar():
         spec=SetupProjectPreparer,
     )
 
+    setup_workspace_service = MagicMock(
+        spec=SetupWorkspaceService,
+    )
+
     orchestrator = create_orchestrator(
         workspace_resolver=(
             workspace_resolver
@@ -636,6 +675,9 @@ def test_deve_nao_executar_instalador_quando_definition_falhar():
         ),
         setup_project_preparer=(
             setup_project_preparer
+        ),
+        setup_workspace_service=(
+            setup_workspace_service
         ),
     )
 
@@ -657,3 +699,11 @@ def test_deve_nao_executar_instalador_quando_definition_falhar():
     setup_factory.create.assert_not_called()
 
     setup_project_preparer.prepare.assert_not_called()
+
+    setup_workspace_service.backup_original.assert_not_called()
+
+    setup_workspace_service.replace_original.assert_not_called()
+
+    setup_workspace_service.restore_original.assert_not_called()
+
+    setup_workspace_service.cleanup.assert_not_called()

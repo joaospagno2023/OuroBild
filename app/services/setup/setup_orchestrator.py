@@ -32,12 +32,16 @@ from app.services.setup.setup_project_preparer import (
     SetupProjectPreparer,
 )
 
-from app.services.setup.visual_studio_setup_definition_loader import (
-    VisualStudioSetupDefinitionLoader,
+from app.services.setup.setup_workspace_service import (
+    SetupWorkspaceService,
 )
 
-from app.services.setup.visual_studio_setup_preparer import (
-    VisualStudioSetupPreparer,
+from app.services.setup.temporary_solution_service import (
+    TemporarySolutionService,
+)
+
+from app.services.setup.visual_studio_setup_definition_loader import (
+    VisualStudioSetupDefinitionLoader,
 )
 
 from app.services.workspace.solution_locator_service import (
@@ -57,13 +61,22 @@ class DefaultSetupOrchestrator:
 
     - Resolver o Workspace.
     - Resolver os caminhos do Setup.
-    - Localizar a Solution.
+    - Localizar a Solution original.
     - Carregar a definição do Setup.
-    - Preparar uma cópia do projeto Visual Studio Setup.
-    - Preparar uma Solution temporária para utilizar
-      o projeto Setup preparado.
-    - Selecionar o mecanismo configurado.
+    - Criar uma cópia temporária do projeto Setup.
+    - Preparar somente a cópia temporária.
+    - Criar uma Solution temporária.
     - Executar o InstallerService.
+    - Limpar o workspace temporário ao final.
+
+    IMPORTANTE:
+
+    O projeto Setup original nunca é substituído.
+
+    A Solution original nunca é modificada.
+
+    Os arquivos originais do TFS permanecem intactos
+    durante todo o processo.
     """
 
     def __init__(
@@ -74,10 +87,11 @@ class DefaultSetupOrchestrator:
         definition_loader: VisualStudioSetupDefinitionLoader,
         setup_factory: DefaultSetupFactory,
         setup_project_preparer: SetupProjectPreparer,
-        visual_studio_setup_preparer: (
-            VisualStudioSetupPreparer
-        ),
+        setup_workspace_service: SetupWorkspaceService,
         settings: AppSettings,
+        temporary_solution_service: (
+            TemporarySolutionService | None
+        ) = None,
     ) -> None:
         """
         Inicializa o Orchestrator.
@@ -115,9 +129,9 @@ class DefaultSetupOrchestrator:
                 "não foi informado."
             )
 
-        if visual_studio_setup_preparer is None:
+        if setup_workspace_service is None:
             raise ValueError(
-                "VisualStudioSetupPreparer "
+                "SetupWorkspaceService "
                 "não foi informado."
             )
 
@@ -150,8 +164,14 @@ class DefaultSetupOrchestrator:
             setup_project_preparer
         )
 
-        self.__visual_studio_setup_preparer = (
-            visual_studio_setup_preparer
+        self.__setup_workspace_service = (
+            setup_workspace_service
+        )
+
+        self.__temporary_solution_service = (
+            temporary_solution_service
+            if temporary_solution_service is not None
+            else TemporarySolutionService()
         )
 
         self.__settings = settings
@@ -162,12 +182,31 @@ class DefaultSetupOrchestrator:
     ) -> SetupResult:
         """
         Executa a geração do Setup.
+
+        O projeto Setup original nunca é alterado.
+
+        Todo trabalho que modifica o VDPROJ é realizado
+        em uma cópia temporária dentro do publish_path.
+
+        Para projetos Visual Studio Setup:
+
+        Original
+            ↓
+        VDPROJ temporário
+            ↓
+        Solution temporária
+            ↓
+        Visual Studio
+            ↓
+        MSI
         """
 
         if request is None:
             raise ValueError(
                 "SetupRequest não foi informado."
             )
+
+        workspace_root: Path | None = None
 
         try:
 
@@ -206,7 +245,38 @@ class DefaultSetupOrchestrator:
             )
 
             #
-            # Solution
+            # DIAGNÓSTICO DOS CAMINHOS
+            #
+
+            self.__print_path_diagnostics(
+                title="CAMINHOS RESOLVIDOS",
+                paths={
+                    "Project Root": (
+                        workspace.project_file.parent
+                    ),
+                    "Workspace Root": (
+                        workspace.environment.root_path
+                    ),
+                    "Publish Path": (
+                        paths.publish_path
+                    ),
+                    "Output MSI": (
+                        paths.output_msi
+                    ),
+                    "Visual Studio Setup": (
+                        paths.visualstudio_setup_path
+                    ),
+                    "AIP": (
+                        paths.aip_path
+                    ),
+                },
+            )
+
+            #
+            # Solution ORIGINAL
+            #
+            # A Solution original permanece somente
+            # como fonte de leitura.
             #
 
             solution_path = (
@@ -215,8 +285,20 @@ class DefaultSetupOrchestrator:
                 )
             )
 
-            if solution_path is None:
+            #
+            # DIAGNÓSTICO DA SOLUTION ORIGINAL
+            #
 
+            self.__print_path_diagnostics(
+                title="SOLUTION ORIGINAL",
+                paths={
+                    "Solution Original": (
+                        solution_path
+                    ),
+                },
+            )
+
+            if solution_path is None:
                 return SetupResult(
                     success=False,
                     message=(
@@ -233,7 +315,7 @@ class DefaultSetupOrchestrator:
                 )
 
             #
-            # Projeto Setup
+            # Projeto Setup ORIGINAL
             #
 
             setup_project_path = (
@@ -246,7 +328,23 @@ class DefaultSetupOrchestrator:
             )
 
             #
-            # Definição do Setup
+            # DIAGNÓSTICO DO VDPROJ ORIGINAL
+            #
+
+            self.__print_path_diagnostics(
+                title="SETUP ORIGINAL",
+                paths={
+                    "Setup Project": (
+                        setup_project_path
+                    ),
+                },
+            )
+
+            #
+            # Definição do Setup ORIGINAL
+            #
+            # O VDPROJ original é somente lido
+            # neste momento.
             #
 
             definition = (
@@ -267,10 +365,7 @@ class DefaultSetupOrchestrator:
             )
 
             #
-            # Preparação do projeto Visual Studio Setup
-            #
-            # Somente projetos .vdproj passam
-            # pela preparação neste momento.
+            # Projeto Visual Studio Setup
             #
 
             if (
@@ -279,45 +374,53 @@ class DefaultSetupOrchestrator:
             ):
 
                 #
-                # Workspace temporário
+                # O workspace temporário fica no
+                # publish_path.
                 #
 
                 workspace_root = (
-                    paths.setup_output_path
-                    / ".workspace"
+                    Path(paths.publish_path)
                 )
 
                 #
-                # Guarda o caminho original
-                # do VDPROJ.
+                # DIAGNÓSTICO DO WORKSPACE
                 #
 
-                original_setup_project_path = (
-                    paths.visualstudio_setup_path
+                self.__print_path_diagnostics(
+                    title="WORKSPACE TEMPORÁRIO",
+                    paths={
+                        "Workspace Root": (
+                            workspace_root
+                        ),
+                    },
                 )
 
                 #
-                # Localiza uma DLL existente
-                # para utilização como template.
+                # Localiza uma DLL existente no VDPROJ
+                # para servir como template.
                 #
 
                 template_file_name = (
                     self.__resolve_template_file_name(
                         setup_project_path=(
-                            original_setup_project_path
+                            setup_project_path
                         ),
                     )
                 )
 
                 #
-                # Prepara uma cópia do VDPROJ.
+                # Cria e prepara a cópia temporária
+                # do VDPROJ.
+                #
+                # O arquivo original nunca é
+                # substituído.
                 #
 
                 prepared_setup_path = (
                     self.__setup_project_preparer
                     .prepare(
                         setup_project_path=(
-                            original_setup_project_path
+                            setup_project_path
                         ),
                         publish_path=(
                             paths.publish_path
@@ -332,31 +435,24 @@ class DefaultSetupOrchestrator:
                 )
 
                 #
-                # Prepara uma Solution temporária
-                # apontando para o VDPROJ preparado.
+                # DIAGNÓSTICO DO VDPROJ TEMPORÁRIO
                 #
 
-                prepared_solution_path = (
-                    self.__visual_studio_setup_preparer
-                    .prepare(
-                        solution_path=(
-                            solution_path
+                self.__print_path_diagnostics(
+                    title="SETUP TEMPORÁRIO",
+                    paths={
+                        "Setup Original": (
+                            setup_project_path
                         ),
-                        original_setup_project_path=(
-                            original_setup_project_path
-                        ),
-                        prepared_setup_project_path=(
+                        "Setup Temporário": (
                             prepared_setup_path
                         ),
-                        workspace_root=(
-                            workspace_root
-                        ),
-                    )
+                    },
                 )
 
                 #
-                # O Installer passa a trabalhar
-                # com o VDPROJ preparado.
+                # A partir deste ponto o Installer
+                # deve trabalhar somente com a cópia.
                 #
 
                 paths.visualstudio_setup_path = (
@@ -364,21 +460,95 @@ class DefaultSetupOrchestrator:
                 )
 
                 #
-                # Mantém a definição consistente
-                # com o projeto preparado.
+                # Cria a Solution temporária.
+                #
+                # A Solution original continua
+                # intacta.
                 #
 
-                definition.setup_project_path = (
-                    prepared_setup_path
+                temporary_solution_path = (
+                    self.__temporary_solution_service
+                    .create(
+                        solution_path=(
+                            solution_path
+                        ),
+                        publish_path=(
+                            paths.publish_path
+                        ),
+                        original_setup_project_path=(
+                            setup_project_path
+                        ),
+                        temporary_setup_project_path=(
+                            prepared_setup_path
+                        ),
+                    )
                 )
 
                 #
-                # Mantém a definição consistente
-                # com a Solution preparada.
+                # DIAGNÓSTICO DA SOLUTION TEMPORÁRIA
                 #
 
-                definition.solution_path = (
-                    prepared_solution_path
+                self.__print_path_diagnostics(
+                    title="SOLUTION TEMPORÁRIA",
+                    paths={
+                        "Solution Original": (
+                            solution_path
+                        ),
+                        "Solution Temporária": (
+                            temporary_solution_path
+                        ),
+                        "Setup Original": (
+                            setup_project_path
+                        ),
+                        "Setup Temporário": (
+                            prepared_setup_path
+                        ),
+                        "Publish Path": (
+                            paths.publish_path
+                        ),
+                    },
+                )
+
+                #
+                # Cria uma nova definição baseada
+                # na definição original.
+                #
+                # Somente os caminhos são alterados.
+                #
+                # output_msi permanece o mesmo,
+                # pois representa o MSI esperado.
+                #
+
+                definition = (
+                    definition.model_copy(
+                        update={
+                            "solution_path": (
+                                temporary_solution_path
+                            ),
+                            "setup_project_path": (
+                                prepared_setup_path
+                            ),
+                        },
+                    )
+                )
+
+                #
+                # DIAGNÓSTICO FINAL DA DEFINIÇÃO
+                #
+
+                self.__print_path_diagnostics(
+                    title="DEFINIÇÃO ENVIADA AO INSTALLER",
+                    paths={
+                        "Solution": (
+                            definition.solution_path
+                        ),
+                        "Setup Project": (
+                            definition.setup_project_path
+                        ),
+                        "Output MSI": (
+                            paths.output_msi
+                        ),
+                    },
                 )
 
             #
@@ -413,6 +583,141 @@ class DefaultSetupOrchestrator:
                     request.project_id
                 ),
             )
+
+        finally:
+
+            #
+            # LIMPEZA DO WORKSPACE TEMPORÁRIO
+            #
+            # Não existe restauração do VDPROJ
+            # original porque o original nunca foi
+            # alterado.
+            #
+
+            if workspace_root is not None:
+                try:
+
+                    self.__setup_workspace_service.cleanup(
+                        workspace_root=(
+                            workspace_root
+                        ),
+                    )
+
+                except Exception:
+                    #
+                    # A limpeza não deve mascarar
+                    # o resultado da geração.
+                    #
+
+                    pass
+
+    @staticmethod
+    def __print_path_diagnostics(
+        title: str,
+        paths: dict[str, Path | str | None],
+    ) -> None:
+        """
+        Exibe diagnóstico dos caminhos utilizados
+        durante a geração do Setup.
+
+        Esta função existe exclusivamente para
+        diagnóstico do problema MAX_PATH.
+        """
+
+        print()
+        print("=" * 70)
+        print(
+            "[OuroBuild] "
+            f"{title}"
+        )
+        print("=" * 70)
+
+        longest_path = None
+        longest_length = -1
+
+        for name, value in paths.items():
+
+            if value is None:
+
+                print(
+                    f"[OuroBuild] {name}: <None>"
+                )
+
+                continue
+
+            path_text = str(value)
+
+            path_length = len(
+                path_text
+            )
+
+            print(
+                f"[OuroBuild] {name}:"
+            )
+
+            print(
+                f"[OuroBuild] {path_text}"
+            )
+
+            print(
+                f"[OuroBuild] Length: "
+                f"{path_length}"
+            )
+
+            if path_length > longest_length:
+
+                longest_length = (
+                    path_length
+                )
+
+                longest_path = (
+                    name,
+                    path_text,
+                )
+
+        print()
+        print(
+            "[OuroBuild] Windows MAX_PATH:"
+        )
+        print(
+            "[OuroBuild] 260 caracteres"
+        )
+
+        print(
+            "[OuroBuild] Windows MAX DIRECTORY:"
+        )
+        print(
+            "[OuroBuild] 248 caracteres"
+        )
+
+        if longest_path is not None:
+
+            print()
+
+            print(
+                "[OuroBuild] MAIOR CAMINHO:"
+            )
+
+            print(
+                "[OuroBuild] "
+                f"{longest_path[0]}"
+            )
+
+            print(
+                "[OuroBuild] "
+                f"{longest_path[1]}"
+            )
+
+            print(
+                "[OuroBuild] Length:"
+            )
+
+            print(
+                "[OuroBuild] "
+                f"{longest_length}"
+            )
+
+        print("=" * 70)
 
     @staticmethod
     def __resolve_template_file_name(
