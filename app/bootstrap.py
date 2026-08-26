@@ -214,6 +214,9 @@ from app.services.setup.vdproj_setup_file_loader import (
 from app.services.setup.temporary_solution_service import (
     TemporarySolutionService,
 )
+from app.services.setup.disable_out_of_proc_build_service import (
+    DisableOutOfProcBuildService,
+)
 
 class Bootstrap:
     """
@@ -386,9 +389,17 @@ class Bootstrap:
         #
         # DEMAIS ARQUIVOS
         #
-    
+
         self.solution_locator_service = (
             SolutionLocatorService()
+        )
+
+        self.setup_path_resolver = (
+            SetupPathResolver()
+        )
+
+        self.visual_studio_setup_definition_loader = (
+            VisualStudioSetupDefinitionLoader()
         )
 
         #
@@ -399,12 +410,20 @@ class Bootstrap:
             WindowsVisualStudioLocator()
         )
 
-        
+        self.disable_out_of_proc_build_service = (
+            DisableOutOfProcBuildService(
+                process_service=self.process_service,
+            )
+        )
+
         self.visual_studio_installer_service = (
             VisualStudioInstallerService(
                 process_service=self.process_service,
                 visual_studio_locator=(
                     self.visual_studio_locator
+                ),
+                disable_out_of_proc_build_service=(
+                    self.disable_out_of_proc_build_service
                 ),
             )
         )
@@ -415,14 +434,6 @@ class Bootstrap:
                     self.visual_studio_installer_service
                 ),
             )
-        )
-
-        self.setup_path_resolver = (
-            SetupPathResolver()
-        )
-
-        self.visual_studio_setup_definition_loader = (
-            VisualStudioSetupDefinitionLoader()
         )
 
         #

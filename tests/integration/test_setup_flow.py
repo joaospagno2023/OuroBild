@@ -9,6 +9,7 @@ Descrição : Teste de integração do fluxo completo de Setup.
 from pathlib import Path
 from unittest.mock import MagicMock
 
+
 from app.models.process.process_status import (
     ProcessStatus,
 )
@@ -27,6 +28,10 @@ from app.models.setup.setup_paths import (
 
 from app.models.setup.setup_request import (
     SetupRequest,
+)
+
+from app.services.setup.disable_out_of_proc_build_service import (
+    DisableOutOfProcBuildService,
 )
 
 from app.services.setup.setup_factory import (
@@ -429,6 +434,27 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     )
 
     #
+    # Disable Out Of Proc Build
+    #
+    # O teste não executa o utilitário real.
+    # Simulamos uma execução bem-sucedida.
+    #
+
+    disable_out_of_proc_build_service = MagicMock(
+        spec=DisableOutOfProcBuildService,
+    )
+
+    disable_out_of_proc_build_service.execute.return_value = (
+        MagicMock(
+            status=ProcessStatus.SUCCESS,
+            exit_code=0,
+            stdout="Success.",
+            stderr="",
+            duration=0.1,
+        )
+    )
+
+    #
     # Visual Studio Locator
     #
 
@@ -453,6 +479,9 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
             process_service=process_service,
             visual_studio_locator=(
                 visual_studio_locator
+            ),
+            disable_out_of_proc_build_service=(
+                disable_out_of_proc_build_service
             ),
         )
     )
@@ -564,3 +593,14 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     process_service.execute.assert_called_once()
 
     visual_studio_locator.locate.assert_called_once()
+
+    #
+    # Confirma que o DisableOutOfProcBuild
+    # foi executado antes do Visual Studio.
+    #
+
+    disable_out_of_proc_build_service.execute.assert_called_once_with(
+        visual_studio_path=(
+            visual_studio_locator.locate.return_value
+        )
+    )

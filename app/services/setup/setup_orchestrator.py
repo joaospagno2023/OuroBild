@@ -6,6 +6,8 @@ Descrição : Orquestra o processo de geração do Setup.
 --------------------------------------------------------------------
 """
 
+import os
+
 from pathlib import Path
 
 from app.models.configuration.app_settings import (
@@ -593,6 +595,29 @@ class DefaultSetupOrchestrator:
             # original porque o original nunca foi
             # alterado.
             #
+            # Durante o diagnóstico podemos preservar
+            # os arquivos temporários para executar
+            # manualmente o mesmo comando do Visual Studio.
+            #
+
+            keep_temporary_files = (
+                os.getenv(
+                    "OUROBUILD_KEEP_TEMPORARY_FILES",
+                    "",
+                ).strip().lower()
+                in {
+                    "1",
+                    "true",
+                    "yes",
+                    "sim",
+                }
+            )
+
+            print()
+            print(
+                "[OuroBuild] Keep temporary files: "
+                f"{keep_temporary_files}"
+            )
 
             if workspace_root is not None:
                 try:
@@ -601,7 +626,20 @@ class DefaultSetupOrchestrator:
                         workspace_root=(
                             workspace_root
                         ),
+                        keep_temporary_files=(
+                            keep_temporary_files
+                        ),
                     )
+
+                    if keep_temporary_files:
+                        print(
+                            "[OuroBuild] Workspace temporário "
+                            "preservado para diagnóstico:"
+                        )
+                        print(
+                            "[OuroBuild] "
+                            f"{workspace_root}"
+                        )
 
                 except Exception:
                     #

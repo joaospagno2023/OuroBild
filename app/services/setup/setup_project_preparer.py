@@ -48,6 +48,8 @@ class SetupProjectPreparer:
             ↓
         UPDATE / REMOVE / ADD
             ↓
+        remoção dos vínculos Scc/TFS
+            ↓
         .vdproj preparado
     """
 
@@ -348,6 +350,23 @@ class SetupProjectPreparer:
 
         #
         # ============================================================
+        # 5.1 Remover vínculos de Source Control.
+        #
+        # Esta alteração é aplicada somente na cópia
+        # temporária do .vdproj.
+        #
+        # O arquivo original do TFS nunca é alterado.
+        # ============================================================
+        #
+
+        prepared_content = (
+            self.__remove_source_control_bindings(
+                prepared_content,
+            )
+        )
+
+        #
+        # ============================================================
         # DIAGNÓSTICO DO VDPROJ PREPARADO
         # ============================================================
         #
@@ -568,6 +587,59 @@ class SetupProjectPreparer:
         )
 
         return workspace_project
+
+    @staticmethod
+    def __remove_source_control_bindings(
+        content: str,
+    ) -> str:
+        """
+        Remove os vínculos de Source Control/TFS
+        da cópia temporária do projeto.
+
+        O método suporta os formatos usados pelo projeto:
+
+        - .vdproj: propriedades no formato:
+          "SccProvider" = "8:SAK"
+
+        - .csproj: propriedades no formato XML:
+          <SccProvider>SAK</SccProvider>
+
+        Remove somente estas propriedades:
+
+            SccProjectName
+            SccLocalPath
+            SccAuxPath
+            SccProvider
+
+        O conteúdo recebido é a cópia temporária.
+        O arquivo original nunca é alterado.
+        """
+
+        if not content:
+            return content
+
+        source_control_properties = (
+            '"SccProjectName"',
+            '"SccLocalPath"',
+            '"SccAuxPath"',
+            '"SccProvider"',
+            '<SccProjectName>',
+            '<SccLocalPath>',
+            '<SccAuxPath>',
+            '<SccProvider>',
+        )
+
+        lines = content.splitlines(
+            keepends=True,
+        )
+
+        return "".join(
+            line
+            for line in lines
+            if not line.lstrip().startswith(
+                source_control_properties,
+            )
+        )
 
     @staticmethod
     def __get_scc_lines(

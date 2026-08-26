@@ -40,6 +40,10 @@ from app.models.setup.setup_result import (
     SetupResult,
 )
 
+from app.services.setup.disable_out_of_proc_build_service import (
+    DisableOutOfProcBuildService,
+)
+
 from app.services.setup.visual_studio_installer_service import (
     VisualStudioInstallerService,
 )
@@ -174,8 +178,9 @@ def create_service(
     tmp_path: Path,
 ):
     """
-    Cria o serviço com ProcessService e
-    VisualStudioLocator falsos.
+    Cria o serviço com ProcessService,
+    VisualStudioLocator e
+    DisableOutOfProcBuildService falsos.
     """
 
     process_service = MagicMock(
@@ -184,6 +189,10 @@ def create_service(
 
     visual_studio_locator = MagicMock(
         spec=VisualStudioLocator,
+    )
+
+    disable_out_of_proc_build_service = MagicMock(
+        spec=DisableOutOfProcBuildService,
     )
 
     visual_studio_path = (
@@ -200,11 +209,20 @@ def create_service(
         visual_studio_path
     )
 
+    disable_out_of_proc_build_service.execute.return_value = (
+        create_process_result(
+            status=ProcessStatus.SUCCESS,
+        )
+    )
+
     service = (
         VisualStudioInstallerService(
             process_service=process_service,
             visual_studio_locator=(
                 visual_studio_locator
+            ),
+            disable_out_of_proc_build_service=(
+                disable_out_of_proc_build_service
             ),
         )
     )
@@ -244,11 +262,6 @@ def test_deve_gerar_setup_com_sucesso(
     paths = create_paths(
         tmp_path,
     )
-
-    #
-    # Caminho onde o Visual Studio deve gerar
-    # o MSI intermediário.
-    #
 
     intermediate_msi = (
         definition.setup_project_path.parent
@@ -306,11 +319,6 @@ def test_deve_gerar_setup_com_sucesso(
         encoding="utf-8",
     ) == "MSI"
 
-    #
-    # O MSI intermediário deve ter sido
-    # removido depois da cópia.
-    #
-
     assert not intermediate_msi.exists()
 
     visual_studio_locator.locate.assert_called_once()
@@ -341,11 +349,6 @@ def test_deve_montar_comando_visual_studio(
     paths = create_paths(
         tmp_path,
     )
-
-    #
-    # Cria o MSI intermediário para que o
-    # serviço possa concluir normalmente.
-    #
 
     intermediate_msi = (
         definition.setup_project_path.parent
@@ -411,6 +414,11 @@ def test_deve_montar_comando_visual_studio(
         definition.setup_project_path.stem,
         "/ProjectConfig",
         "Release",
+        "/Log",
+        str(
+            definition.solution_path.parent
+            / "OuroBuild.devenv.log.xml"
+        ),
     ]
 
 

@@ -14,7 +14,7 @@
     },
 
     "setup": {
-        "engine": "visual_studio",
+        "engine": "advanced_installer",
         "output_root": "C:\\Setups"
     },
 

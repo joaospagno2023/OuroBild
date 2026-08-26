@@ -302,3 +302,445 @@ def test_deve_rejeitar_setup_project_none(
             ),
             template_file_name="Existente.dll",
         )
+def test_deve_remover_vinculo_scc_da_copia_temporaria(
+    tmp_path: Path,
+) -> None:
+    """
+    O VDPROJ temporário não deve manter o vínculo
+    com o Source Control/TFS.
+
+    O arquivo original deve permanecer inalterado.
+    """
+
+    setup_project = (
+        tmp_path
+        / "Original"
+        / "Setup.vdproj"
+    )
+
+    publish_path = (
+        tmp_path
+        / "bin"
+        / "Release"
+    )
+
+    workspace_root = (
+        tmp_path
+        / ".ourobuild"
+    )
+
+    setup_project.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    publish_path.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    content_original = """\
+"DeployProject" = "8:Start"
+"ProductCode" = "8:{TEST}"
+"SccProjectName" = "8:SAK"
+"SccLocalPath" = "8:SAK"
+"SccAuxPath" = "8:SAK"
+"SccProvider" = "8:SAK"
+"Root" = "8:End"
+"""
+
+    setup_project.write_text(
+        content_original,
+        encoding="utf-8",
+    )
+
+    #
+    # Aqui usamos mocks simples das dependências
+    # do SetupProjectPreparer.
+    #
+
+    class FakeWorkspaceService:
+
+        def create_workspace(
+            self,
+            setup_project_path: Path,
+            workspace_root: Path,
+        ) -> Path:
+
+            workspace = (
+                workspace_root
+                / setup_project.name
+            )
+
+            workspace.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            workspace.write_text(
+                setup_project.read_text(
+                    encoding="utf-8",
+                ),
+                encoding="utf-8",
+            )
+
+            return workspace
+
+        def read(
+            self,
+            workspace_project_path: Path,
+        ) -> str:
+
+            return workspace_project_path.read_text(
+                encoding="utf-8",
+            )
+
+        def write(
+            self,
+            workspace_project_path: Path,
+            content: str,
+        ) -> None:
+
+            workspace_project_path.write_text(
+                content,
+                encoding="utf-8",
+            )
+
+    class FakeLoader:
+
+        def load(
+            self,
+            setup_project_path: Path,
+            publish_path: Path,
+        ) -> list:
+
+            return []
+
+    class FakeSynchronizer:
+
+        def synchronize(
+            self,
+            setup_files: list,
+            publish_path: Path,
+        ) -> list:
+
+            return []
+
+    class FakeChangeApplier:
+
+        def apply(
+            self,
+            content: str,
+            changes: list,
+            template_file_name: str,
+        ) -> str:
+
+            return content
+
+    service = SetupProjectPreparer(
+        workspace_service=(
+            FakeWorkspaceService()
+        ),
+        setup_file_loader=(
+            FakeLoader()
+        ),
+        synchronizer=(
+            FakeSynchronizer()
+        ),
+        change_applier=(
+            FakeChangeApplier()
+        ),
+    )
+
+    result = service.prepare(
+        setup_project_path=setup_project,
+        publish_path=publish_path,
+        workspace_root=workspace_root,
+        template_file_name="Template.dll",
+    )
+
+    #
+    # O arquivo original NÃO pode ter sido alterado.
+    #
+
+    original_after = (
+        setup_project.read_text(
+            encoding="utf-8",
+        )
+    )
+
+    assert (
+        original_after
+        == content_original
+    )
+
+    #
+    # A cópia temporária deve existir.
+    #
+
+    assert result.exists()
+
+    #
+    # A cópia não pode possuir os vínculos Scc.
+    #
+
+    prepared_content = (
+        result.read_text(
+            encoding="utf-8",
+        )
+    )
+
+    assert (
+        '"SccProjectName"'
+        not in prepared_content
+    )
+
+    assert (
+        '"SccLocalPath"'
+        not in prepared_content
+    )
+
+    assert (
+        '"SccAuxPath"'
+        not in prepared_content
+    )
+
+    assert (
+        '"SccProvider"'
+        not in prepared_content
+    )
+
+    #
+    # O restante do VDPROJ deve permanecer.
+    #
+
+    assert (
+        '"DeployProject" = "8:Start"'
+        in prepared_content
+    )
+
+    assert (
+        '"ProductCode" = "8:{TEST}"'
+        in prepared_content
+    )
+
+    assert (
+        '"Root" = "8:End"'
+        in prepared_content
+    )
+def test_deve_remover_vinculo_scc_do_csproj_temporario(
+    tmp_path: Path,
+) -> None:
+    """
+    O .csproj temporário não deve manter o vínculo
+    com o Source Control/TFS.
+
+    O arquivo original deve permanecer inalterado.
+    """
+
+    project = (
+        tmp_path
+        / "Original"
+        / "OuroNet.Client.WinService.LinkPagamento.csproj"
+    )
+
+    publish_path = (
+        tmp_path
+        / "bin"
+        / "Release"
+    )
+
+    workspace_root = (
+        tmp_path
+        / ".ourobuild"
+    )
+
+    project.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    publish_path.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    content_original = """\
+<Project ToolsVersion="15.0">
+  <PropertyGroup>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <Configuration>Release</Configuration>
+  </PropertyGroup>
+</Project>
+"""
+
+    project.write_text(
+        content_original,
+        encoding="utf-8",
+    )
+
+    #
+    # O arquivo temporário simula a cópia criada
+    # pelo WorkspaceService.
+    #
+
+    class FakeWorkspaceService:
+
+        def create_workspace(
+            self,
+            setup_project_path: Path,
+            workspace_root: Path,
+        ) -> Path:
+
+            workspace = (
+                workspace_root
+                / setup_project_path.name
+            )
+
+            workspace.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            workspace.write_text(
+                setup_project_path.read_text(
+                    encoding="utf-8",
+                ),
+                encoding="utf-8",
+            )
+
+            return workspace
+
+        def read(
+            self,
+            workspace_project_path: Path,
+        ) -> str:
+
+            return workspace_project_path.read_text(
+                encoding="utf-8",
+            )
+
+        def write(
+            self,
+            workspace_project_path: Path,
+            content: str,
+        ) -> None:
+
+            workspace_project_path.write_text(
+                content,
+                encoding="utf-8",
+            )
+
+    class FakeLoader:
+
+        def load(
+            self,
+            setup_project_path: Path,
+            publish_path: Path,
+        ) -> list:
+            return []
+
+    class FakeSynchronizer:
+
+        def synchronize(
+            self,
+            setup_files: list,
+            publish_path: Path,
+        ) -> list:
+            return []
+
+    class FakeChangeApplier:
+
+        def apply(
+            self,
+            content: str,
+            changes: list,
+            template_file_name: str,
+        ) -> str:
+            return content
+
+    service = SetupProjectPreparer(
+        workspace_service=(
+            FakeWorkspaceService()
+        ),
+        setup_file_loader=(
+            FakeLoader()
+        ),
+        synchronizer=(
+            FakeSynchronizer()
+        ),
+        change_applier=(
+            FakeChangeApplier()
+        ),
+    )
+
+    result = service.prepare(
+        setup_project_path=project,
+        publish_path=publish_path,
+        workspace_root=workspace_root,
+        template_file_name="Template.dll",
+    )
+
+    #
+    # O original não pode ser alterado.
+    #
+
+    original_after = (
+        project.read_text(
+            encoding="utf-8",
+        )
+    )
+
+    assert (
+        original_after
+        == content_original
+    )
+
+    #
+    # A cópia temporária deve existir.
+    #
+
+    assert result.exists()
+
+    #
+    # A cópia temporária não pode possuir
+    # nenhuma propriedade Scc.
+    #
+
+    prepared_content = (
+        result.read_text(
+            encoding="utf-8",
+        )
+    )
+
+    assert (
+        "<SccProjectName>"
+        not in prepared_content
+    )
+
+    assert (
+        "<SccLocalPath>"
+        not in prepared_content
+    )
+
+    assert (
+        "<SccAuxPath>"
+        not in prepared_content
+    )
+
+    assert (
+        "<SccProvider>"
+        not in prepared_content
+    )
+
+    #
+    # O restante do arquivo deve permanecer.
+    #
+
+    assert (
+        "<Configuration>Release</Configuration>"
+        in prepared_content
+    )

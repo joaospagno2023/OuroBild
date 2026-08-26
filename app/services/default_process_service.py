@@ -191,6 +191,16 @@ class DefaultProcessService(ProcessService):
 
             #
             # ========================================================
+            # DIAGNÓSTICO DA SOLUTION TEMPORÁRIA
+            # ========================================================
+            #
+
+            self.__print_solution_diagnostics(
+                args,
+            )
+
+            #
+            # ========================================================
             # AMBIENTE
             # ========================================================
             #
@@ -332,6 +342,7 @@ class DefaultProcessService(ProcessService):
             )
 
             print()
+
             print(
                 "[OuroBuild] STDOUT:"
             )
@@ -343,6 +354,7 @@ class DefaultProcessService(ProcessService):
             )
 
             print()
+
             print(
                 "[OuroBuild] STDERR:"
             )
@@ -441,6 +453,342 @@ class DefaultProcessService(ProcessService):
             ),
             command_line=command_line,
         )
+
+    @staticmethod
+    def __print_solution_diagnostics(
+        args: list[str],
+    ) -> None:
+        """
+        Analisa a Solution que será entregue ao Visual Studio.
+
+        O objetivo é descobrir exatamente qual VDPROJ está
+        referenciado pela Solution temporária antes que o
+        Visual Studio seja iniciado.
+
+        Este método é somente diagnóstico.
+        Não altera nenhum arquivo.
+        """
+
+        #
+        # Procuramos o primeiro argumento que termina
+        # com .sln.
+        #
+
+        solution_path = None
+
+        for argument in args:
+
+            if argument.lower().endswith(
+                ".sln",
+            ):
+
+                solution_path = Path(
+                    argument,
+                )
+
+                break
+
+        print()
+        print(
+            "=" * 70
+        )
+
+        print(
+            "[OuroBuild] SOLUTION DIAGNOSTICS"
+        )
+
+        print(
+            "=" * 70
+        )
+
+        if solution_path is None:
+
+            print(
+                "[OuroBuild] "
+                "Nenhum arquivo .sln encontrado nos argumentos."
+            )
+
+            print(
+                "=" * 70
+            )
+
+            return
+
+        print(
+            "[OuroBuild] Solution:"
+        )
+
+        print(
+            f"[OuroBuild] {solution_path}"
+        )
+
+        print(
+            "[OuroBuild] Solution Exists:"
+        )
+
+        print(
+            f"[OuroBuild] {solution_path.exists()}"
+        )
+
+        if not solution_path.exists():
+
+            print(
+                "[OuroBuild] "
+                "A Solution não existe neste momento."
+            )
+
+            print(
+                "=" * 70
+            )
+
+            return
+
+        try:
+
+            content = (
+                solution_path.read_text(
+                    encoding="utf-8",
+                    errors="replace",
+                )
+            )
+
+        except Exception as ex:
+
+            print(
+                "[OuroBuild] "
+                "Erro ao ler Solution:"
+            )
+
+            print(
+                f"[OuroBuild] {ex}"
+            )
+
+            print(
+                "=" * 70
+            )
+
+            return
+
+        #
+        # Procurar todas as linhas que possuem .vdproj.
+        #
+
+        vdproj_lines = [
+            line.strip()
+            for line in content.splitlines()
+            if ".vdproj" in line.lower()
+        ]
+
+        print()
+        print(
+            "[OuroBuild] Referências VDPROJ:"
+        )
+
+        if not vdproj_lines:
+
+            print(
+                "[OuroBuild] "
+                "<nenhuma referência .vdproj encontrada>"
+            )
+
+            print(
+                "=" * 70
+            )
+
+            return
+
+        for line in vdproj_lines:
+
+            print(
+                f"[OuroBuild] {line}"
+            )
+
+        #
+        # ========================================================
+        # Tentar extrair o caminho do VDPROJ.
+        # ========================================================
+        #
+
+        print()
+        print(
+            "[OuroBuild] VDPROJ RESOLVIDOS:"
+        )
+
+        solution_directory = (
+            solution_path.parent
+        )
+
+        for line in vdproj_lines:
+
+            resolved_path = (
+                DefaultProcessService
+                .__resolve_vdproj_path(
+                    line=line,
+                    solution_directory=(
+                        solution_directory
+                    ),
+                )
+            )
+
+            if resolved_path is None:
+
+                print(
+                    "[OuroBuild] "
+                    "Não foi possível resolver:"
+                )
+
+                print(
+                    f"[OuroBuild] {line}"
+                )
+
+                continue
+
+            print(
+                "[OuroBuild] VDPROJ:"
+            )
+
+            print(
+                f"[OuroBuild] {resolved_path}"
+            )
+
+            print(
+                "[OuroBuild] Exists:"
+            )
+
+            print(
+                f"[OuroBuild] "
+                f"{resolved_path.exists()}"
+            )
+
+            #
+            # Se o arquivo existir, verificamos Scc.
+            #
+
+            if resolved_path.exists():
+
+                DefaultProcessService.\
+                    __print_vdproj_scc_diagnostics(
+                        resolved_path,
+                    )
+
+        print(
+            "=" * 70
+        )
+
+    @staticmethod
+    def __resolve_vdproj_path(
+        line: str,
+        solution_directory: Path,
+    ) -> Path | None:
+        """
+        Resolve uma referência de .vdproj encontrada
+        dentro da Solution.
+
+        Não altera o conteúdo.
+        """
+
+        if not line:
+            return None
+
+        #
+        # O formato esperado da linha da Solution é semelhante a:
+        #
+        # Project(...) = "Nome",
+        # "04-Setup\\Projeto\\Projeto.vdproj",
+        # "{GUID}"
+        #
+        # Procuramos o trecho entre aspas que termina em .vdproj.
+        #
+
+        parts = line.split('"')
+
+        for part in parts:
+
+            value = part.strip()
+
+            if not value.lower().endswith(
+                ".vdproj",
+            ):
+
+                continue
+
+            path_value = (
+                value.replace(
+                    "\\",
+                    os.sep,
+                )
+            )
+
+            path = Path(
+                path_value,
+            )
+
+            if not path.is_absolute():
+
+                path = (
+                    solution_directory
+                    / path
+                )
+
+            return path.resolve()
+
+        return None
+
+    @staticmethod
+    def __print_vdproj_scc_diagnostics(
+        vdproj_path: Path,
+    ) -> None:
+        """
+        Exibe as propriedades Scc do VDPROJ
+        que será efetivamente aberto pelo Visual Studio.
+        """
+
+        try:
+
+            content = (
+                vdproj_path.read_text(
+                    encoding="utf-8",
+                    errors="replace",
+                )
+            )
+
+        except Exception as ex:
+
+            print(
+                "[OuroBuild] "
+                "Erro ao ler VDPROJ:"
+            )
+
+            print(
+                f"[OuroBuild] {ex}"
+            )
+
+            return
+
+        scc_lines = [
+            line.strip()
+            for line in content.splitlines()
+            if "Scc" in line
+        ]
+
+        print(
+            "[OuroBuild] Scc do VDPROJ:"
+        )
+
+        if not scc_lines:
+
+            print(
+                "[OuroBuild] "
+                "<nenhuma propriedade Scc encontrada>"
+            )
+
+            return
+
+        for line in scc_lines:
+
+            print(
+                f"[OuroBuild] {line}"
+            )
 
     @staticmethod
     def __build_command_line(

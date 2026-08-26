@@ -38,7 +38,7 @@ def test_deve_localizar_visual_studio(
 
     devenv = (
         visual_studio_root
-        / "devenv.com"
+         / "devenv.com"
     )
 
     devenv.write_text(

@@ -46,6 +46,10 @@ from app.models.setup.setup_result import (
     SetupResult,
 )
 
+from app.services.setup.disable_out_of_proc_build_service import (
+    DisableOutOfProcBuildService,
+)
+
 from app.services.setup.visual_studio_locator import (
     VisualStudioLocator,
 )
@@ -63,18 +67,12 @@ class VisualStudioInstallerService(
         self,
         process_service: ProcessService,
         visual_studio_locator: VisualStudioLocator,
+        disable_out_of_proc_build_service: (
+            DisableOutOfProcBuildService
+        ),
     ) -> None:
         """
         Inicializa o serviço.
-
-        Args:
-            process_service:
-                Serviço responsável pela execução
-                de processos externos.
-
-            visual_studio_locator:
-                Serviço responsável por localizar
-                o Visual Studio instalado.
         """
 
         self.__process_service = (
@@ -85,6 +83,10 @@ class VisualStudioInstallerService(
             visual_studio_locator
         )
 
+        self.__disable_out_of_proc_build_service = (
+            disable_out_of_proc_build_service
+        )
+
     def install(
         self,
         request: SetupRequest,
@@ -93,15 +95,6 @@ class VisualStudioInstallerService(
     ) -> SetupResult:
         """
         Gera o instalador utilizando o Visual Studio.
-
-        O Visual Studio gera o MSI no diretório Release
-        do projeto de Setup.
-
-        Depois que o MSI for gerado, ele é copiado para
-        o caminho final definido em paths.output_msi.
-
-        O MSI intermediário somente é removido depois
-        que a cópia final for confirmada.
         """
 
         self.__validate(
@@ -132,6 +125,92 @@ class VisualStudioInstallerService(
         print(
             f"[OuroBuild] {visual_studio_path}"
         )
+
+        #
+        # Desabilita o Out-of-Process Build.
+        #
+
+        print(
+            "[OuroBuild] Desabilitando "
+            "Out-of-Process Build..."
+        )
+
+        disable_result = (
+            self.__disable_out_of_proc_build_service.execute(
+                visual_studio_path=(
+                    visual_studio_path
+                ),
+            )
+        )
+
+        print(
+            "[OuroBuild] DisableOutOfProcBuild "
+            "Status:"
+        )
+
+        print(
+            f"[OuroBuild] {disable_result.status}"
+        )
+
+        print(
+            "[OuroBuild] DisableOutOfProcBuild "
+            "ExitCode:"
+        )
+
+        print(
+            f"[OuroBuild] {disable_result.exit_code}"
+        )
+
+        print(
+            "[OuroBuild] DisableOutOfProcBuild "
+            "STDOUT:"
+        )
+
+        print(
+            disable_result.stdout
+            if disable_result.stdout
+            else "<vazio>"
+        )
+
+        print(
+            "[OuroBuild] DisableOutOfProcBuild "
+            "STDERR:"
+        )
+
+        print(
+            disable_result.stderr
+            if disable_result.stderr
+            else "<vazio>"
+        )
+
+        #
+        # O utilitário precisa terminar com sucesso
+        # antes de iniciarmos o Visual Studio.
+        #
+
+        if (
+            disable_result.status
+            != ProcessStatus.SUCCESS
+        ):
+            return SetupResult(
+                success=False,
+                message=(
+                    "Não foi possível desabilitar "
+                    "o Out-of-Process Build do "
+                    "Visual Studio. "
+                    f"ExitCode: "
+                    f"{disable_result.exit_code}. "
+                    f"STDOUT: "
+                    f"{disable_result.stdout}. "
+                    f"STDERR: "
+                    f"{disable_result.stderr}"
+                ).strip(),
+                project_id=request.project_id,
+                output_msi=None,
+                duration_seconds=(
+                    disable_result.duration
+                ),
+            )
 
         #
         # Resolve o MSI intermediário.
@@ -271,9 +350,7 @@ class VisualStudioInstallerService(
             )
 
         #
-        # O Visual Studio terminou com sucesso.
-        # Agora verificamos o MSI no local real
-        # onde o projeto Setup gera o arquivo.
+        # Visual Studio terminou com sucesso.
         #
 
         print(
@@ -327,8 +404,7 @@ class VisualStudioInstallerService(
         )
 
         #
-        # Se já existir um MSI anterior,
-        # removemos antes da cópia.
+        # Remove MSI anterior.
         #
 
         if output_msi.exists():
@@ -355,8 +431,7 @@ class VisualStudioInstallerService(
                 )
 
         #
-        # Copia o MSI gerado pelo Visual Studio
-        # para o destino final do OuroBuild.
+        # Copia o MSI gerado pelo Visual Studio.
         #
 
         try:
@@ -386,7 +461,7 @@ class VisualStudioInstallerService(
             )
 
         #
-        # Confirma que o MSI final realmente existe.
+        # Confirma MSI final.
         #
 
         if not output_msi.exists():
@@ -406,7 +481,7 @@ class VisualStudioInstallerService(
             )
 
         #
-        # Confirma que o arquivo final possui conteúdo.
+        # Confirma tamanho.
         #
 
         if output_msi.stat().st_size <= 0:
@@ -425,8 +500,8 @@ class VisualStudioInstallerService(
             )
 
         #
-        # Somente agora podemos remover o MSI
-        # intermediário.
+        # Remove MSI intermediário somente depois
+        # de confirmar a cópia.
         #
 
         try:
@@ -434,12 +509,6 @@ class VisualStudioInstallerService(
             intermediate_msi.unlink()
 
         except OSError as error:
-
-            #
-            # O Setup foi gerado e copiado corretamente.
-            # A falha de limpeza não deve transformar
-            # a geração do MSI em falha.
-            #
 
             return SetupResult(
                 success=True,
@@ -508,6 +577,16 @@ class VisualStudioInstallerService(
                 "não foi informado."
             )
 
+        if (
+            self.__disable_out_of_proc_build_service
+            is None
+        ):
+
+            raise ValueError(
+                "O serviço DisableOutOfProcBuild "
+                "não foi informado."
+            )
+
         if not definition.solution_path.exists():
 
             raise FileNotFoundError(
@@ -531,17 +610,6 @@ class VisualStudioInstallerService(
         """
         Resolve o caminho onde o Visual Studio
         deverá gerar o MSI intermediário.
-
-        O Visual Studio Installer (.vdproj)
-        gera o MSI dentro da pasta Release
-        localizada no diretório do projeto Setup.
-
-        Exemplo:
-
-            Setup\
-                Projeto.vdproj
-                Release\
-                    Projeto.msi
         """
 
         setup_project_path = Path(
@@ -569,12 +637,12 @@ class VisualStudioInstallerService(
     ) -> Command:
         """
         Cria o comando do Visual Studio.
-
-        A Solution original continua sendo utilizada.
-
-        O projeto Setup é selecionado através do
-        parâmetro /Project.
         """
+
+        log_path = (
+            definition.solution_path.parent
+            / "OuroBuild.devenv.log.xml"
+        )
 
         arguments = [
             CommandArgument(
@@ -582,29 +650,31 @@ class VisualStudioInstallerService(
                     definition.solution_path,
                 ),
             ),
-
             CommandArgument(
                 value="/Build",
             ),
-
             CommandArgument(
                 value=definition.configuration,
             ),
-
             CommandArgument(
                 value="/Project",
             ),
-
             CommandArgument(
                 value=definition.setup_project_path.stem,
             ),
-
             CommandArgument(
                 value="/ProjectConfig",
             ),
-
             CommandArgument(
                 value=definition.configuration,
+            ),
+            CommandArgument(
+                value="/Log",
+            ),
+            CommandArgument(
+                value=str(
+                    log_path,
+                ),
             ),
         ]
 
@@ -622,11 +692,7 @@ class VisualStudioInstallerService(
         definition: SetupDefinition,
     ) -> None:
         """
-        Exibe no console o comando completo que será
-        executado pelo Visual Studio.
-
-        O formato apresentado pode ser copiado
-        para testes manuais no PowerShell.
+        Exibe no console o comando completo.
         """
 
         executable = Path(
@@ -640,12 +706,6 @@ class VisualStudioInstallerService(
             value = str(
                 argument.value,
             )
-
-            #
-            # Argumentos que possuem espaços precisam
-            # ser envolvidos por aspas para execução
-            # manual no PowerShell.
-            #
 
             if (
                 " " in value
