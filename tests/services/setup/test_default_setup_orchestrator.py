@@ -254,6 +254,15 @@ def create_settings() -> AppSettings:
         Path(r"C:\Setups")
     )
 
+    settings.setup.aip_root = (
+        Path(
+            r"C:\DvpLocal\WorkSpaceTFS"
+            r"\Transferencia de Arquivo"
+            r"\TransferenciaDeArquivos"
+            r"\Setups\Installers\Projects"
+        )
+    )
+
     return settings
 
 
@@ -441,6 +450,14 @@ def test_deve_executar_setup_visual_studio():
         ),
         installer_root=Path(
             r"C:\Setups"
+        ),
+        aip_root=(
+            Path(
+                r"C:\DvpLocal\WorkSpaceTFS"
+                r"\Transferencia de Arquivo"
+                r"\TransferenciaDeArquivos"
+                r"\Setups\Installers\Projects"
+            )
         ),
         version="1.0.0",
         revision=1,

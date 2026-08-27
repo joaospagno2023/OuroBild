@@ -218,6 +218,10 @@ from app.services.setup.disable_out_of_proc_build_service import (
     DisableOutOfProcBuildService,
 )
 
+from app.services.setup.advanced_installer_service import (
+    AdvancedInstallerService,
+)
+
 class Bootstrap:
     """
     Responsável por criar e inicializar a aplicação.
@@ -428,10 +432,22 @@ class Bootstrap:
             )
         )
 
+        self.advanced_installer_service = (
+            AdvancedInstallerService(
+                process_service=self.process_service,
+                advanced_installer_path=(
+                    self.settings.build_tools.advanced_installer_path
+                ),
+            )
+        )
+
         self.setup_factory = (
             DefaultSetupFactory(
                 visual_studio_installer=(
                     self.visual_studio_installer_service
+                ),
+                advanced_installer=(
+                    self.advanced_installer_service
                 ),
             )
         )

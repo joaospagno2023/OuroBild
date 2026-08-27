@@ -9,6 +9,9 @@ Descrição : Teste de integração do fluxo completo de Setup.
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from app.abstractions.installer_service import (
+    InstallerService,
+)
 
 from app.models.process.process_status import (
     ProcessStatus,
@@ -343,6 +346,7 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     #
     # Setup Project Preparer
     #
+
     # O teste não executa a preparação real.
     # Simulamos o retorno de um projeto preparado.
     #
@@ -376,6 +380,7 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     #
     # Setup Workspace Service
     #
+
     # O projeto original nunca é substituído.
     # O workspace temporário é utilizado somente
     # para preparação e limpeza.
@@ -388,6 +393,7 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     #
     # Process Service
     #
+
     # O processo externo NÃO será executado.
     #
     # O mock simula:
@@ -436,6 +442,7 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     #
     # Disable Out Of Proc Build
     #
+
     # O teste não executa o utilitário real.
     # Simulamos uma execução bem-sucedida.
     #
@@ -471,7 +478,7 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     )
 
     #
-    # Installer
+    # Visual Studio Installer
     #
 
     installer = (
@@ -487,6 +494,22 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     )
 
     #
+    # Advanced Installer
+    #
+
+    # O teste está validando especificamente
+    # o fluxo do Visual Studio.
+    #
+    # Portanto não executamos o Advanced Installer.
+    # Apenas fornecemos um InstallerService
+    # simulado para satisfazer o contrato da Factory.
+    #
+
+    advanced_installer = MagicMock(
+        spec=InstallerService,
+    )
+
+    #
     # Factory
     #
 
@@ -494,6 +517,9 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         DefaultSetupFactory(
             visual_studio_installer=(
                 installer
+            ),
+            advanced_installer=(
+                advanced_installer
             ),
         )
     )

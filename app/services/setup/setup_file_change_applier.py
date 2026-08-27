@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : setup_file_change_applier.py
-Descrição : Aplica alterações de arquivos em projetos .vdproj.
+Descrição : Aplica alterações de arquivos em projetos VDPROJ.
 --------------------------------------------------------------------
 """
 
@@ -14,86 +14,82 @@ from app.models.setup.setup_file_sync import (
     SetupFileSync,
 )
 
-from app.services.setup.vdproj_component_identity_generator import (
-    VdprojComponentIdentityGenerator,
-)
-
-from app.services.setup.vdproj_file_block_builder import (
-    VdprojFileBlockBuilder,
-)
-
-from app.services.setup.vdproj_file_block_inserter import (
-    VdprojFileBlockInserter,
-)
-
-from app.services.setup.vdproj_file_modifier import (
-    VdprojFileModifier,
-)
-
-from app.services.setup.vdproj_file_template_provider import (
-    VdprojFileTemplateProvider,
-)
-
 
 class SetupFileChangeApplier:
     """
-    Aplica as alterações calculadas para os arquivos
-    do Setup.
+    Coordena a aplicação das alterações em um arquivo VDPROJ.
+
+    Responsabilidades:
+
+        UPDATE
+            Atualizar bloco existente.
+
+        REMOVE
+            Remover bloco existente.
+
+        ADD
+            Criar e inserir novo bloco utilizando um template.
+
+        KEEP
+            Não realizar alteração.
     """
 
     def __init__(
         self,
-        modifier: VdprojFileModifier,
-        template_provider: VdprojFileTemplateProvider,
-        identity_generator: (
-            VdprojComponentIdentityGenerator
-        ),
-        block_builder: VdprojFileBlockBuilder,
-        block_inserter: VdprojFileBlockInserter,
-    ) -> None:
+        modifier,
+        template_provider,
+        identity_generator,
+        block_builder,
+        block_inserter,
+    ):
         """
-        Inicializa o serviço.
+        Inicializa o serviço com suas dependências.
         """
 
         if modifier is None:
+
             raise ValueError(
-                "VdprojFileModifier não foi informado."
+                "Modifier não foi informado."
             )
 
         if template_provider is None:
+
             raise ValueError(
-                "VdprojFileTemplateProvider "
-                "não foi informado."
+                "TemplateProvider não foi informado."
             )
 
         if identity_generator is None:
+
             raise ValueError(
-                "VdprojComponentIdentityGenerator "
-                "não foi informado."
+                "IdentityGenerator não foi informado."
             )
 
         if block_builder is None:
+
             raise ValueError(
-                "VdprojFileBlockBuilder "
-                "não foi informado."
+                "BlockBuilder não foi informado."
             )
 
         if block_inserter is None:
+
             raise ValueError(
-                "VdprojFileBlockInserter "
-                "não foi informado."
+                "BlockInserter não foi informado."
             )
 
         self.__modifier = modifier
+
         self.__template_provider = (
             template_provider
         )
+
         self.__identity_generator = (
             identity_generator
         )
+
         self.__block_builder = (
             block_builder
         )
+
         self.__block_inserter = (
             block_inserter
         )
@@ -102,94 +98,145 @@ class SetupFileChangeApplier:
         self,
         content: str,
         changes: list[SetupFileSync],
-        template_file_name: str,
+        template_file_name: str | None,
     ) -> str:
         """
-        Aplica todas as alterações no conteúdo do .vdproj.
+        Aplica as alterações ao conteúdo VDPROJ.
 
-        O conteúdo recebido é tratado como uma cópia de trabalho.
-        O arquivo físico original não é alterado.
+        :param content:
+            Conteúdo do arquivo .vdproj.
+
+        :param changes:
+            Alterações a aplicar.
+
+        :param template_file_name:
+            Nome do arquivo utilizado como template
+            para operações ADD.
         """
 
         if content is None:
+
             raise ValueError(
                 "Conteúdo do .vdproj não foi informado."
             )
 
         if changes is None:
+
             raise ValueError(
                 "Alterações não foram informadas."
             )
 
-        if not template_file_name:
+        if (
+            template_file_name is None
+            or not str(
+                template_file_name,
+            ).strip()
+        ):
+
             raise ValueError(
                 "Arquivo template não foi informado."
             )
 
-        result = content
+        current_content = content
 
         for change in changes:
 
             if change is None:
-                raise ValueError(
-                    "Alteração de arquivo inválida."
-                )
 
-            if (
+                continue
+
+            action = (
                 change.action
-                == SetupFileAction.UPDATE
-            ):
-                result = (
-                    self.__modifier.update(
-                        content=result,
-                        setup_file=change,
+            )
+
+            if action == SetupFileAction.KEEP:
+
+                continue
+
+            if action == SetupFileAction.UPDATE:
+
+                current_content = (
+                    self.__apply_update(
+                        content=current_content,
+                        change=change,
                     )
                 )
 
                 continue
 
-            if (
-                change.action
-                == SetupFileAction.REMOVE
-            ):
-                result = (
-                    self.__modifier.remove(
-                        content=result,
-                        setup_file=change,
+            if action == SetupFileAction.REMOVE:
+
+                current_content = (
+                    self.__apply_remove(
+                        content=current_content,
+                        change=change,
                     )
                 )
 
                 continue
 
-            if (
-                change.action
-                == SetupFileAction.ADD
-            ):
-                result = self.__add(
-                    content=result,
-                    change=change,
-                    template_file_name=(
-                        template_file_name
-                    ),
+            if action == SetupFileAction.ADD:
+
+                current_content = (
+                    self.__apply_add(
+                        content=current_content,
+                        change=change,
+                        template_file_name=(
+                            template_file_name
+                        ),
+                    )
                 )
 
                 continue
 
             raise ValueError(
                 "Ação de arquivo não suportada: "
-                f"{change.action}"
+                f"{action}"
             )
 
-        return result
+        return current_content
 
-    def __add(
+    def __apply_update(
+        self,
+        content: str,
+        change: SetupFileSync,
+    ) -> str:
+        """
+        Atualiza um bloco existente.
+        """
+
+        return (
+            self.__modifier.update(
+                content=content,
+                setup_file=change,
+            )
+        )
+
+    def __apply_remove(
+        self,
+        content: str,
+        change: SetupFileSync,
+    ) -> str:
+        """
+        Remove um bloco existente.
+        """
+
+        return (
+            self.__modifier.remove(
+                content=content,
+                setup_file=change,
+            )
+        )
+
+    def __apply_add(
         self,
         content: str,
         change: SetupFileSync,
         template_file_name: str,
     ) -> str:
         """
-        Adiciona um novo arquivo ao .vdproj.
+        Adiciona um novo bloco utilizando um arquivo existente
+        como template.
         """
 
         template = (
@@ -207,7 +254,9 @@ class SetupFileChangeApplier:
             self.__block_builder.build(
                 template=template.content,
                 file_name=change.name,
-                source_path=change.source_path,
+                source_path=str(
+                    change.source_path,
+                ),
                 identity=identity,
                 assembly_display_name=(
                     change.assembly_display_name
@@ -215,7 +264,9 @@ class SetupFileChangeApplier:
             )
         )
 
-        return self.__block_inserter.insert(
-            content=content,
-            file_block=block,
+        return (
+            self.__block_inserter.insert(
+                content=content,
+                file_block=block,
+            )
         )

@@ -2,7 +2,8 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : setup_file_synchronizer.py
-Descrição : Compara arquivos do Setup com o publish_path.
+Descrição : Identifica alterações entre os arquivos do Setup e
+            os arquivos existentes no diretório de publicação.
 --------------------------------------------------------------------
 """
 
@@ -23,10 +24,17 @@ from app.models.setup.setup_file_sync import (
 
 class SetupFileSynchronizer:
     """
-    Compara os arquivos existentes no Setup com os arquivos
-    disponíveis no publish_path.
+    Identifica diferenças entre os arquivos atualmente presentes
+    no Setup e os arquivos existentes no publish_path.
 
-    Este serviço não altera o .vdproj.
+    Responsabilidades:
+
+        - identificar arquivos para UPDATE;
+        - identificar arquivos para REMOVE;
+        - identificar arquivos para ADD.
+
+    O Synchronizer não altera o projeto de Setup.
+    Ele apenas produz a lista de SetupFileSync.
     """
 
     def synchronize(
@@ -35,17 +43,28 @@ class SetupFileSynchronizer:
         publish_path: Path,
     ) -> list[SetupFileSync]:
         """
-        Calcula as alterações necessárias.
+        Compara os arquivos do Setup com o conteúdo publicado.
+
+        :param setup_files:
+            Arquivos atualmente presentes no Setup.
+
+        :param publish_path:
+            Diretório contendo os arquivos publicados.
+
+        :return:
+            Lista de alterações identificadas.
         """
 
         if setup_files is None:
+
             raise ValueError(
-                "Os arquivos do Setup não foram informados."
+                "Arquivos do Setup não foram informados."
             )
 
         if publish_path is None:
+
             raise ValueError(
-                "PublishPath não foi informado."
+                "Pasta de publicação não foi informada."
             )
 
         publish_path = Path(
@@ -53,100 +72,183 @@ class SetupFileSynchronizer:
         )
 
         if not publish_path.exists():
+
             raise FileNotFoundError(
-                "PublishPath não encontrado: "
+                "Pasta de publicação não encontrada:\n"
                 f"{publish_path}"
             )
 
         if not publish_path.is_dir():
+
             raise ValueError(
-                "PublishPath não é um diretório: "
+                "Pasta de publicação não é um diretório:\n"
                 f"{publish_path}"
             )
 
-        setup_by_name = {
-            item.name.lower(): item
-            for item in setup_files
-        }
+        setup_by_name = (
+            self.__index_setup_files(
+                setup_files,
+            )
+        )
 
-        published_files = {
-            item.name.lower(): item
-            for item in publish_path.iterdir()
-            if item.is_file()
-            and item.suffix.lower() == ".dll"
-        }
+        publish_by_name = (
+            self.__index_publish_files(
+                publish_path,
+            )
+        )
 
-        result: list[SetupFileSync] = []
+        changes: list[SetupFileSync] = []
 
         #
-        # Arquivos existentes no Setup
+        # ------------------------------------------------------------
+        # Arquivos existentes no Setup.
+        # ------------------------------------------------------------
         #
 
-        for setup_file in setup_files:
-
-            key = setup_file.name.lower()
-
-            published_file = (
-                published_files.get(key)
+        for name, setup_file in (
+            setup_by_name.items()
+        ):
+            publish_file = (
+                publish_by_name.get(
+                    name,
+                )
             )
 
-            if published_file is None:
+            #
+            # Arquivo existe no Setup mas não existe
+            # mais no publish.
+            #
 
-                data = setup_file.model_dump()
+            if publish_file is None:
 
-                data["action"] = (
-                    SetupFileAction.REMOVE
-                )
-
-                result.append(
+                changes.append(
                     SetupFileSync(
-                        **data,
+                        name=setup_file.name,
+                        source_path=setup_file.source_path,
+                        publish_path=(
+                            publish_path
+                            / setup_file.name
+                        ),
+                        assembly_display_name=(
+                            getattr(
+                                setup_file,
+                                "assembly_display_name",
+                                None,
+                            )
+                        ),
+                        action=(
+                            SetupFileAction.REMOVE
+                        ),
                     )
                 )
 
                 continue
 
-            data = setup_file.model_dump()
+            #
+            # Arquivo existe nos dois locais.
+            #
 
-            data["publish_path"] = (
-                published_file
-            )
-
-            data["action"] = (
-                SetupFileAction.UPDATE
-            )
-
-            result.append(
+            changes.append(
                 SetupFileSync(
-                    **data,
+                    name=setup_file.name,
+                    source_path=(
+                        setup_file.source_path
+                    ),
+                    publish_path=publish_file,
+                    assembly_display_name=(
+                        getattr(
+                            setup_file,
+                            "assembly_display_name",
+                            None,
+                        )
+                    ),
+                    action=(
+                        SetupFileAction.UPDATE
+                    ),
                 )
             )
 
         #
-        # Arquivos novos publicados
+        # ------------------------------------------------------------
+        # Arquivos existentes somente no publish.
+        # ------------------------------------------------------------
         #
 
-        setup_names = set(
-            setup_by_name.keys()
-        )
-
-        for key, published_file in (
-            published_files.items()
+        for publish_file in (
+            publish_by_name.values()
         ):
+            name = publish_file.name
 
-            if key in setup_names:
+            if name.lower() in setup_by_name:
+
                 continue
 
-            result.append(
+            changes.append(
                 SetupFileSync(
-                    name=published_file.name,
-                    source_path=published_file.name,
-                    publish_path=published_file,
-                    assembly_display_name=None,
+                    name=name,
+                    source_path=name,
+                    publish_path=publish_file,
                     action=(
                         SetupFileAction.ADD
                     ),
                 )
             )
+
+        return changes
+
+    @staticmethod
+    def __index_setup_files(
+        setup_files: list[SetupFile],
+    ) -> dict[str, SetupFile]:
+        """
+        Cria índice dos arquivos do Setup pelo nome.
+
+        A chave é normalizada para comparação case-insensitive,
+        mas o objeto original é preservado.
+        """
+
+        result: dict[str, SetupFile] = {}
+
+        for setup_file in setup_files:
+
+            if setup_file is None:
+
+                continue
+
+            if not setup_file.name:
+
+                continue
+
+            result[
+                setup_file.name.lower()
+            ] = setup_file
+
+        return result
+
+    @staticmethod
+    def __index_publish_files(
+        publish_path: Path,
+    ) -> dict[str, Path]:
+        """
+        Cria índice dos arquivos publicados.
+
+        A chave é normalizada para comparação case-insensitive,
+        enquanto o Path original é preservado para manter
+        o nome real do arquivo.
+        """
+
+        result: dict[str, Path] = {}
+
+        for path in (
+            publish_path.iterdir()
+        ):
+
+            if not path.is_file():
+
+                continue
+
+            result[
+                path.name.lower()
+            ] = path
 
         return result

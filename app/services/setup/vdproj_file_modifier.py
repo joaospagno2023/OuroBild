@@ -151,44 +151,8 @@ class VdprojFileModifier:
 
                 raise
 
-            #
-            # O parser informa o início do bloco
-            # estrutural no caractere "{". Porém,
-            # a chave do componente fica na linha
-            # imediatamente anterior.
-            #
-            # Exemplo:
-            #
-            # "{GUID}:_IDENTITY"
-            # {
-            #     ...
-            # }
-            #
-            # Precisamos remover desde o início
-            # da linha da chave, e não somente
-            # a partir do "{", para não deixar
-            # uma chave órfã no .vdproj.
-            #
-
-            line_start = result.rfind(
-                "\n",
-                0,
-                block.start,
-            )
-
-            if line_start == -1:
-                line_start = 0
-
-            else:
-                line_start += 1
-
-            #
-            # Remove o bloco completo, incluindo
-            # a linha da chave do componente.
-            #
-
             result = (
-                result[:line_start]
+                result[:block.start]
                 + result[block.end:]
             )
 

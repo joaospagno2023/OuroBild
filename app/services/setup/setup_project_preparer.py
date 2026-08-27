@@ -7,7 +7,9 @@ Descrição : Prepara uma cópia de trabalho do projeto .vdproj
 --------------------------------------------------------------------
 """
 
+
 from pathlib import Path
+
 
 from app.models.setup.setup_file import (
     SetupFile,
@@ -47,8 +49,6 @@ class SetupProjectPreparer:
         comparação com publish_path
             ↓
         UPDATE / REMOVE / ADD
-            ↓
-        remoção dos vínculos Scc/TFS
             ↓
         .vdproj preparado
     """
@@ -145,9 +145,7 @@ class SetupProjectPreparer:
             )
 
         #
-        # ============================================================
         # 1. Criar cópia do .vdproj.
-        # ============================================================
         #
 
         workspace_project = (
@@ -163,10 +161,8 @@ class SetupProjectPreparer:
         )
 
         #
-        # ============================================================
         # 2. Carregar os arquivos existentes
         #    no .vdproj.
-        # ============================================================
         #
 
         setup_files = (
@@ -179,10 +175,8 @@ class SetupProjectPreparer:
         )
 
         #
-        # ============================================================
         # 3. Calcular as alterações comparando
         #    com o publish_path.
-        # ============================================================
         #
 
         changes = (
@@ -193,110 +187,7 @@ class SetupProjectPreparer:
         )
 
         #
-        # ============================================================
-        # DIAGNÓSTICO DAS ALTERAÇÕES
-        # ============================================================
-        #
-
-        print()
-        print(
-            "=" * 70
-        )
-
-        print(
-            "[OuroBuild] SETUP PROJECT PREPARER"
-        )
-
-        print(
-            "=" * 70
-        )
-
-        print(
-            "[OuroBuild] Projeto original:"
-        )
-
-        print(
-            f"[OuroBuild] {setup_project_path}"
-        )
-
-        print(
-            "[OuroBuild] Workspace:"
-        )
-
-        print(
-            f"[OuroBuild] {workspace_project}"
-        )
-
-        print(
-            "[OuroBuild] Publish Path:"
-        )
-
-        print(
-            f"[OuroBuild] {publish_path}"
-        )
-
-        print(
-            "[OuroBuild] Arquivos encontrados no Setup:"
-        )
-
-        print(
-            f"[OuroBuild] {len(setup_files)}"
-        )
-
-        print(
-            "[OuroBuild] Alterações calculadas:"
-        )
-
-        print(
-            f"[OuroBuild] {len(changes)}"
-        )
-
-        #
-        # Mostra cada alteração.
-        #
-
-        for index, change in enumerate(
-            changes
-        ):
-
-            print(
-                f"[OuroBuild] "
-                f"CHANGE [{index}]"
-            )
-
-            print(
-                f"[OuroBuild]   name: "
-                f"{change.name}"
-            )
-
-            print(
-                f"[OuroBuild]   action: "
-                f"{change.action}"
-            )
-
-            print(
-                f"[OuroBuild]   source_path: "
-                f"{change.source_path}"
-            )
-
-            print(
-                f"[OuroBuild]   publish_path: "
-                f"{change.publish_path}"
-            )
-
-            print(
-                f"[OuroBuild]   assembly_display_name: "
-                f"{change.assembly_display_name}"
-            )
-
-        print(
-            "=" * 70
-        )
-
-        #
-        # ============================================================
         # 4. Ler a cópia de trabalho.
-        # ============================================================
         #
 
         content = (
@@ -308,34 +199,7 @@ class SetupProjectPreparer:
         )
 
         #
-        # Guardamos o conteúdo original da cópia
-        # antes de qualquer alteração.
-        #
-
-        original_workspace_content = (
-            content
-        )
-
-        #
-        # ============================================================
-        # DIAGNÓSTICO DO VDPROJ ORIGINAL
-        # ============================================================
-        #
-
-        self.__print_vdproj_diagnostics(
-            title=(
-                "[OuroBuild] VDPROJ "
-                "ANTES DAS ALTERAÇÕES"
-            ),
-            content=(
-                original_workspace_content
-            ),
-        )
-
-        #
-        # ============================================================
         # 5. Aplicar UPDATE / REMOVE / ADD.
-        # ============================================================
         #
 
         prepared_content = (
@@ -349,150 +213,7 @@ class SetupProjectPreparer:
         )
 
         #
-        # ============================================================
-        # 5.1 Remover vínculos de Source Control.
-        #
-        # Esta alteração é aplicada somente na cópia
-        # temporária do .vdproj.
-        #
-        # O arquivo original do TFS nunca é alterado.
-        # ============================================================
-        #
-
-        prepared_content = (
-            self.__remove_source_control_bindings(
-                prepared_content,
-            )
-        )
-
-        #
-        # ============================================================
-        # DIAGNÓSTICO DO VDPROJ PREPARADO
-        # ============================================================
-        #
-
-        self.__print_vdproj_diagnostics(
-            title=(
-                "[OuroBuild] VDPROJ "
-                "DEPOIS DAS ALTERAÇÕES"
-            ),
-            content=(
-                prepared_content
-            ),
-        )
-
-        #
-        # ============================================================
-        # COMPARAÇÃO
-        # ============================================================
-        #
-
-        print()
-        print(
-            "=" * 70
-        )
-
-        print(
-            "[OuroBuild] COMPARAÇÃO DO VDPROJ"
-        )
-
-        print(
-            "=" * 70
-        )
-
-        print(
-            "[OuroBuild] Tamanho antes:"
-        )
-
-        print(
-            f"[OuroBuild] "
-            f"{len(original_workspace_content)} "
-            f"caracteres"
-        )
-
-        print(
-            "[OuroBuild] Tamanho depois:"
-        )
-
-        print(
-            f"[OuroBuild] "
-            f"{len(prepared_content)} "
-            f"caracteres"
-        )
-
-        print(
-            "[OuroBuild] Conteúdo alterado:"
-        )
-
-        print(
-            f"[OuroBuild] "
-            f"{original_workspace_content != prepared_content}"
-        )
-
-        #
-        # Verifica especificamente as propriedades Scc.
-        #
-
-        original_scc = (
-            self.__get_scc_lines(
-                original_workspace_content,
-            )
-        )
-
-        prepared_scc = (
-            self.__get_scc_lines(
-                prepared_content,
-            )
-        )
-
-        print()
-        print(
-            "[OuroBuild] Scc ANTES:"
-        )
-
-        if original_scc:
-
-            for line in original_scc:
-
-                print(
-                    f"[OuroBuild] {line}"
-                )
-
-        else:
-
-            print(
-                "[OuroBuild] "
-                "<nenhuma propriedade Scc encontrada>"
-            )
-
-        print()
-        print(
-            "[OuroBuild] Scc DEPOIS:"
-        )
-
-        if prepared_scc:
-
-            for line in prepared_scc:
-
-                print(
-                    f"[OuroBuild] {line}"
-                )
-
-        else:
-
-            print(
-                "[OuroBuild] "
-                "<nenhuma propriedade Scc encontrada>"
-            )
-
-        print(
-            "=" * 70
-        )
-
-        #
-        # ============================================================
         # 6. Salvar somente a cópia.
-        # ============================================================
         #
 
         self.__workspace_service.write(
@@ -502,222 +223,4 @@ class SetupProjectPreparer:
             content=prepared_content,
         )
 
-        #
-        # ============================================================
-        # CONFIRMAÇÃO DO ARQUIVO PREPARADO
-        # ============================================================
-        #
-
-        print()
-        print(
-            "=" * 70
-        )
-
-        print(
-            "[OuroBuild] VDPROJ PREPARADO SALVO"
-        )
-
-        print(
-            "=" * 70
-        )
-
-        print(
-            "[OuroBuild] Caminho:"
-        )
-
-        print(
-            f"[OuroBuild] {workspace_project}"
-        )
-
-        try:
-
-            saved_content = (
-                workspace_project.read_text(
-                    encoding="utf-8",
-                )
-            )
-
-            print(
-                "[OuroBuild] Tamanho salvo:"
-            )
-
-            print(
-                f"[OuroBuild] "
-                f"{len(saved_content)} caracteres"
-            )
-
-            print(
-                "[OuroBuild] SccProvider:"
-            )
-
-            scc_lines = (
-                self.__get_scc_lines(
-                    saved_content,
-                )
-            )
-
-            if scc_lines:
-
-                for line in scc_lines:
-
-                    print(
-                        f"[OuroBuild] {line}"
-                    )
-
-            else:
-
-                print(
-                    "[OuroBuild] "
-                    "<nenhum Scc encontrado>"
-                )
-
-        except Exception as error:
-
-            print(
-                "[OuroBuild] Não foi possível "
-                "ler o arquivo preparado após salvar:"
-            )
-
-            print(
-                f"[OuroBuild] {error}"
-            )
-
-        print(
-            "=" * 70
-        )
-
         return workspace_project
-
-    @staticmethod
-    def __remove_source_control_bindings(
-        content: str,
-    ) -> str:
-        """
-        Remove os vínculos de Source Control/TFS
-        da cópia temporária do projeto.
-
-        O método suporta os formatos usados pelo projeto:
-
-        - .vdproj: propriedades no formato:
-          "SccProvider" = "8:SAK"
-
-        - .csproj: propriedades no formato XML:
-          <SccProvider>SAK</SccProvider>
-
-        Remove somente estas propriedades:
-
-            SccProjectName
-            SccLocalPath
-            SccAuxPath
-            SccProvider
-
-        O conteúdo recebido é a cópia temporária.
-        O arquivo original nunca é alterado.
-        """
-
-        if not content:
-            return content
-
-        source_control_properties = (
-            '"SccProjectName"',
-            '"SccLocalPath"',
-            '"SccAuxPath"',
-            '"SccProvider"',
-            '<SccProjectName>',
-            '<SccLocalPath>',
-            '<SccAuxPath>',
-            '<SccProvider>',
-        )
-
-        lines = content.splitlines(
-            keepends=True,
-        )
-
-        return "".join(
-            line
-            for line in lines
-            if not line.lstrip().startswith(
-                source_control_properties,
-            )
-        )
-
-    @staticmethod
-    def __get_scc_lines(
-        content: str,
-    ) -> list[str]:
-        """
-        Retorna todas as linhas relacionadas a Scc.
-
-        Usado somente para diagnóstico.
-        """
-
-        if not content:
-            return []
-
-        return [
-            line
-            for line in content.splitlines()
-            if "Scc" in line
-        ]
-
-    @staticmethod
-    def __print_vdproj_diagnostics(
-        title: str,
-        content: str,
-    ) -> None:
-        """
-        Exibe informações básicas de diagnóstico
-        do conteúdo do .vdproj.
-        """
-
-        print()
-        print(
-            "=" * 70
-        )
-
-        print(
-            title
-        )
-
-        print(
-            "=" * 70
-        )
-
-        print(
-            "[OuroBuild] Tamanho:"
-        )
-
-        print(
-            f"[OuroBuild] "
-            f"{len(content)} caracteres"
-        )
-
-        print(
-            "[OuroBuild] Propriedades Scc:"
-        )
-
-        scc_lines = (
-            SetupProjectPreparer
-            .__get_scc_lines(
-                content,
-            )
-        )
-
-        if scc_lines:
-
-            for line in scc_lines:
-
-                print(
-                    f"[OuroBuild] {line}"
-                )
-
-        else:
-
-            print(
-                "[OuroBuild] "
-                "<nenhuma propriedade Scc encontrada>"
-            )
-
-        print(
-            "=" * 70
-        )

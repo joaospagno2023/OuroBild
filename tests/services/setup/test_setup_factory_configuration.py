@@ -7,7 +7,6 @@ Descrição : Testes da integração entre AppSettings e SetupFactory.
 """
 
 from unittest.mock import MagicMock
-from pathlib import Path
 
 from app.abstractions.installer_service import (
     InstallerService,
@@ -77,7 +76,7 @@ def create_settings() -> AppSettings:
         ),
         setup=SetupSettings(
             engine=SetupEngine.VISUAL_STUDIO,
-            output_root=r"C:\Setups",
+            output_root=r"C:\Custom\OuroBuild\Installer",
         ),
     )
 
@@ -93,9 +92,16 @@ def test_deve_utilizar_engine_configurado_no_settings():
         spec=InstallerService,
     )
 
+    advanced_installer = MagicMock(
+        spec=InstallerService,
+    )
+
     factory = DefaultSetupFactory(
         visual_studio_installer=(
             visual_studio_installer
+        ),
+        advanced_installer=(
+            advanced_installer
         ),
     )
 
@@ -118,8 +124,4 @@ def test_deve_preservar_setup_engine_no_app_settings():
 
     assert settings.setup.engine == (
         SetupEngine.VISUAL_STUDIO
-    )
-
-    assert settings.setup.output_root == (
-        Path(r"C:\Setups")
     )

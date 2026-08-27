@@ -8,7 +8,7 @@
         "visualstudio_setup_path": "04-Setup\\OuroNet.Client.WinServiceLinkPagamento.Setup\\OuroNet.Client.WinServiceLinkPagamento.Setup.vdproj",
         "compilation_target": "solution",
         "compilation_engine": "msbuild",
-        "aip_path": "LinkPagamento.aip",
+        "aip_path": "OuroNet.WinServiceLinkPagamento.aip",
         "publish_path": "bin\\Release",
         "output_msi": "OuroNet.Client.WinServiceLinkPagamento.Setup.msi",
         "publish_profile": "",

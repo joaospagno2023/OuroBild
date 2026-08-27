@@ -74,38 +74,29 @@ def create_project(
 
 def create_paths(
     tmp_path: Path,
-    project: Project,
-) -> SetupPaths:
+) -> dict:
     """
-    Cria os caminhos básicos utilizados pelos testes.
+    Cria as raízes utilizadas pelo resolver.
     """
 
-    publish_path = (
-        tmp_path
-        / "publish"
-    )
-
-    installer_path = (
-        tmp_path
-        / "installer"
-    )
-
-    output_msi = (
-        installer_path
-        / project.output_msi
-    )
-
-    aip_path = (
-        tmp_path
-        / project.aip_path
-    )
-
-    return SetupPaths(
-        publish_path=publish_path,
-        setup_output_path=installer_path,
-        output_msi=output_msi,
-        aip_path=aip_path,
-    )
+    return {
+        "project_root": (
+            tmp_path
+            / "Projeto"
+        ),
+        "workspace_root": (
+            tmp_path
+            / "Workspace"
+        ),
+        "installer_root": (
+            tmp_path
+            / "Installer"
+        ),
+        "aip_root": (
+            tmp_path
+            / "AIPs"
+        ),
+    }
 
 
 def test_deve_resolver_publish_path_relativo(
@@ -120,25 +111,23 @@ def test_deve_resolver_publish_path_relativo(
         r"bin\Release\net8.0\publish",
     )
 
-    project_root = (
-        tmp_path
-        / "Projeto"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=project_root,
-        installer_root=(
-            tmp_path
-            / "Installer"
-        ),
+        **paths,
     )
 
     assert result.publish_path == (
-        project_root
-        / r"bin\Release\net8.0\publish"
+        paths["project_root"]
+        / "bin"
+        / "Release"
+        / "net8.0"
+        / "publish"
     )
 
 
@@ -159,20 +148,15 @@ def test_deve_respeitar_publish_path_absoluto(
         str(publish_path),
     )
 
-    project_root = (
-        tmp_path
-        / "Projeto"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=project_root,
-        installer_root=(
-            tmp_path
-            / "Installer"
-        ),
+        **paths,
     )
 
     assert result.publish_path == (
@@ -192,26 +176,19 @@ def test_deve_criar_installer_path(
         "bin",
     )
 
-    installer_root = (
-        tmp_path
-        / "Installer"
-    )
-
-    project_root = (
-        tmp_path
-        / "Projeto"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=project_root,
-        installer_root=installer_root,
+        **paths,
     )
 
     assert result.setup_output_path == (
-        installer_root
+        paths["installer_root"]
     )
 
     assert result.setup_output_path.exists()
@@ -229,26 +206,19 @@ def test_deve_usar_output_msi(
         output_msi="OuroNetApi.msi",
     )
 
-    installer_root = (
-        tmp_path
-        / "Installer"
-    )
-
-    project_root = (
-        tmp_path
-        / "Projeto"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=project_root,
-        installer_root=installer_root,
+        **paths,
     )
 
     assert result.output_msi == (
-        installer_root
+        paths["installer_root"]
         / "OuroNetApi.msi"
     )
 
@@ -257,8 +227,8 @@ def test_deve_resolver_aip_relativo(
     tmp_path: Path,
 ):
     """
-    Deve resolver aip_path relativo à pasta
-    do projeto.
+    Deve resolver aip_path relativo à raiz
+    central dos projetos Advanced Installer.
     """
 
     project = create_project(
@@ -266,27 +236,55 @@ def test_deve_resolver_aip_relativo(
         aip_path=r"Setup\OuroNet.aip",
     )
 
-    project_root = (
-        tmp_path
-        / "Projeto"
-    )
-
-    installer_root = (
-        tmp_path
-        / "Installer"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=project_root,
-        installer_root=installer_root,
+        **paths,
     )
 
     assert result.aip_path == (
-        project_root
-        / r"Setup\OuroNet.aip"
+        paths["aip_root"]
+        / "Setup"
+        / "OuroNet.aip"
+    )
+
+
+def test_deve_respeitar_aip_path_absoluto(
+    tmp_path: Path,
+):
+    """
+    Deve respeitar aip_path absoluto.
+    """
+
+    aip_path = (
+        tmp_path
+        / "AIPs"
+        / "OuroNet.aip"
+    )
+
+    project = create_project(
+        "bin",
+        aip_path=str(aip_path),
+    )
+
+    paths = create_paths(
+        tmp_path,
+    )
+
+    resolver = SetupPathResolver()
+
+    result = resolver.resolve(
+        project=project,
+        **paths,
+    )
+
+    assert result.aip_path == (
+        aip_path
     )
 
 
@@ -301,6 +299,10 @@ def test_deve_rejeitar_publish_path_vazio(
         "",
     )
 
+    paths = create_paths(
+        tmp_path,
+    )
+
     resolver = SetupPathResolver()
 
     with pytest.raises(
@@ -309,14 +311,7 @@ def test_deve_rejeitar_publish_path_vazio(
     ):
         resolver.resolve(
             project=project,
-            project_root=(
-                tmp_path
-                / "Projeto"
-            ),
-            installer_root=(
-                tmp_path
-                / "Installer"
-            ),
+            **paths,
         )
 
 
@@ -332,6 +327,10 @@ def test_deve_rejeitar_output_msi_vazio(
         output_msi="",
     )
 
+    paths = create_paths(
+        tmp_path,
+    )
+
     resolver = SetupPathResolver()
 
     with pytest.raises(
@@ -340,14 +339,7 @@ def test_deve_rejeitar_output_msi_vazio(
     ):
         resolver.resolve(
             project=project,
-            project_root=(
-                tmp_path
-                / "Projeto"
-            ),
-            installer_root=(
-                tmp_path
-                / "Installer"
-            ),
+            **paths,
         )
 
 
@@ -363,6 +355,10 @@ def test_deve_rejeitar_aip_path_vazio(
         aip_path="",
     )
 
+    paths = create_paths(
+        tmp_path,
+    )
+
     resolver = SetupPathResolver()
 
     with pytest.raises(
@@ -371,15 +367,40 @@ def test_deve_rejeitar_aip_path_vazio(
     ):
         resolver.resolve(
             project=project,
-            project_root=(
-                tmp_path
-                / "Projeto"
-            ),
-            installer_root=(
-                tmp_path
-                / "Installer"
-            ),
+            **paths,
         )
+
+
+def test_deve_rejeitar_aip_root_nao_informado(
+    tmp_path: Path,
+):
+    """
+    Deve rejeitar a resolução quando a raiz dos AIPs
+    não for informada.
+    """
+
+    project = create_project(
+        "bin",
+    )
+
+    paths = create_paths(
+        tmp_path,
+    )
+
+    paths["aip_root"] = None
+
+    resolver = SetupPathResolver()
+
+    with pytest.raises(
+        ValueError,
+        match="raiz dos projetos Advanced Installer",
+    ):
+        resolver.resolve(
+            project=project,
+            **paths,
+        )
+
+
 def test_deve_resolver_setup_output_path_para_cliente(
     tmp_path: Path,
 ):
@@ -396,26 +417,21 @@ def test_deve_resolver_setup_output_path_para_cliente(
         ProjectType.CLIENT
     )
 
-    output_root = (
-        tmp_path
-        / "Setups"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=(
-            tmp_path
-            / "Projeto"
-        ),
-        installer_root=output_root,
         version="10.4",
         revision=5,
+        **paths,
     )
 
     assert result.setup_output_path == (
-        output_root
+        paths["installer_root"]
         / "10.4.5"
         / "Cliente"
     )
@@ -437,26 +453,21 @@ def test_deve_resolver_setup_output_path_para_server(
         ProjectType.SERVER
     )
 
-    output_root = (
-        tmp_path
-        / "Setups"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=(
-            tmp_path
-            / "Projeto"
-        ),
-        installer_root=output_root,
         version="10.4",
         revision=5,
+        **paths,
     )
 
     assert result.setup_output_path == (
-        output_root
+        paths["installer_root"]
         / "10.4.5"
         / "Server"
     )
@@ -479,26 +490,21 @@ def test_deve_resolver_output_msi_dentro_da_pasta_do_tipo(
         ProjectType.CLIENT
     )
 
-    output_root = (
-        tmp_path
-        / "Setups"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=(
-            tmp_path
-            / "Projeto"
-        ),
-        installer_root=output_root,
         version="10.4",
         revision=5,
+        **paths,
     )
 
     assert result.output_msi == (
-        output_root
+        paths["installer_root"]
         / "10.4.5"
         / "Cliente"
         / "LinkPagamento.msi"
@@ -517,35 +523,32 @@ def test_deve_compor_versao_com_revision(
         "bin",
     )
 
-    output_root = (
-        tmp_path
-        / "Setups"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=(
-            tmp_path
-            / "Projeto"
-        ),
-        installer_root=output_root,
         version="10.4",
         revision=12,
+        **paths,
     )
 
     assert result.setup_output_path == (
-        output_root
+        paths["installer_root"]
         / "10.4.12"
         / "Cliente"
     )
+
+
 def test_deve_resolver_visualstudio_setup_path_relativo(
     tmp_path: Path,
 ):
     """
     Deve resolver o caminho do projeto de Setup
-    do Visual Studio relativo à raiz do projeto.
+    do Visual Studio relativo à raiz do workspace.
     """
 
     project = create_project(
@@ -558,30 +561,62 @@ def test_deve_resolver_visualstudio_setup_path_relativo(
         "OuroNet.Client.WinServiceLinkPagamento.Setup.vdproj"
     )
 
-    project_root = (
-        tmp_path
-        / "Projeto"
-    )
-
-    installer_root = (
-        tmp_path
-        / "Setups"
+    paths = create_paths(
+        tmp_path,
     )
 
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=project_root,
-        installer_root=installer_root,
+        **paths,
     )
 
     assert result.visualstudio_setup_path == (
-        project_root
+        paths["workspace_root"]
         / "04-Setup"
         / "OuroNet.Client.WinServiceLinkPagamento.Setup"
         / "OuroNet.Client.WinServiceLinkPagamento.Setup.vdproj"
     )
+
+
+def test_deve_respeitar_visualstudio_setup_path_absoluto(
+    tmp_path: Path,
+):
+    """
+    Deve respeitar visualstudio_setup_path absoluto.
+    """
+
+    visualstudio_setup_path = (
+        tmp_path
+        / "Setup"
+        / "Teste.vdproj"
+    )
+
+    project = create_project(
+        "bin",
+    )
+
+    project.visualstudio_setup_path = (
+        str(visualstudio_setup_path)
+    )
+
+    paths = create_paths(
+        tmp_path,
+    )
+
+    resolver = SetupPathResolver()
+
+    result = resolver.resolve(
+        project=project,
+        **paths,
+    )
+
+    assert result.visualstudio_setup_path == (
+        visualstudio_setup_path
+    )
+
+
 def test_deve_retornar_none_quando_visualstudio_setup_path_nao_for_configurado(
     tmp_path: Path,
 ):
@@ -596,12 +631,112 @@ def test_deve_retornar_none_quando_visualstudio_setup_path_nao_for_configurado(
 
     project.visualstudio_setup_path = None
 
+    paths = create_paths(
+        tmp_path,
+    )
+
     resolver = SetupPathResolver()
 
     result = resolver.resolve(
         project=project,
-        project_root=tmp_path / "Projeto",
-        installer_root=tmp_path / "Setups",
+        **paths,
     )
 
     assert result.visualstudio_setup_path is None
+
+
+def test_deve_criar_aip_root_quando_nao_existir(
+    tmp_path: Path,
+):
+    """
+    Deve criar a raiz central dos projetos AIP quando
+    ela ainda não existir.
+    """
+
+    project = create_project(
+        "bin",
+    )
+
+    paths = create_paths(
+        tmp_path,
+    )
+
+    aip_root = paths["aip_root"]
+
+    assert not aip_root.exists()
+
+    resolver = SetupPathResolver()
+
+    resolver.resolve(
+        project=project,
+        **paths,
+    )
+
+    assert aip_root.exists()
+
+
+def test_deve_manter_aip_dentro_da_raiz_central(
+    tmp_path: Path,
+):
+    """
+    Deve manter um AIP relativo dentro da raiz central
+    dos projetos Advanced Installer.
+    """
+
+    project = create_project(
+        "bin",
+        aip_path="LinkPagamento.aip",
+    )
+
+    paths = create_paths(
+        tmp_path,
+    )
+
+    resolver = SetupPathResolver()
+
+    result = resolver.resolve(
+        project=project,
+        **paths,
+    )
+
+    assert result.aip_path.parent == (
+        paths["aip_root"]
+    )
+
+    assert result.aip_path == (
+        paths["aip_root"]
+        / "LinkPagamento.aip"
+    )
+
+
+def test_deve_permitir_aip_em_subdiretorio_da_raiz_central(
+    tmp_path: Path,
+):
+    """
+    Deve permitir que o AIP esteja em um subdiretório
+    da raiz central.
+    """
+
+    project = create_project(
+        "bin",
+        aip_path=(
+            r"OuroNet\LinkPagamento.aip"
+        ),
+    )
+
+    paths = create_paths(
+        tmp_path,
+    )
+
+    resolver = SetupPathResolver()
+
+    result = resolver.resolve(
+        project=project,
+        **paths,
+    )
+
+    assert result.aip_path == (
+        paths["aip_root"]
+        / "OuroNet"
+        / "LinkPagamento.aip"
+    )

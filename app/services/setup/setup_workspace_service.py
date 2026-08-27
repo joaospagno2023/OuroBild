@@ -7,10 +7,7 @@ Descrição : Gerencia o workspace temporário utilizado na preparação
 --------------------------------------------------------------------
 """
 
-import os
 import shutil
-import stat
-
 from pathlib import Path
 
 
@@ -18,13 +15,7 @@ class SetupWorkspaceService:
     """
     Cria e gerencia uma cópia de trabalho do projeto Setup.
 
-    O arquivo original do TFS/TFVC pode estar marcado como
-    ReadOnly. Durante o processo controlado de geração do Setup,
-    o arquivo original pode ser substituído temporariamente pelo
-    arquivo preparado.
-
-    Ao final da operação, o arquivo original é restaurado e seu
-    estado de ReadOnly é preservado.
+    O arquivo original do TFS nunca é alterado diretamente.
     """
 
     def create_workspace(
@@ -35,19 +26,17 @@ class SetupWorkspaceService:
         """
         Cria uma cópia de trabalho do arquivo .vdproj.
 
-        A cópia de trabalho NÃO preserva o atributo ReadOnly
-        do arquivo original, pois ela precisa ser modificada
-        durante a preparação do Setup.
-
         Retorna o caminho do .vdproj temporário.
         """
 
         if setup_project_path is None:
+
             raise ValueError(
                 "Caminho do projeto Setup não foi informado."
             )
 
         if workspace_root is None:
+
             raise ValueError(
                 "WorkspaceRoot não foi informado."
             )
@@ -61,12 +50,14 @@ class SetupWorkspaceService:
         )
 
         if not setup_project_path.exists():
+
             raise FileNotFoundError(
                 "Projeto Setup não encontrado: "
                 f"{setup_project_path}"
             )
 
         if not setup_project_path.is_file():
+
             raise ValueError(
                 "Projeto Setup não é um arquivo: "
                 f"{setup_project_path}"
@@ -82,24 +73,8 @@ class SetupWorkspaceService:
             / setup_project_path.name
         )
 
-        #
-        # copyfile() é utilizado em vez de copy2()
-        # para NÃO copiar os atributos do arquivo original.
-        #
-        # Isso é importante quando o arquivo do TFS/TFVC
-        # está marcado como ReadOnly.
-        #
-
-        shutil.copyfile(
+        shutil.copy2(
             setup_project_path,
-            destination,
-        )
-
-        #
-        # Garante que a cópia de trabalho seja gravável.
-        #
-
-        self.__make_writable(
             destination,
         )
 
@@ -108,70 +83,61 @@ class SetupWorkspaceService:
     def backup_original(
         self,
         setup_project_path: Path,
-        workspace_root: Path,
+        backup_path: Path,
     ) -> Path:
         """
-        Cria um backup do .vdproj original.
+        Cria uma cópia de segurança do projeto Setup original.
 
-        O backup fica dentro do workspace temporário.
+        O arquivo original permanece intacto.
 
-        Diferentemente da cópia de trabalho, o backup preserva
-        os atributos do arquivo original, porque esses atributos
-        serão utilizados posteriormente para restaurar o estado
-        original do arquivo.
+        Retorna o caminho do backup criado.
         """
 
         if setup_project_path is None:
+
             raise ValueError(
                 "Caminho do projeto Setup não foi informado."
             )
 
-        if workspace_root is None:
+        if backup_path is None:
+
             raise ValueError(
-                "WorkspaceRoot não foi informado."
+                "Caminho do backup não foi informado."
             )
 
         setup_project_path = Path(
             setup_project_path,
         )
 
-        workspace_root = Path(
-            workspace_root,
+        backup_path = Path(
+            backup_path,
         )
 
         if not setup_project_path.exists():
+
             raise FileNotFoundError(
-                "Projeto Setup original não encontrado: "
+                "Projeto Setup não encontrado: "
                 f"{setup_project_path}"
             )
 
         if not setup_project_path.is_file():
+
             raise ValueError(
-                "Projeto Setup original não é um arquivo: "
+                "Projeto Setup não é um arquivo: "
                 f"{setup_project_path}"
             )
 
-        backup_root = (
-            workspace_root
-            / ".backup"
-        )
+        if backup_path.exists() and backup_path.is_dir():
 
-        backup_root.mkdir(
+            raise ValueError(
+                "Caminho do backup aponta para um diretório: "
+                f"{backup_path}"
+            )
+
+        backup_path.parent.mkdir(
             parents=True,
             exist_ok=True,
         )
-
-        backup_path = (
-            backup_root
-            / setup_project_path.name
-        )
-
-        #
-        # copy2() preserva os metadados do arquivo original.
-        #
-        # Isso é proposital para conseguirmos restaurar
-        # posteriormente o estado ReadOnly.
-        #
 
         shutil.copy2(
             setup_project_path,
@@ -179,179 +145,6 @@ class SetupWorkspaceService:
         )
 
         return backup_path
-
-    def replace_original(
-        self,
-        prepared_setup_project_path: Path,
-        original_setup_project_path: Path,
-    ) -> None:
-        """
-        Substitui temporariamente o projeto original pelo
-        projeto preparado.
-
-        O arquivo original pode estar marcado como ReadOnly.
-        Portanto, o atributo é removido antes da substituição.
-
-        O original deve ter sido previamente salvo através
-        de backup_original().
-        """
-
-        if prepared_setup_project_path is None:
-            raise ValueError(
-                "Projeto Setup preparado não foi informado."
-            )
-
-        if original_setup_project_path is None:
-            raise ValueError(
-                "Projeto Setup original não foi informado."
-            )
-
-        prepared_setup_project_path = Path(
-            prepared_setup_project_path,
-        )
-
-        original_setup_project_path = Path(
-            original_setup_project_path,
-        )
-
-        if not prepared_setup_project_path.exists():
-            raise FileNotFoundError(
-                "Projeto Setup preparado não encontrado: "
-                f"{prepared_setup_project_path}"
-            )
-
-        if not prepared_setup_project_path.is_file():
-            raise ValueError(
-                "Projeto Setup preparado não é um arquivo: "
-                f"{prepared_setup_project_path}"
-            )
-
-        if not original_setup_project_path.exists():
-            raise FileNotFoundError(
-                "Projeto Setup original não encontrado: "
-                f"{original_setup_project_path}"
-            )
-
-        #
-        # O arquivo original pode estar ReadOnly
-        # devido ao TFS/TFVC.
-        #
-
-        self.__make_writable(
-            original_setup_project_path,
-        )
-
-        #
-        # Não usamos copy2() aqui porque não queremos
-        # transferir os atributos do arquivo preparado
-        # para o arquivo original.
-        #
-
-        shutil.copyfile(
-            prepared_setup_project_path,
-            original_setup_project_path,
-        )
-
-        #
-        # Garante que o arquivo temporariamente utilizado
-        # pelo Visual Studio seja gravável.
-        #
-
-        self.__make_writable(
-            original_setup_project_path,
-        )
-
-    def restore_original(
-        self,
-        backup_path: Path,
-        original_setup_project_path: Path,
-    ) -> None:
-        """
-        Restaura o projeto Setup original a partir
-        do backup.
-
-        O método também restaura o atributo ReadOnly
-        existente no arquivo original.
-
-        Este método deve ser chamado dentro de um
-        bloco finally.
-        """
-
-        if backup_path is None:
-            raise ValueError(
-                "Backup do projeto Setup não foi informado."
-            )
-
-        if original_setup_project_path is None:
-            raise ValueError(
-                "Projeto Setup original não foi informado."
-            )
-
-        backup_path = Path(
-            backup_path,
-        )
-
-        original_setup_project_path = Path(
-            original_setup_project_path,
-        )
-
-        if not backup_path.exists():
-            raise FileNotFoundError(
-                "Backup do projeto Setup não encontrado: "
-                f"{backup_path}"
-            )
-
-        if not backup_path.is_file():
-            raise ValueError(
-                "Backup do projeto Setup não é um arquivo: "
-                f"{backup_path}"
-            )
-
-        #
-        # Captura os atributos do backup.
-        #
-        # Como backup_original() utilizou copy2(),
-        # o modo contém o estado original do arquivo.
-        #
-
-        backup_mode = (
-            backup_path.stat().st_mode
-        )
-
-        #
-        # O arquivo original pode estar sendo usado como
-        # arquivo preparado e, portanto, pode estar ReadOnly
-        # ou ter outro estado de permissão.
-        #
-
-        if original_setup_project_path.exists():
-
-            self.__make_writable(
-                original_setup_project_path,
-            )
-
-        #
-        # Restaura somente o conteúdo.
-        #
-
-        shutil.copyfile(
-            backup_path,
-            original_setup_project_path,
-        )
-
-        #
-        # Restaura o modo/permissão original.
-        #
-        # No Windows isso restaura principalmente o estado
-        # ReadOnly representado pelo bit de escrita.
-        #
-
-        os.chmod(
-            original_setup_project_path,
-            stat.S_IMODE(
-                backup_mode,
-            ),
-        )
 
     def read(
         self,
@@ -362,6 +155,7 @@ class SetupWorkspaceService:
         """
 
         if workspace_project_path is None:
+
             raise ValueError(
                 "Caminho do projeto Setup "
                 "não foi informado."
@@ -372,6 +166,7 @@ class SetupWorkspaceService:
         )
 
         if not workspace_project_path.exists():
+
             raise FileNotFoundError(
                 "Projeto Setup de trabalho "
                 "não encontrado: "
@@ -392,12 +187,14 @@ class SetupWorkspaceService:
         """
 
         if workspace_project_path is None:
+
             raise ValueError(
                 "Caminho do projeto Setup "
                 "não foi informado."
             )
 
         if content is None:
+
             raise ValueError(
                 "Conteúdo do projeto Setup "
                 "não foi informado."
@@ -406,17 +203,6 @@ class SetupWorkspaceService:
         workspace_project_path = Path(
             workspace_project_path,
         )
-
-        #
-        # O arquivo pode ter sido criado a partir de uma
-        # origem ReadOnly. Garante que ele seja gravável
-        # antes da escrita.
-        #
-
-        if workspace_project_path.exists():
-            self.__make_writable(
-                workspace_project_path,
-            )
 
         workspace_project_path.write_text(
             content,
@@ -432,6 +218,7 @@ class SetupWorkspaceService:
         """
 
         if workspace_root is None:
+
             raise ValueError(
                 "WorkspaceRoot não foi informado."
             )
@@ -441,106 +228,127 @@ class SetupWorkspaceService:
         )
 
         if not workspace_root.exists():
+
             return
 
         if not workspace_root.is_dir():
+
             raise ValueError(
                 "WorkspaceRoot não é um diretório: "
                 f"{workspace_root}"
             )
 
-        #
-        # Arquivos do workspace podem ter sido criados
-        # com atributos ReadOnly.
-        #
-        # Antes da remoção, torna os arquivos graváveis.
-        #
-
-        self.__make_tree_writable(
-            workspace_root,
-        )
-
         shutil.rmtree(
             workspace_root,
         )
+    def replace_original(
+        self,
+        original_path: Path,
+        replacement_path: Path,
+        ) -> None:
+            """
+            Substitui o arquivo original pelo arquivo preparado.
 
-    @staticmethod
-    def __make_writable(
-        file_path: Path,
-    ) -> None:
-        """
-        Remove o atributo ReadOnly de um arquivo.
-        """
+            O método deve ser utilizado somente quando o fluxo de
+            geração do Setup tiver sido concluído com sucesso.
+            """
 
-        file_path = Path(
-            file_path,
-        )
+            if original_path is None:
 
-        if not file_path.exists():
-            return
-
-        current_mode = (
-            file_path.stat().st_mode
-        )
-
-        os.chmod(
-            file_path,
-            current_mode
-            | stat.S_IWRITE,
-        )
-
-    @classmethod
-    def __make_tree_writable(
-        cls,
-        root_path: Path,
-    ) -> None:
-        """
-        Remove o atributo ReadOnly de todos os arquivos
-        e diretórios dentro do workspace.
-        """
-
-        root_path = Path(
-            root_path,
-        )
-
-        if not root_path.exists():
-            return
-
-        #
-        # Primeiro arquivos.
-        #
-
-        for path in root_path.rglob("*"):
-
-            try:
-
-                cls.__make_writable(
-                    path,
+                raise ValueError(
+                    "Caminho do arquivo original "
+                    "não foi informado."
                 )
 
-            except OSError:
-                #
-                # A remoção será tentada posteriormente
-                # pelo shutil.rmtree().
-                #
+            if replacement_path is None:
 
-                pass
+                raise ValueError(
+                    "Caminho do arquivo de substituição "
+                    "não foi informado."
+                )
 
-        #
-        # Finalmente o próprio diretório.
-        #
-
-        try:
-
-            current_mode = (
-                root_path.stat().st_mode
+            original_path = Path(
+                original_path,
             )
 
-            os.chmod(
-                root_path,
-                current_mode
-                | stat.S_IWRITE,
+            replacement_path = Path(
+                replacement_path,
             )
 
-        except OSError:
-            pass
+            if not replacement_path.exists():
+
+                raise FileNotFoundError(
+                    "Arquivo de substituição não encontrado: "
+                    f"{replacement_path}"
+                )
+
+            if not replacement_path.is_file():
+
+                raise ValueError(
+                    "Arquivo de substituição não é um arquivo: "
+                    f"{replacement_path}"
+                )
+
+            original_path.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            shutil.copy2(
+                replacement_path,
+                original_path,
+            )
+    def restore_original(
+        self,
+        original_path: Path,
+        backup_path: Path,
+    ) -> None:
+        """
+        Restaura o arquivo original a partir do backup.
+        """
+
+        if original_path is None:
+
+            raise ValueError(
+                "Caminho do arquivo original "
+                "não foi informado."
+            )
+
+        if backup_path is None:
+
+            raise ValueError(
+                "Caminho do backup "
+                "não foi informado."
+            )
+
+        original_path = Path(
+            original_path,
+        )
+
+        backup_path = Path(
+            backup_path,
+        )
+
+        if not backup_path.exists():
+
+            raise FileNotFoundError(
+                "Arquivo de backup não encontrado: "
+                f"{backup_path}"
+            )
+
+        if not backup_path.is_file():
+
+            raise ValueError(
+                "Arquivo de backup não é um arquivo: "
+                f"{backup_path}"
+            )
+
+        original_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        shutil.copy2(
+            backup_path,
+            original_path,
+        )
