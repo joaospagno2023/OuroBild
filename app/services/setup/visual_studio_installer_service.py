@@ -7,6 +7,8 @@ Descrição : Gera o Setup utilizando o projeto de instalação
 --------------------------------------------------------------------
 """
 
+import shutil
+
 from pathlib import Path
 
 from app.abstractions.installer_service import (
@@ -45,6 +47,10 @@ from app.models.setup.setup_result import (
     SetupResult,
 )
 
+from app.services.setup.disable_out_of_proc_build_service import (
+    DisableOutOfProcBuildService,
+)
+
 from app.services.setup.visual_studio_locator import (
     VisualStudioLocator,
 )
@@ -62,19 +68,31 @@ class VisualStudioInstallerService(
         self,
         process_service: ProcessService,
         visual_studio_locator: VisualStudioLocator,
+        disable_out_of_proc_build_service: (
+            DisableOutOfProcBuildService
+        ),
     ) -> None:
         """
         Inicializa o serviço.
-
-        Args:
-            process_service:
-                Serviço responsável pela execução
-                de processos externos.
-
-            visual_studio_locator:
-                Serviço responsável por localizar
-                o Visual Studio instalado.
         """
+
+        if process_service is None:
+            raise ValueError(
+                "O serviço de processos "
+                "não foi informado."
+            )
+
+        if visual_studio_locator is None:
+            raise ValueError(
+                "O localizador do Visual Studio "
+                "não foi informado."
+            )
+
+        if disable_out_of_proc_build_service is None:
+            raise ValueError(
+                "O serviço DisableOutOfProcBuild "
+                "não foi informado."
+            )
 
         self.__process_service = (
             process_service
@@ -82,6 +100,10 @@ class VisualStudioInstallerService(
 
         self.__visual_studio_locator = (
             visual_studio_locator
+        )
+
+        self.__disable_out_of_proc_build_service = (
+            disable_out_of_proc_build_service
         )
 
     def install(
@@ -103,6 +125,33 @@ class VisualStudioInstallerService(
         visual_studio_path = (
             self.__visual_studio_locator.locate()
         )
+
+        disable_result = (
+            self.__disable_out_of_proc_build_service
+            .execute(
+                visual_studio_path,
+            )
+        )
+
+        if (
+            disable_result.status
+            != ProcessStatus.SUCCESS
+        ):
+            return SetupResult(
+                success=False,
+                message=(
+                    "Falha ao desabilitar o "
+                    "Out-of-Proc Build do Visual Studio. "
+                    f"ExitCode: "
+                    f"{disable_result.exit_code}. "
+                    f"{disable_result.stderr}"
+                ).strip(),
+                project_id=request.project_id,
+                output_msi=None,
+                duration_seconds=(
+                    disable_result.duration
+                ),
+            )
 
         command = self.__create_command(
             definition=definition,
@@ -135,18 +184,19 @@ class VisualStudioInstallerService(
                 ),
             )
 
-        output_msi = Path(
-            paths.output_msi,
+        intermediate_msi = (
+            self.__get_intermediate_msi_path(
+                definition=definition,
+            )
         )
 
-        if not output_msi.exists():
+        if not intermediate_msi.exists():
             return SetupResult(
                 success=False,
                 message=(
-                    "O Visual Studio finalizou "
-                    "a geração do Setup, porém "
-                    "o arquivo MSI não foi encontrado: "
-                    f"{output_msi}"
+                    "MSI intermediário "
+                    "não foi encontrado: "
+                    f"{intermediate_msi}"
                 ),
                 project_id=request.project_id,
                 output_msi=None,
@@ -155,6 +205,21 @@ class VisualStudioInstallerService(
                 ),
             )
 
+        output_msi = Path(
+            paths.output_msi,
+        )
+
+        output_msi.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        shutil.copy2(
+            intermediate_msi,
+            output_msi,
+        )
+        intermediate_msi.unlink()
+        
         return SetupResult(
             success=True,
             message=(
@@ -165,6 +230,30 @@ class VisualStudioInstallerService(
             duration_seconds=(
                 process_result.duration
             ),
+        )
+
+    @staticmethod
+    def __get_intermediate_msi_path(
+        definition: SetupDefinition,
+    ) -> Path:
+        """
+        Obtém o caminho do MSI intermediário gerado
+        pelo Visual Studio.
+
+        Estrutura:
+
+            <SetupProject>
+                <Configuration>
+                    <SetupProject>.msi
+        """
+
+        return (
+            definition.setup_project_path.parent
+            / definition.configuration
+            / (
+                definition.setup_project_path.stem
+                + ".msi"
+            )
         )
 
     def __validate(
@@ -195,9 +284,24 @@ class VisualStudioInstallerService(
                 "não foram informados."
             )
 
+        if self.__process_service is None:
+            raise ValueError(
+                "O serviço de processos "
+                "não foi informado."
+            )
+
         if self.__visual_studio_locator is None:
             raise ValueError(
                 "O localizador do Visual Studio "
+                "não foi informado."
+            )
+
+        if (
+            self.__disable_out_of_proc_build_service
+            is None
+        ):
+            raise ValueError(
+                "O serviço DisableOutOfProcBuild "
                 "não foi informado."
             )
 
@@ -223,6 +327,11 @@ class VisualStudioInstallerService(
         """
         Cria o comando do Visual Studio.
         """
+
+        log_path = (
+            definition.solution_path.parent
+            / "OuroBuild.devenv.log.xml"
+        )
 
         arguments = [
             CommandArgument(
@@ -253,6 +362,16 @@ class VisualStudioInstallerService(
 
             CommandArgument(
                 value=definition.configuration,
+            ),
+
+            CommandArgument(
+                value="/Log",
+            ),
+
+            CommandArgument(
+                value=str(
+                    log_path,
+                ),
             ),
         ]
 

@@ -7,6 +7,7 @@ Descrição : Prepara uma cópia de trabalho do projeto .vdproj
 --------------------------------------------------------------------
 """
 
+import re
 
 from pathlib import Path
 
@@ -43,6 +44,8 @@ class SetupProjectPreparer:
         .vdproj original
             ↓
         cópia temporária
+            ↓
+        remoção do vínculo SCC/TFS
             ↓
         leitura dos arquivos
             ↓
@@ -112,12 +115,12 @@ class SetupProjectPreparer:
         template_file_name: str,
     ) -> Path:
         """
-        Prepara uma cópia do projeto .vdproj.
+        Prepara uma cópia do projeto Setup.
 
         O arquivo original permanece intacto.
 
         Returns:
-            Caminho do .vdproj preparado.
+            Caminho do projeto preparado.
         """
 
         if setup_project_path is None:
@@ -145,7 +148,7 @@ class SetupProjectPreparer:
             )
 
         #
-        # 1. Criar cópia do .vdproj.
+        # 1. Criar cópia do projeto.
         #
 
         workspace_project = (
@@ -161,8 +164,43 @@ class SetupProjectPreparer:
         )
 
         #
-        # 2. Carregar os arquivos existentes
-        #    no .vdproj.
+        # 2. Ler a cópia de trabalho.
+        #
+
+        content = (
+            self.__workspace_service.read(
+                workspace_project_path=(
+                    workspace_project
+                ),
+            )
+        )
+
+        #
+        # 3. Remover o vínculo SCC/TFS somente
+        #    da cópia temporária.
+        #
+
+        content = (
+            self.__remove_source_control_bindings(
+                content=content,
+                project_path=workspace_project,
+            )
+        )
+
+        #
+        # 4. Salvar a cópia sem o vínculo SCC/TFS.
+        #
+
+        self.__workspace_service.write(
+            workspace_project_path=(
+                workspace_project
+            ),
+            content=content,
+        )
+
+        #
+        # 5. Carregar os arquivos existentes
+        #    no projeto.
         #
 
         setup_files = (
@@ -175,7 +213,7 @@ class SetupProjectPreparer:
         )
 
         #
-        # 3. Calcular as alterações comparando
+        # 6. Calcular as alterações comparando
         #    com o publish_path.
         #
 
@@ -187,19 +225,7 @@ class SetupProjectPreparer:
         )
 
         #
-        # 4. Ler a cópia de trabalho.
-        #
-
-        content = (
-            self.__workspace_service.read(
-                workspace_project_path=(
-                    workspace_project
-                ),
-            )
-        )
-
-        #
-        # 5. Aplicar UPDATE / REMOVE / ADD.
+        # 7. Aplicar UPDATE / REMOVE / ADD.
         #
 
         prepared_content = (
@@ -213,7 +239,7 @@ class SetupProjectPreparer:
         )
 
         #
-        # 6. Salvar somente a cópia.
+        # 8. Salvar somente a cópia.
         #
 
         self.__workspace_service.write(
@@ -224,3 +250,124 @@ class SetupProjectPreparer:
         )
 
         return workspace_project
+
+    @staticmethod
+    def __remove_source_control_bindings(
+        content: str,
+        project_path: Path,
+    ) -> str:
+        """
+        Remove propriedades de Source Control/TFS
+        da cópia temporária.
+
+        O formato da remoção depende do tipo de projeto:
+
+        .vdproj:
+            "SccProjectName" = ...
+            "SccLocalPath" = ...
+            "SccAuxPath" = ...
+            "SccProvider" = ...
+
+        .csproj:
+            <SccProjectName>...</SccProjectName>
+            <SccLocalPath>...</SccLocalPath>
+            <SccAuxPath>...</SccAuxPath>
+            <SccProvider>...</SccProvider>
+        """
+
+        if content is None:
+            raise ValueError(
+                "Conteúdo do projeto "
+                "não foi informado."
+            )
+
+        if project_path is None:
+            raise ValueError(
+                "Caminho do projeto "
+                "não foi informado."
+            )
+
+        suffix = (
+            project_path.suffix.lower()
+        )
+
+        if suffix == ".vdproj":
+
+            return (
+                SetupProjectPreparer
+                .__remove_vdproj_source_control_bindings(
+                    content,
+                )
+            )
+
+        if suffix == ".csproj":
+
+            return (
+                SetupProjectPreparer
+                .__remove_csproj_source_control_bindings(
+                    content,
+                )
+            )
+
+        return content
+
+    @staticmethod
+    def __remove_vdproj_source_control_bindings(
+        content: str,
+    ) -> str:
+        """
+        Remove propriedades SCC de um .vdproj.
+        """
+
+        properties = (
+            "SccProjectName",
+            "SccLocalPath",
+            "SccAuxPath",
+            "SccProvider",
+        )
+
+        for property_name in properties:
+
+            content = re.sub(
+                rf'^[ \t]*"{re.escape(property_name)}"'
+                rf'[ \t]*=[^\r\n]*'
+                rf'(?:\r?\n|$)',
+                "",
+                content,
+                flags=re.MULTILINE,
+            )
+
+        return content
+
+    @staticmethod
+    def __remove_csproj_source_control_bindings(
+        content: str,
+    ) -> str:
+        """
+        Remove propriedades SCC de um .csproj.
+        """
+
+        properties = (
+            "SccProjectName",
+            "SccLocalPath",
+            "SccAuxPath",
+            "SccProvider",
+        )
+
+        for property_name in properties:
+
+            content = re.sub(
+                rf'^[ \t]*'
+                rf'<{re.escape(property_name)}>'
+                rf'.*?'
+                rf'</{re.escape(property_name)}>'
+                rf'[ \t]*(?:\r?\n|$)',
+                "",
+                content,
+                flags=(
+                    re.MULTILINE
+                    | re.DOTALL
+                ),
+            )
+
+        return content

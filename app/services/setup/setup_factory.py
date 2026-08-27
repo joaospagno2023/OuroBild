@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : setup_factory.py
-Descrição : Implementação da Factory responsável pela seleção
+Descrição : Implementa a Factory responsável pela seleção
             do serviço de geração de Setup.
 --------------------------------------------------------------------
 """
@@ -36,6 +36,7 @@ class DefaultSetupFactory(
     def __init__(
         self,
         visual_studio_installer: InstallerService,
+        advanced_installer: InstallerService,
     ) -> None:
         """
         Inicializa a Factory.
@@ -44,16 +45,32 @@ class DefaultSetupFactory(
             visual_studio_installer:
                 Serviço responsável pela geração de Setup
                 através do Visual Studio.
+
+            advanced_installer:
+                Serviço responsável pela geração de Setup
+                através do Advanced Installer.
         """
 
         if visual_studio_installer is None:
+
             raise ValueError(
                 "O serviço de instalação do "
                 "Visual Studio não foi informado."
             )
 
+        if advanced_installer is None:
+
+            raise ValueError(
+                "O serviço de instalação do "
+                "Advanced Installer não foi informado."
+            )
+
         self.__visual_studio_installer = (
             visual_studio_installer
+        )
+
+        self.__advanced_installer = (
+            advanced_installer
         )
 
     def create(
@@ -74,12 +91,12 @@ class DefaultSetupFactory(
             ValueError:
                 Quando o mecanismo não for informado.
 
-            NotImplementedError:
-                Quando o mecanismo ainda não possuir
-                implementação.
+            ValueError:
+                Quando o mecanismo não for suportado.
         """
 
         if engine is None:
+
             raise ValueError(
                 "O mecanismo de geração do Setup "
                 "não foi informado."
@@ -93,9 +110,8 @@ class DefaultSetupFactory(
 
         if engine == SetupEngine.ADVANCED_INSTALLER:
 
-            raise NotImplementedError(
-                "O mecanismo Advanced Installer "
-                "ainda não possui implementação."
+            return (
+                self.__advanced_installer
             )
 
         raise ValueError(
