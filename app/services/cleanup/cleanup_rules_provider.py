@@ -21,6 +21,9 @@ class CleanupRulesProvider:
 
     As regras específicas são aplicadas somente quando
     o project_id correspondente estiver sendo processado.
+
+    Regras específicas de projeto possuem prioridade sobre
+    as regras globais.
     """
 
     @staticmethod
@@ -91,11 +94,19 @@ class CleanupRulesProvider:
             #
             # ====================================================
             # Diretórios
+            # ====================================================
             #
-            # Remove diretórios de artefatos do Build.
+            # Por padrão, todos os diretórios do resultado
+            # do Build são removidos.
             #
-            # As exceções específicas de projeto possuem
-            # prioridade sobre esta regra.
+            # Projetos podem preservar diretórios específicos
+            # através de regras PRESERVE.
+            #
+            # Exemplo:
+            #
+            #     Movement
+            #         XML -> PRESERVE
+            #
             # ====================================================
             #
 
@@ -105,8 +116,9 @@ class CleanupRulesProvider:
                 action=CleanupAction.REMOVE,
                 description=(
                     "Remove diretórios do resultado "
-                    "do Build que não possuam uma "
-                    "regra específica de preservação."
+                    "do Build. Diretórios necessários "
+                    "devem ser preservados através "
+                    "de uma regra específica do projeto."
                 ),
             ),
         ]

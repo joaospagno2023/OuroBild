@@ -43,6 +43,25 @@ class AdvancedInstallerAipFileComparator:
         "\\bin\\release\\",
     )
 
+    #
+    # ============================================================
+    # Regras temporárias de exclusão da publicação.
+    #
+    # Futuramente essas regras poderão ser configuradas
+    # individualmente por projeto.
+    # ============================================================
+    #
+
+    __EXCLUDED_DIRECTORIES = {
+        "log",
+    }
+
+    __EXCLUDED_EXTENSIONS = {
+        ".xml",
+        ".pdb",
+        ".config",
+    }
+
     def compare(
         self,
         aip_files: list[SetupFile],
@@ -198,7 +217,16 @@ class AdvancedInstallerAipFileComparator:
         publish_path: Path,
     ) -> dict[str, Path]:
         """
-        Carrega todos os arquivos físicos do Release.
+        Carrega os arquivos físicos do Release.
+
+        São ignorados:
+
+            - arquivos com extensão .xml;
+            - arquivos com extensão .pdb;
+            - arquivos com extensão .config;
+            - arquivos localizados dentro da pasta "log".
+
+        A comparação das regras é case-insensitive.
 
         A identidade é baseada no caminho relativo ao Release.
         """
@@ -211,11 +239,52 @@ class AdvancedInstallerAipFileComparator:
 
                 continue
 
+            #
+            # ========================================================
+            # Verificar diretórios excluídos.
+            #
+            # A regra considera qualquer nível da árvore.
+            #
+            # Exemplo:
+            #
+            #     Release\log\arquivo.log
+            #     Release\x64\log\arquivo.log
+            #
+            # Ambos são ignorados.
+            # ========================================================
+            #
+
             relative_path = (
                 file_path.relative_to(
                     publish_path,
                 )
             )
+
+            if cls.__contains_excluded_directory(
+                relative_path=relative_path,
+            ):
+
+                continue
+
+            #
+            # ========================================================
+            # Verificar extensões excluídas.
+            #
+            # A comparação é case-insensitive.
+            #
+            # .XML
+            # .xml
+            # .Xml
+            #
+            # são equivalentes.
+            # ========================================================
+            #
+
+            if cls.__has_excluded_extension(
+                file_path=file_path,
+            ):
+
+                continue
 
             key = (
                 cls.__normalize_key(
@@ -226,6 +295,64 @@ class AdvancedInstallerAipFileComparator:
             files[key] = file_path
 
         return files
+
+    @classmethod
+    def __contains_excluded_directory(
+        cls,
+        relative_path: Path,
+    ) -> bool:
+        """
+        Verifica se o caminho relativo contém algum diretório
+        que deve ser excluído.
+
+        A comparação é case-insensitive.
+        """
+
+        for part in relative_path.parts:
+
+            if (
+                part.strip().lower()
+                in cls.__EXCLUDED_DIRECTORIES
+            ):
+
+                return True
+
+        return False
+
+    @classmethod
+    def __has_excluded_extension(
+        cls,
+        file_path: Path,
+    ) -> bool:
+        """
+        Verifica se o arquivo possui uma extensão excluída.
+
+        A comparação é case-insensitive.
+
+        A regra é baseada somente na extensão.
+
+        Portanto:
+
+            MeuConfig.dll
+                -> permitido
+
+            MinhaConfiguration.exe
+                -> permitido
+
+            app.config
+                -> excluído
+        """
+
+        suffix = (
+            file_path.suffix
+            .strip()
+            .lower()
+        )
+
+        return (
+            suffix
+            in cls.__EXCLUDED_EXTENSIONS
+        )
 
     @classmethod
     def __get_file_identity(
@@ -417,9 +544,9 @@ class AdvancedInstallerAipFileComparator:
 
         A comparação é:
 
-            - case-insensitive
-            - independente do separador de diretórios
-            - sem ./ inicial
+            - case-insensitive;
+            - independente do separador de diretórios;
+            - sem ./ inicial.
         """
 
         return (

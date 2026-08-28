@@ -196,10 +196,11 @@ def test_deve_preservar_pasta_xml_mas_remover_arquivos_xml(
     tmp_path: Path,
 ):
     """
-    Deve preservar a pasta XML através de uma regra
-    específica do projeto, mas continuar aplicando
-    a regra global de remoção de XML aos arquivos
-    existentes dentro dela.
+    Deve preservar a pasta XML e todo o seu conteúdo
+    através de uma regra específica do projeto.
+
+    Uma pasta preservada protege seus arquivos e
+    subdiretórios contra as regras globais de remoção.
     """
 
     xml_directory = (
@@ -246,18 +247,18 @@ def test_deve_preservar_pasta_xml_mas_remover_arquivos_xml(
     assert xml_directory.exists()
 
     #
-    # O XML deve ser removido pela regra global.
+    # O XML deve permanecer porque está dentro de uma
+    # pasta preservada.
     #
 
-    assert not xml_file.exists()
-
+    assert xml_file.exists()
     #
-    # O arquivo deve aparecer na lista de removidos.
+    # O arquivo deve aparecer na lista de preservados.
     #
 
     assert (
         xml_file
-        in result.files_removed
+        in result.files_preserved
     )
 
     #
@@ -276,9 +277,8 @@ def test_deve_preservar_arquivo_nao_xml_dentro_de_pasta_xml(
     tmp_path: Path,
 ):
     """
-    Deve preservar arquivos que não possuem uma
-    regra de remoção, mesmo estando dentro de uma
-    pasta preservada.
+    Deve preservar todo o conteúdo de uma pasta
+    preservada, independentemente da extensão dos arquivos.
     """
 
     xml_directory = (
@@ -330,10 +330,11 @@ def test_deve_preservar_arquivo_nao_xml_dentro_de_pasta_xml(
     assert xml_directory.exists()
 
     #
-    # O XML deve ser removido.
+    # O XML deve permanecer porque está dentro de uma
+    # pasta preservada.
     #
 
-    assert not xml_file.exists()
+    assert xml_file.exists()
 
     #
     # O arquivo sem regra deve permanecer.
@@ -341,13 +342,13 @@ def test_deve_preservar_arquivo_nao_xml_dentro_de_pasta_xml(
 
     assert data_file.exists()
 
-    #
+   #
     # Validação dos resultados.
     #
 
     assert (
         xml_file
-        in result.files_removed
+        in result.files_preserved
     )
 
     assert (

@@ -24,6 +24,10 @@ from app.models.cleanup.cleanup_rule import (
 class BuildArtifactCleanupService:
     """
     Executa a limpeza dos artefatos do Build.
+
+    Uma regra DIRECTORY/PRESERVE protege o diretório e
+    todos os seus descendentes contra as regras globais
+    de limpeza de arquivos e diretórios.
     """
 
     def __init__(
@@ -32,6 +36,7 @@ class BuildArtifactCleanupService:
     ) -> None:
 
         if rules is None:
+
             raise ValueError(
                 "Regras de Cleanup não foram informadas."
             )
@@ -51,6 +56,7 @@ class BuildArtifactCleanupService:
         """
 
         if workspace_path is None:
+
             raise ValueError(
                 "Workspace do Build não foi informado."
             )
@@ -60,11 +66,13 @@ class BuildArtifactCleanupService:
         )
 
         if not workspace_path.exists():
+
             raise ValueError(
                 "Workspace do Build não existe."
             )
 
         if not workspace_path.is_dir():
+
             raise ValueError(
                 "Workspace do Build não é um diretório."
             )
@@ -100,8 +108,9 @@ class BuildArtifactCleanupService:
         """
         Processa os arquivos.
 
-        As regras de arquivo são independentes das
-        regras de diretório.
+        Arquivos que estiverem dentro de um diretório
+        preservado não são processados pelas regras
+        globais de arquivo.
         """
 
         files = [
@@ -115,6 +124,30 @@ class BuildArtifactCleanupService:
         )
 
         for file_path in files:
+
+            #
+            # ====================================================
+            # Diretório preservado.
+            # ====================================================
+            #
+
+            if self.__is_inside_preserved_directory(
+                path=file_path,
+                workspace_path=workspace_path,
+                project_id=project_id,
+            ):
+
+                result.files_preserved.append(
+                    file_path
+                )
+
+                continue
+
+            #
+            # ====================================================
+            # Procurar regra de arquivo.
+            # ====================================================
+            #
 
             rule = self.__find_rule(
                 target=CleanupTarget.FILE,
@@ -151,6 +184,7 @@ class BuildArtifactCleanupService:
                 )
 
                 if dry_run:
+
                     continue
 
                 self.__remove_file(
@@ -171,7 +205,8 @@ class BuildArtifactCleanupService:
         Diretórios com regra REMOVE são removidos
         recursivamente.
 
-        Diretórios com regra PRESERVE permanecem.
+        Diretórios com regra PRESERVE permanecem,
+        juntamente com todo o seu conteúdo.
         """
 
         directories = [
@@ -184,6 +219,11 @@ class BuildArtifactCleanupService:
             directories
         )
 
+        #
+        # Processamos os diretórios mais profundos
+        # primeiro.
+        #
+
         directories = sorted(
             directories,
             key=lambda path: len(
@@ -195,7 +235,32 @@ class BuildArtifactCleanupService:
         for directory_path in directories:
 
             if not directory_path.exists():
+
                 continue
+
+            #
+            # ====================================================
+            # Diretório dentro de outro diretório preservado.
+            # ====================================================
+            #
+
+            if self.__is_inside_preserved_directory(
+                path=directory_path,
+                workspace_path=workspace_path,
+                project_id=project_id,
+            ):
+
+                result.directories_preserved.append(
+                    directory_path
+                )
+
+                continue
+
+            #
+            # ====================================================
+            # Procurar regra.
+            # ====================================================
+            #
 
             rule = self.__find_rule(
                 target=CleanupTarget.DIRECTORY,
@@ -232,12 +297,86 @@ class BuildArtifactCleanupService:
                 )
 
                 if dry_run:
+
                     continue
 
                 self.__remove_directory(
                     directory_path=directory_path,
                     result=result,
                 )
+
+    def __is_inside_preserved_directory(
+        self,
+        path: Path,
+        workspace_path: Path,
+        project_id: str | None,
+    ) -> bool:
+        """
+        Verifica se um caminho está dentro de um diretório
+        que possui uma regra DIRECTORY/PRESERVE.
+
+        O próprio diretório preservado também é considerado
+        protegido.
+
+        Exemplo:
+
+            workspace/
+                Xml/
+                    arquivo.xml
+
+        Se Xml for PRESERVE:
+
+            Xml                  -> protegido
+            Xml/arquivo.xml     -> protegido
+            Xml/Movimento       -> protegido
+            Xml/Movimento/a.xml -> protegido
+        """
+
+        try:
+
+            relative_path = (
+                path.resolve().relative_to(
+                    workspace_path.resolve()
+                )
+            )
+
+        except ValueError:
+
+            return False
+
+        current_path = (
+            workspace_path.resolve()
+        )
+
+        #
+        # Percorre cada nível do caminho relativo.
+        #
+
+        for part in relative_path.parts:
+
+            current_path = (
+                current_path
+                / part
+            )
+
+            rule = self.__find_rule(
+                target=CleanupTarget.DIRECTORY,
+                path=current_path,
+                project_id=project_id,
+            )
+
+            if rule is None:
+
+                continue
+
+            if (
+                rule.action
+                == CleanupAction.PRESERVE
+            ):
+
+                return True
+
+        return False
 
     def __find_rule(
         self,
@@ -259,12 +398,14 @@ class BuildArtifactCleanupService:
         for rule in self.__rules:
 
             if rule.target != target:
+
                 continue
 
             if not self.__matches_rule(
                 rule=rule,
                 path=path,
             ):
+
                 continue
 
             if (
@@ -290,6 +431,7 @@ class BuildArtifactCleanupService:
         """
 
         if rule.pattern == "*":
+
             return True
 
         if rule.recursive:
