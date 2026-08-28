@@ -1,27 +1,30 @@
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
-Arquivo : test_advanced_installer_refresh_sync.py
-Descrição : Teste de integração do RefreshSync do Advanced Installer
+Arquivo : test_advanced_installer_build_integration.py
+Descrição : Teste de integração do Build do Advanced Installer
             utilizando o AIP real do LinkPagamento.
 --------------------------------------------------------------------
 """
 
 import shutil
-import subprocess
 
 from pathlib import Path
 
-from app.models.setup.setup_file_action import (
-    SetupFileAction,
+from app.models.process.command import (
+    Command,
 )
 
-from app.models.setup.setup_file_sync import (
-    SetupFileSync,
+from app.models.process.command_argument import (
+    CommandArgument,
 )
 
-from app.services.setup.advanced_installer_aip_modifier import (
-    AdvancedInstallerAipModifier,
+from app.models.process.process_status import (
+    ProcessStatus,
+)
+
+from app.services.process_service import (
+    DefaultProcessService,
 )
 
 
@@ -68,11 +71,12 @@ ADVANCED_INSTALLER_PATH = Path(
 TEST_VERSION = "99.99.99.0"
 
 
-def test_deve_executar_refresh_sync_no_aip_real(
+def test_deve_executar_refresh_sync_e_build_no_aip_real(
     tmp_path: Path,
 ):
     """
-    Deve executar o RefreshSync no AIP real do LinkPagamento.
+    Deve executar RefreshSync e Build utilizando
+    o AIP real do LinkPagamento.
 
     O AIP original nunca deve ser alterado.
     """
@@ -134,8 +138,7 @@ def test_deve_executar_refresh_sync_no_aip_real(
     if not ADVANCED_INSTALLER_PATH.is_file():
 
         raise ValueError(
-            "O caminho do Advanced Installer "
-            "não é um arquivo:\n"
+            "AdvancedInstaller.com não é um arquivo:\n"
             f"{ADVANCED_INSTALLER_PATH}"
         )
 
@@ -173,13 +176,13 @@ def test_deve_executar_refresh_sync_no_aip_real(
     # ============================================================
     # 6. Preparar o AIP.
     #
-    # Nesta primeira integração real ainda não vamos inventar
-    # alterações ADD/REMOVE.
-    #
-    # Primeiro garantimos que o Modifier atual continua
-    # funcionando corretamente sobre o AIP real.
+    # Utilizamos o modificador já validado.
     # ============================================================
     #
+
+    from app.services.setup.advanced_installer_aip_modifier import (
+        AdvancedInstallerAipModifier,
+    )
 
     modifier = (
         AdvancedInstallerAipModifier()
@@ -189,12 +192,11 @@ def test_deve_executar_refresh_sync_no_aip_real(
         aip_path=temporary_aip,
         version=TEST_VERSION,
         publish_path=PUBLISH_PATH,
-        changes=[],
     )
 
     #
     # ============================================================
-    # 7. Guardar o conteúdo preparado.
+    # 7. Validar alteração da versão.
     # ============================================================
     #
 
@@ -211,30 +213,41 @@ def test_deve_executar_refresh_sync_no_aip_real(
 
     #
     # ============================================================
-    # 8. Validar a pasta sincronizada.
+    # 8. Criar ProcessService real.
     # ============================================================
     #
 
-    expected_publish_path = (
-        str(
-            PUBLISH_PATH.resolve(),
-        )
-        .replace(
-            "\\",
-            "\\\\",
-        )
-    )
-
-    assert (
-        f'SourcePath="{expected_publish_path}"'
-        in prepared_content
+    process_service = (
+        DefaultProcessService()
     )
 
     #
     # ============================================================
-    # 9. Diagnóstico inicial.
+    # 9. Executar RefreshSync.
     # ============================================================
     #
+
+    refresh_sync_command = Command(
+        executable=(
+            ADVANCED_INSTALLER_PATH
+        ),
+        working_directory=(
+            temporary_aip.parent
+        ),
+        arguments=[
+            CommandArgument(
+                value="/edit",
+            ),
+            CommandArgument(
+                value=str(
+                    temporary_aip
+                ),
+            ),
+            CommandArgument(
+                value="/RefreshSync",
+            ),
+        ],
+    )
 
     print()
     print(
@@ -281,24 +294,111 @@ def test_deve_executar_refresh_sync_no_aip_real(
         f"[OuroBuild] {TEST_VERSION}"
     )
 
+    print(
+        "=" * 80
+    )
+
+    refresh_sync_result = (
+        process_service.execute(
+            refresh_sync_command,
+        )
+    )
+
+    print()
+    print(
+        "[OuroBuild] RefreshSync ExitCode:"
+    )
+
+    print(
+        f"[OuroBuild] "
+        f"{refresh_sync_result.exit_code}"
+    )
+
+    print()
+    print(
+        "[OuroBuild] RefreshSync STDOUT:"
+    )
+
+    print(
+        refresh_sync_result.stdout
+    )
+
+    print()
+    print(
+        "[OuroBuild] RefreshSync STDERR:"
+    )
+
+    print(
+        refresh_sync_result.stderr
+    )
+
+    assert (
+        refresh_sync_result.status
+        == ProcessStatus.SUCCESS
+    ), (
+        "O Advanced Installer retornou erro "
+        "durante o RefreshSync.\n\n"
+        f"ExitCode: "
+        f"{refresh_sync_result.exit_code}\n\n"
+        f"STDOUT:\n"
+        f"{refresh_sync_result.stdout}\n\n"
+        f"STDERR:\n"
+        f"{refresh_sync_result.stderr}"
+    )
+
     #
     # ============================================================
-    # 10. Executar RefreshSync.
-    #
-    # Ainda não usamos /rebuild.
+    # 10. Executar Build.
     # ============================================================
     #
 
-    command = [
-        str(
+    build_command = Command(
+        executable=(
             ADVANCED_INSTALLER_PATH
         ),
-        "/edit",
-        str(
-            temporary_aip
+        working_directory=(
+            temporary_aip.parent
         ),
-        "/RefreshSync",
-    ]
+        arguments=[
+            CommandArgument(
+                value="/build",
+            ),
+            CommandArgument(
+                value=str(
+                    temporary_aip
+                ),
+            ),
+        ],
+    )
+
+    print()
+    print(
+        "=" * 80
+    )
+
+    print(
+        "[OuroBuild] ADVANCED INSTALLER - BUILD"
+    )
+
+    print(
+        "=" * 80
+    )
+
+    print(
+        "[OuroBuild] Executável:"
+    )
+
+    print(
+        f"[OuroBuild] {ADVANCED_INSTALLER_PATH}"
+    )
+
+    print(
+        "[OuroBuild] AIP:"
+    )
+
+    print(
+        f"[OuroBuild] {temporary_aip}"
+    )
 
     print(
         "[OuroBuild] Comando:"
@@ -306,80 +406,164 @@ def test_deve_executar_refresh_sync_no_aip_real(
 
     print(
         "[OuroBuild] "
-        + " ".join(
-            f'"{item}"'
-            if " " in item
-            else item
-            for item in command
-        )
+        f'"{ADVANCED_INSTALLER_PATH}" '
+        f'/build '
+        f'"{temporary_aip}"'
     )
 
     print(
         "=" * 80
     )
 
-    result = subprocess.run(
-        command,
-        cwd=temporary_aip.parent,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
-
-    #
-    # ============================================================
-    # 11. Exibir diagnóstico.
-    # ============================================================
-    #
-
-    print()
-    print(
-        "[OuroBuild] EXIT CODE:"
-    )
-
-    print(
-        f"[OuroBuild] {result.returncode}"
+    build_result = (
+        process_service.execute(
+            build_command,
+        )
     )
 
     print()
     print(
-        "[OuroBuild] STDOUT:"
+        "[OuroBuild] Build ExitCode:"
     )
 
     print(
-        result.stdout
+        f"[OuroBuild] "
+        f"{build_result.exit_code}"
     )
 
     print()
     print(
-        "[OuroBuild] STDERR:"
+        "[OuroBuild] Build STDOUT:"
     )
 
     print(
-        result.stderr
+        build_result.stdout
+    )
+
+    print()
+    print(
+        "[OuroBuild] Build STDERR:"
+    )
+
+    print(
+        build_result.stderr
     )
 
     #
     # ============================================================
-    # 12. Validar execução.
+    # 11. Validar Build.
     # ============================================================
     #
 
     assert (
-        result.returncode == 0
+        build_result.status
+        == ProcessStatus.SUCCESS
     ), (
         "O Advanced Installer retornou erro "
-        "durante o RefreshSync.\n\n"
-        f"ExitCode: {result.returncode}\n\n"
-        f"STDOUT:\n{result.stdout}\n\n"
-        f"STDERR:\n{result.stderr}"
+        "durante o Build.\n\n"
+        f"ExitCode: "
+        f"{build_result.exit_code}\n\n"
+        f"STDOUT:\n"
+        f"{build_result.stdout}\n\n"
+        f"STDERR:\n"
+        f"{build_result.stderr}"
     )
 
     #
     # ============================================================
-    # 13. O AIP temporário deve continuar existindo.
+    # 12. Resolver MSI.
+    #
+    # O AIP define o nome do produto como:
+    #
+    # OuroNetWinServiceLinkPagamento
+    #
+    # e o BuildName utiliza:
+    #
+    # [ProductName].Setup
+    #
+    # O PATHFOLDER é relativo ao AIP.
+    #
+    # Portanto, procuramos o MSI gerado a partir
+    # do diretório temporário.
+    # ============================================================
+    #
+
+    expected_file_name = (
+        "OuroNetWinServiceLinkPagamento.Setup.msi"
+    )
+
+    possible_msi_paths = [
+        temporary_aip.parent
+        / expected_file_name,
+
+        temporary_aip.parent
+        / "Setups"
+        / expected_file_name,
+
+        temporary_aip.parent.parent
+        / "Setups"
+        / expected_file_name,
+    ]
+
+    output_msi = None
+
+    for candidate in possible_msi_paths:
+
+        if candidate.exists():
+
+            output_msi = candidate
+
+            break
+
+    #
+    # ============================================================
+    # 13. Caso não seja encontrado no caminho esperado,
+    # procurar dentro do diretório temporário.
+    # ============================================================
+    #
+
+    if output_msi is None:
+
+        generated_files = list(
+            tmp_path.rglob(
+                "*.msi"
+            )
+        )
+
+        if generated_files:
+
+            output_msi = (
+                generated_files[0]
+            )
+
+    #
+    # ============================================================
+    # 14. Validar MSI.
+    # ============================================================
+    #
+
+    assert output_msi is not None, (
+        "O Build terminou com sucesso, "
+        "porém nenhum arquivo MSI foi encontrado.\n\n"
+        f"Temporary AIP: "
+        f"{temporary_aip}\n\n"
+        f"STDOUT:\n"
+        f"{build_result.stdout}\n\n"
+        f"STDERR:\n"
+        f"{build_result.stderr}"
+    )
+
+    assert output_msi.exists()
+
+    assert output_msi.is_file()
+
+    assert (
+        output_msi.stat().st_size > 0
+    )
+
+    #
+    # ============================================================
+    # 15. O AIP temporário deve continuar existindo.
     # ============================================================
     #
 
@@ -389,7 +573,7 @@ def test_deve_executar_refresh_sync_no_aip_real(
 
     #
     # ============================================================
-    # 14. O AIP original deve continuar intacto.
+    # 16. O AIP original deve continuar intacto.
     # ============================================================
     #
 
@@ -406,7 +590,7 @@ def test_deve_executar_refresh_sync_no_aip_real(
 
     #
     # ============================================================
-    # 15. Diagnóstico final.
+    # 17. Diagnóstico final.
     # ============================================================
     #
 
@@ -416,7 +600,7 @@ def test_deve_executar_refresh_sync_no_aip_real(
     )
 
     print(
-        "[OuroBuild] REFRESH SYNC CONCLUÍDO"
+        "[OuroBuild] BUILD CONCLUÍDO"
     )
 
     print(
@@ -424,15 +608,24 @@ def test_deve_executar_refresh_sync_no_aip_real(
     )
 
     print(
-        "[OuroBuild] O AIP original permaneceu intacto."
+        "[OuroBuild] RefreshSync: OK"
     )
 
     print(
-        "[OuroBuild] O RefreshSync retornou sucesso."
+        "[OuroBuild] Build: OK"
     )
 
     print(
-        f"[OuroBuild] AIP temporário: {temporary_aip}"
+        "[OuroBuild] MSI:"
+    )
+
+    print(
+        f"[OuroBuild] {output_msi}"
+    )
+
+    print(
+        "[OuroBuild] "
+        "O AIP original permaneceu intacto."
     )
 
     print(

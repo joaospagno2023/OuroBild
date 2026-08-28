@@ -2,7 +2,8 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : setup_orchestrator.py
-Descrição : Orquestra o processo de geração do Setup.
+Descrição : Orquestra o processo de geração do Setup através
+            exclusivamente do Advanced Installer.
 --------------------------------------------------------------------
 """
 
@@ -10,6 +11,10 @@ from pathlib import Path
 
 from app.models.configuration.app_settings import (
     AppSettings,
+)
+
+from app.models.setup.setup_engine import (
+    SetupEngine,
 )
 
 from app.models.setup.setup_request import (
@@ -20,28 +25,16 @@ from app.models.setup.setup_result import (
     SetupResult,
 )
 
+from app.services.setup.advanced_installer_setup_definition_loader import (
+    AdvancedInstallerSetupDefinitionLoader,
+)
+
 from app.services.setup.setup_factory import (
     DefaultSetupFactory,
 )
 
 from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
-)
-
-from app.services.setup.setup_project_preparer import (
-    SetupProjectPreparer,
-)
-
-from app.services.setup.setup_workspace_service import (
-    SetupWorkspaceService,
-)
-
-from app.services.setup.visual_studio_setup_definition_loader import (
-    VisualStudioSetupDefinitionLoader,
-)
-
-from app.services.workspace.solution_locator_service import (
-    SolutionLocatorService,
 )
 
 from app.workspace.workspace_resolver import (
@@ -51,31 +44,51 @@ from app.workspace.workspace_resolver import (
 
 class DefaultSetupOrchestrator:
     """
-    Orquestra a geração de um Setup.
+    Orquestra a geração de Setup através do Advanced Installer.
 
-    Responsabilidades:
+    O fluxo é intencionalmente simples:
 
         - Resolver o Workspace.
+        - Obter o mecanismo configurado.
         - Resolver os caminhos do Setup.
-        - Localizar a Solution.
-        - Carregar a definição do Setup.
-        - Preparar o projeto Setup quando necessário.
-        - Preparar o Workspace temporário quando necessário.
+        - Carregar a definição do AIP.
         - Selecionar o Installer.
         - Executar o InstallerService.
+
+    O Orchestrator não conhece detalhes internos do
+    Advanced Installer. Essas responsabilidades permanecem
+    nos serviços especializados.
     """
 
     def __init__(
         self,
         workspace_resolver: WorkspaceResolver,
         setup_path_resolver: SetupPathResolver,
-        solution_locator: SolutionLocatorService,
-        definition_loader: VisualStudioSetupDefinitionLoader,
+        advanced_installer_definition_loader: (
+            AdvancedInstallerSetupDefinitionLoader
+        ),
         setup_factory: DefaultSetupFactory,
-        setup_project_preparer: SetupProjectPreparer,
-        setup_workspace_service: SetupWorkspaceService,
         settings: AppSettings,
     ) -> None:
+        """
+        Inicializa o Orchestrator.
+
+        Args:
+            workspace_resolver:
+                Resolve o Workspace do projeto.
+
+            setup_path_resolver:
+                Resolve os caminhos necessários para o Setup.
+
+            advanced_installer_definition_loader:
+                Carrega a definição do projeto Advanced Installer.
+
+            setup_factory:
+                Seleciona o InstallerService.
+
+            settings:
+                Configurações da aplicação.
+        """
 
         if workspace_resolver is None:
 
@@ -89,16 +102,10 @@ class DefaultSetupOrchestrator:
                 "SetupPathResolver não foi informado."
             )
 
-        if solution_locator is None:
+        if advanced_installer_definition_loader is None:
 
             raise ValueError(
-                "SolutionLocatorService não foi informado."
-            )
-
-        if definition_loader is None:
-
-            raise ValueError(
-                "VisualStudioSetupDefinitionLoader "
+                "AdvancedInstallerSetupDefinitionLoader "
                 "não foi informado."
             )
 
@@ -106,20 +113,6 @@ class DefaultSetupOrchestrator:
 
             raise ValueError(
                 "SetupFactory não foi informado."
-            )
-
-        if setup_project_preparer is None:
-
-            raise ValueError(
-                "SetupProjectPreparer "
-                "não foi informado."
-            )
-
-        if setup_workspace_service is None:
-
-            raise ValueError(
-                "SetupWorkspaceService "
-                "não foi informado."
             )
 
         if settings is None:
@@ -136,24 +129,12 @@ class DefaultSetupOrchestrator:
             setup_path_resolver
         )
 
-        self.__solution_locator = (
-            solution_locator
-        )
-
-        self.__definition_loader = (
-            definition_loader
+        self.__advanced_installer_definition_loader = (
+            advanced_installer_definition_loader
         )
 
         self.__setup_factory = (
             setup_factory
-        )
-
-        self.__setup_project_preparer = (
-            setup_project_preparer
-        )
-
-        self.__setup_workspace_service = (
-            setup_workspace_service
         )
 
         self.__settings = settings
@@ -164,6 +145,9 @@ class DefaultSetupOrchestrator:
     ) -> SetupResult:
         """
         Executa a geração do Setup.
+
+        O engine deve ser Advanced Installer. Qualquer
+        configuração diferente é rejeitada explicitamente.
         """
 
         if request is None:
@@ -175,9 +159,9 @@ class DefaultSetupOrchestrator:
         try:
 
             #
-            # --------------------------------------------------------
+            # ========================================================
             # Workspace
-            # --------------------------------------------------------
+            # ========================================================
             #
 
             workspace = (
@@ -190,9 +174,36 @@ class DefaultSetupOrchestrator:
             )
 
             #
-            # --------------------------------------------------------
+            # ========================================================
+            # Engine
+            # ========================================================
+            #
+
+            engine = (
+                self.__settings.setup.engine
+            )
+
+            if isinstance(
+                engine,
+                str,
+            ):
+
+                engine = SetupEngine(
+                    engine,
+                )
+
+            if engine != SetupEngine.ADVANCED_INSTALLER:
+
+                raise ValueError(
+                    "O OuroBuild utiliza exclusivamente "
+                    "o Advanced Installer para geração "
+                    f"de Setup. Engine configurado: {engine}"
+                )
+
+            #
+            # ========================================================
             # Caminhos
-            # --------------------------------------------------------
+            # ========================================================
             #
 
             paths = (
@@ -207,70 +218,27 @@ class DefaultSetupOrchestrator:
                     installer_root=(
                         self.__settings.setup.output_root
                     ),
-                    aip_root=self.__settings.setup.aip_root,
+                    aip_root=(
+                        self.__settings.setup.aip_root
+                    ),
                     version=request.version,
                     revision=request.revision,
-                    
                 )
             )
 
             #
-            # --------------------------------------------------------
-            # Solution
-            # --------------------------------------------------------
-            #
-
-            solution_path = (
-                self.__solution_locator.find_solution(
-                    workspace.project_file,
-                )
-            )
-
-            if solution_path is None:
-
-                return SetupResult(
-                    success=False,
-                    message=(
-                        "Solution não encontrada "
-                        f"para o projeto "
-                        f"'{request.project_id}'."
-                    ),
-                    project_id=(
-                        request.project_id
-                    ),
-                    output_msi=(
-                        paths.output_msi
-                    ),
-                )
-
-            #
-            # --------------------------------------------------------
-            # Projeto Setup
-            # --------------------------------------------------------
-            #
-
-            setup_project_path = (
-                paths.visualstudio_setup_path
-                if (
-                    paths.visualstudio_setup_path
-                    is not None
-                )
-                else paths.aip_path
-            )
-
-            #
-            # --------------------------------------------------------
-            # Definição do Setup
-            # --------------------------------------------------------
+            # ========================================================
+            # Advanced Installer
+            # ========================================================
             #
 
             definition = (
-                self.__definition_loader.load(
-                    setup_project_path=(
-                        setup_project_path
+                self.__advanced_installer_definition_loader.load(
+                    aip_path=(
+                        paths.aip_path
                     ),
-                    solution_path=(
-                        solution_path
+                    project_id=(
+                        request.project_id
                     ),
                     configuration=(
                         workspace.project.configuration
@@ -278,107 +246,28 @@ class DefaultSetupOrchestrator:
                     platform=(
                         workspace.project.platform
                     ),
+                    output_msi=(
+                        paths.output_msi
+                    ),
                 )
             )
 
             #
-            # --------------------------------------------------------
-            # Preparação do projeto Visual Studio Setup
-            # --------------------------------------------------------
-            #
-
-            if (
-                paths.visualstudio_setup_path
-                is not None
-            ):
-
-                workspace_root = (
-                    paths.setup_output_path
-                    / ".workspace"
-                )
-
-                original_setup_project_path = (
-                    paths.visualstudio_setup_path
-                )
-
-                template_file_name = (
-                    self.__resolve_template_file_name(
-                        setup_project_path=(
-                            original_setup_project_path
-                        ),
-                    )
-                )
-
-                prepared_setup_path = (
-                    self.__setup_project_preparer
-                    .prepare(
-                        setup_project_path=(
-                            original_setup_project_path
-                        ),
-                        publish_path=(
-                            paths.publish_path
-                        ),
-                        workspace_root=(
-                            workspace_root
-                        ),
-                        template_file_name=(
-                            template_file_name
-                        ),
-                    )
-                )
-
-                #
-                # O SetupWorkspaceService passa a ser
-                # responsável pela preparação da Solution/
-                # Workspace temporário.
-                #
-
-                prepared_solution_path = (
-                    self.__setup_workspace_service
-                    .prepare(
-                        solution_path=(
-                            solution_path
-                        ),
-                        original_setup_project_path=(
-                            original_setup_project_path
-                        ),
-                        prepared_setup_project_path=(
-                            prepared_setup_path
-                        ),
-                        workspace_root=(
-                            workspace_root
-                        ),
-                    )
-                )
-
-                paths.visualstudio_setup_path = (
-                    prepared_setup_path
-                )
-
-                definition.setup_project_path = (
-                    prepared_setup_path
-                )
-
-                definition.solution_path = (
-                    prepared_solution_path
-                )
-
-            #
-            # --------------------------------------------------------
+            # ========================================================
             # Installer
-            # --------------------------------------------------------
+            # ========================================================
             #
 
             installer = (
                 self.__setup_factory.create(
-                    self.__settings.setup.engine,
+                    SetupEngine.ADVANCED_INSTALLER,
                 )
             )
 
             #
-            # --------------------------------------------------------
+            # ========================================================
             # Execução
-            # --------------------------------------------------------
+            # ========================================================
             #
 
             return installer.install(
@@ -399,53 +288,3 @@ class DefaultSetupOrchestrator:
                     request.project_id
                 ),
             )
-
-    @staticmethod
-    def __resolve_template_file_name(
-        setup_project_path: Path,
-    ) -> str:
-        """
-        Localiza uma DLL existente no .vdproj para ser
-        utilizada como template de novos arquivos.
-        """
-
-        if setup_project_path is None:
-
-            raise ValueError(
-                "SetupProjectPath "
-                "não foi informado."
-            )
-
-        setup_project_path = Path(
-            setup_project_path,
-        )
-
-        if not setup_project_path.exists():
-
-            raise FileNotFoundError(
-                "SetupProjectPath não encontrado: "
-                f"{setup_project_path}"
-            )
-
-        content = (
-            setup_project_path.read_text(
-                encoding="utf-8",
-            )
-        )
-
-        import re
-
-        names = re.findall(
-            r'"Name"\s*=\s*"8:([^"]+\.dll)"',
-            content,
-            flags=re.IGNORECASE,
-        )
-
-        if not names:
-
-            raise ValueError(
-                "Nenhuma DLL foi encontrada no "
-                f"projeto Setup: {setup_project_path}"
-            )
-
-        return names[0]

@@ -148,6 +148,10 @@ from app.services.setup.visual_studio_installer_service import (
     VisualStudioInstallerService,
 )
 
+from app.services.setup.advanced_installer_setup_definition_loader import (
+    AdvancedInstallerSetupDefinitionLoader,
+)
+
 from app.services.setup.setup_factory import (
     DefaultSetupFactory,
 )
@@ -221,6 +225,8 @@ from app.services.setup.disable_out_of_proc_build_service import (
 from app.services.setup.advanced_installer_service import (
     AdvancedInstallerService,
 )
+
+
 
 class Bootstrap:
     """
@@ -452,6 +458,10 @@ class Bootstrap:
             )
         )
 
+        self.advanced_installer_setup_definition_loader = (
+            AdvancedInstallerSetupDefinitionLoader()
+        )
+
         #
         # Preparação do projeto Visual Studio Setup
         #
@@ -552,6 +562,10 @@ class Bootstrap:
                 definition_loader=(
                     self.visual_studio_setup_definition_loader
                 ),
+                advanced_installer_definition_loader=(
+                    self.advanced_installer_setup_definition_loader
+                ),
+                
                 setup_factory=(
                     self.setup_factory
                 ),

@@ -1,7 +1,7 @@
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
-Arquivo : default_process_service.py
+Arquivo : process_service.py
 Descrição : Implementação responsável pela execução de processos.
 --------------------------------------------------------------------
 """
@@ -9,13 +9,26 @@ Descrição : Implementação responsável pela execução de processos.
 from datetime import datetime
 import subprocess
 
-from app.abstractions.process_service import ProcessService
-from app.models.process.command import Command
-from app.models.process.process_result import ProcessResult
-from app.models.process.process_status import ProcessStatus
+from app.abstractions.process_service import (
+    ProcessService,
+)
+
+from app.models.process.command import (
+    Command,
+)
+
+from app.models.process.process_result import (
+    ProcessResult,
+)
+
+from app.models.process.process_status import (
+    ProcessStatus,
+)
 
 
-class DefaultProcessService(ProcessService):
+class DefaultProcessService(
+    ProcessService,
+):
     """
     Executa comandos utilizando o subprocess.
     """
@@ -28,19 +41,44 @@ class DefaultProcessService(ProcessService):
         Executa um processo externo.
         """
 
+        if command is None:
+            raise ValueError(
+                "O comando não foi informado."
+            )
+
         started_at = datetime.now()
+
+        executable = str(
+            command.executable,
+        )
+
+        working_directory = str(
+            command.working_directory,
+        )
+
+        command_line = " ".join(
+            [
+                executable,
+                *[
+                    argument.value
+                    for argument
+                    in command.arguments
+                ],
+            ],
+        )
 
         try:
 
             result = subprocess.run(
                 args=[
-                    str(command.executable),
+                    executable,
                     *[
                         argument.value
-                        for argument in command.arguments
+                        for argument
+                        in command.arguments
                     ],
                 ],
-                cwd=str(command.working_directory),
+                cwd=working_directory,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -54,14 +92,19 @@ class DefaultProcessService(ProcessService):
             )
 
             stdout = result.stdout
+
             stderr = result.stderr
+
             exit_code = result.returncode
 
         except Exception as ex:
 
             status = ProcessStatus.FAILED
+
             stdout = ""
+
             stderr = str(ex)
+
             exit_code = -1
 
         finished_at = datetime.now()
@@ -76,4 +119,9 @@ class DefaultProcessService(ProcessService):
             stdout=stdout,
             stderr=stderr,
             duration=duration,
+            started_at=started_at,
+            finished_at=finished_at,
+            executable=executable,
+            working_directory=working_directory,
+            command_line=command_line,
         )
