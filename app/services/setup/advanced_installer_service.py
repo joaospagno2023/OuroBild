@@ -44,6 +44,10 @@ from app.models.setup.setup_result import (
     SetupResult,
 )
 
+from app.services.cleanup.build_artifact_cleanup_service import (
+    BuildArtifactCleanupService,
+)
+
 
 class AdvancedInstallerService(
     InstallerService,
@@ -56,20 +60,30 @@ class AdvancedInstallerService(
         self,
         process_service: ProcessService,
         advanced_installer_path: Path,
+        cleanup_service: BuildArtifactCleanupService,
     ) -> None:
         """
         Inicializa o serviço.
         """
 
         if process_service is None:
+
             raise ValueError(
                 "ProcessService "
                 "não foi informado."
             )
 
         if advanced_installer_path is None:
+
             raise ValueError(
                 "Caminho do Advanced Installer "
+                "não foi informado."
+            )
+
+        if cleanup_service is None:
+
+            raise ValueError(
+                "BuildArtifactCleanupService "
                 "não foi informado."
             )
 
@@ -79,6 +93,10 @@ class AdvancedInstallerService(
 
         self.__advanced_installer_path = Path(
             advanced_installer_path,
+        )
+
+        self.__cleanup_service = (
+            cleanup_service
         )
 
     def install(
@@ -92,9 +110,10 @@ class AdvancedInstallerService(
 
         O fluxo executado é:
 
-            1. RefreshSync do AIP.
-            2. Build do AIP.
-            3. Validação do MSI gerado.
+            1. Cleanup dos artefatos da publicação.
+            2. RefreshSync do AIP.
+            3. Build do AIP.
+            4. Validação do MSI gerado.
         """
 
         self.__validate(
@@ -102,6 +121,33 @@ class AdvancedInstallerService(
             definition=definition,
             paths=paths,
         )
+
+        publish_path = Path(
+            paths.publish_path,
+        )
+
+        cleanup_result = (
+            self.__cleanup_service.execute(
+                workspace_path=publish_path,
+                project_id=request.project_id,
+            )
+        )
+
+        if cleanup_result.errors:
+
+            return SetupResult(
+                success=False,
+                message=(
+                    "Falha durante a limpeza dos "
+                    "artefatos da publicação: "
+                    + "; ".join(
+                        cleanup_result.errors
+                    )
+                ),
+                project_id=request.project_id,
+                output_msi=None,
+                duration_seconds=0.0,
+            )
 
         aip_path = Path(
             paths.aip_path,
@@ -117,6 +163,7 @@ class AdvancedInstallerService(
             refresh_sync_result.status
             != ProcessStatus.SUCCESS
         ):
+
             return self.__create_process_failure_result(
                 request=request,
                 process_result=refresh_sync_result,
@@ -133,6 +180,7 @@ class AdvancedInstallerService(
             build_result.status
             != ProcessStatus.SUCCESS
         ):
+
             return self.__create_process_failure_result(
                 request=request,
                 process_result=build_result,
@@ -152,6 +200,7 @@ class AdvancedInstallerService(
         )
 
         if not output_msi.exists():
+
             return SetupResult(
                 success=False,
                 message=(
@@ -239,24 +288,35 @@ class AdvancedInstallerService(
         """
 
         if request is None:
+
             raise ValueError(
                 "A solicitação de Setup "
                 "não foi informada."
             )
 
         if definition is None:
+
             raise ValueError(
                 "A definição do Setup "
                 "não foi informada."
             )
 
         if paths is None:
+
             raise ValueError(
                 "Os caminhos do Setup "
                 "não foram informados."
             )
 
+        if paths.publish_path is None:
+
+            raise ValueError(
+                "O caminho de publicação "
+                "não foi informado."
+            )
+
         if not self.__advanced_installer_path.exists():
+
             raise FileNotFoundError(
                 "AdvancedInstaller.com "
                 "não encontrado: "
@@ -264,6 +324,7 @@ class AdvancedInstallerService(
             )
 
         if not self.__advanced_installer_path.is_file():
+
             raise ValueError(
                 "O caminho do Advanced Installer "
                 "não é um arquivo: "
@@ -275,6 +336,7 @@ class AdvancedInstallerService(
         )
 
         if not aip_path.exists():
+
             raise FileNotFoundError(
                 "Arquivo AIP "
                 "não encontrado: "
@@ -282,6 +344,7 @@ class AdvancedInstallerService(
             )
 
         if not aip_path.is_file():
+
             raise ValueError(
                 "O caminho do AIP "
                 "não é um arquivo: "

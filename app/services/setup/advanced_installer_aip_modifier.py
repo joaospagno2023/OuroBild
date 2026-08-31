@@ -416,6 +416,7 @@ class AdvancedInstallerAipModifier(
                     cls.__remove_file(
                         content=content,
                         source_path=change.source_path,
+                        name=change.name,
                     )
                 )
 
@@ -426,27 +427,23 @@ class AdvancedInstallerAipModifier(
         cls,
         content: str,
         source_path: str,
+        name: str | None = None,
     ) -> str:
         """
-        Remove um arquivo individual do
-        MsiFilesComponent.
+        Remove uma única ROW do MsiFilesComponent.
 
-        A identificação é feita pelo SourcePath.
+        A identidade da entrada é determinada por File + SourcePath.
+        Quando name não é informado, SourcePath é usado como fallback.
         """
 
-        normalized_source_path = (
-            cls.__normalize_source_path(
-                source_path,
-            )
-        )
+        normalized_source_path = cls.__normalize_source_path(source_path)
+        normalized_name = str(name or "").strip().casefold()
 
         component_pattern = re.compile(
             r'(?P<header>'
             r'<COMPONENT\b'
             r'(?=[^>]*\bcid\s*=\s*"'
-            + re.escape(
-                cls.__MSI_FILES_COMPONENT,
-            )
+            + re.escape(cls.__MSI_FILES_COMPONENT)
             + r'"'
             r')'
             r'[^>]*>'
@@ -460,73 +457,54 @@ class AdvancedInstallerAipModifier(
 
         removed = False
 
-        def replace_component(
-            match: re.Match,
-        ) -> str:
-
+        def replace_component(match: re.Match) -> str:
             nonlocal removed
 
-            header = match.group(
-                "header",
-            )
-
-            body = match.group(
-                "body",
-            )
-
-            footer = match.group(
-                "footer",
-            )
+            header = match.group("header")
+            body = match.group("body")
+            footer = match.group("footer")
 
             row_pattern = re.compile(
                 r'(?P<row>'
                 r'<ROW\b'
-                r'(?=[^>]*\bSourcePath\s*=\s*"'
-                r'(?P<source>[^"]*)"'
-                r')'
+                r'(?=[^>]*\bFile\s*=\s*"(?P<file>[^"]*)")'
+                r'(?=[^>]*\bSourcePath\s*=\s*"(?P<source>[^"]*)")'
                 r'[^>]*/>'
                 r')',
                 re.IGNORECASE | re.DOTALL,
             )
 
-            def replace_row(
-                row_match: re.Match,
-            ) -> str:
-
+            def replace_row(row_match: re.Match) -> str:
                 nonlocal removed
 
-                current_source_path = (
-                    cls.__normalize_source_path(
-                        row_match.group(
-                            "source",
-                        ),
-                    )
+                if removed:
+                    return row_match.group("row")
+
+                current_name = (
+                    str(row_match.group("file") or "")
+                    .strip()
+                    .casefold()
+                )
+
+                current_source_path = cls.__normalize_source_path(
+                    row_match.group("source")
                 )
 
                 if (
-                    current_source_path
-                    != normalized_source_path
+                    current_source_path == normalized_source_path
+                    and (
+                        not normalized_name
+                        or current_name == normalized_name
+                    )
                 ):
+                    removed = True
+                    return ""
 
-                    return row_match.group(
-                        "row",
-                    )
+                return row_match.group("row")
 
-                if removed:
-
-                    return row_match.group(
-                        "row",
-                    )
-
-                removed = True
-
-                return ""
-
-            updated_body = (
-                row_pattern.sub(
-                    replace_row,
-                    body,
-                )
+            updated_body = row_pattern.sub(
+                replace_row,
+                body,
             )
 
             return (
@@ -535,20 +513,22 @@ class AdvancedInstallerAipModifier(
                 + footer
             )
 
-        updated_content = (
-            component_pattern.sub(
-                replace_component,
-                content,
-                count=1,
-            )
+        updated_content = component_pattern.sub(
+            replace_component,
+            content,
+            count=1,
         )
 
         if not removed:
+            identity = (
+                f"File='{name}' + SourcePath='{source_path}'"
+                if normalized_name
+                else f"SourcePath='{source_path}'"
+            )
 
             raise ValueError(
-                "Arquivo para remoção "
-                "não encontrado no AIP: "
-                f"{source_path}"
+                "Arquivo para remoção não encontrado no AIP: "
+                + identity
             )
 
         return updated_content
@@ -633,8 +613,9 @@ class AdvancedInstallerAipModifier(
             "body",
         )
 
-        if cls.__contains_source_path(
+        if cls.__contains_file_source_path(
             body=body,
+            name=name,
             source_path=normalized_source_path,
         ):
 
@@ -708,41 +689,60 @@ class AdvancedInstallerAipModifier(
         )
 
     @classmethod
-    def __contains_source_path(
+    def __contains_file_source_path(
         cls,
         body: str,
+        name: str,
         source_path: str,
     ) -> bool:
         """
-        Verifica se o SourcePath já existe no componente.
+        Verifica se uma ROW com a combinação
+        File + SourcePath já existe no componente.
         """
+
+        normalized_name = (
+            str(name or "")
+            .strip()
+            .casefold()
+        )
+
+        normalized_source_path = (
+            cls.__normalize_source_path(
+                source_path,
+            )
+        )
 
         row_pattern = re.compile(
             r'<ROW\b'
-            r'(?=[^>]*\bSourcePath\s*=\s*"'
-            r'(?P<source>[^"]*)"'
+            r'(?=[^>]*\bFile\s*=\s*"(?P<file>[^"]*)"'
+            r')'
+            r'(?=[^>]*\bSourcePath\s*=\s*"(?P<source>[^"]*)"'
             r')'
             r'[^>]*/>',
             re.IGNORECASE | re.DOTALL,
         )
 
-        for match in row_pattern.finditer(
-            body,
-        ):
+        for match in row_pattern.finditer(body):
+
+            current_name = (
+                str(
+                    match.group("file") or "",
+                )
+                .strip()
+                .casefold()
+            )
 
             current_source_path = (
                 cls.__normalize_source_path(
-                    match.group(
-                        "source",
-                    ),
+                    match.group("source"),
                 )
             )
 
             if (
-                current_source_path
-                == source_path
+                current_name == normalized_name
+                and current_source_path
+                == normalized_source_path
             ):
-
                 return True
 
         return False
@@ -831,7 +831,7 @@ class AdvancedInstallerAipModifier(
 
     @staticmethod
     def __normalize_source_path(
-        source_path: str,
+    source_path: str,
     ) -> str:
         """
         Normaliza um SourcePath para comparação.

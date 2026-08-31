@@ -232,21 +232,38 @@ def create_orchestrator(
     setup_workspace_service=None,
 ):
     """
-    Cria o DefaultSetupOrchestrator
-    utilizando as dependências fornecidas pelos testes.
+    Cria o DefaultSetupOrchestrator utilizando
+    a arquitetura atual do fluxo de Setup.
+
+    As dependências antigas relacionadas ao fluxo
+    Visual Studio continuam na assinatura para manter
+    os testes compatíveis, mas não são mais injetadas
+    no DefaultSetupOrchestrator.
+
+    O Orchestrator atual recebe:
+
+        - WorkspaceResolver;
+        - SetupPathResolver;
+        - AdvancedInstallerSetupDefinitionLoader;
+        - SetupFactory;
+        - AppSettings.
     """
 
-    if setup_project_preparer is None:
+    settings = MagicMock()
 
-        setup_project_preparer = MagicMock(
-            spec=SetupProjectPreparer,
-        )
+    settings.setup = MagicMock()
 
-    if setup_workspace_service is None:
+    settings.setup.engine = (
+        SetupEngine.ADVANCED_INSTALLER
+    )
 
-        setup_workspace_service = MagicMock(
-            spec=SetupWorkspaceService,
-        )
+    settings.setup.output_root = Path(
+        r"C:\Setups"
+    )
+
+    settings.setup.aip_root = Path(
+        r"C:\Projetos\Projeto\Setup"
+    )
 
     return DefaultSetupOrchestrator(
         workspace_resolver=(
@@ -255,26 +272,14 @@ def create_orchestrator(
         setup_path_resolver=(
             setup_path_resolver
         ),
-        solution_locator=(
-            solution_locator
-        ),
-        definition_loader=(
-            definition_loader
-        ),
         advanced_installer_definition_loader=(
             advanced_installer_definition_loader
         ),
         setup_factory=(
             setup_factory
         ),
-        setup_project_preparer=(
-            setup_project_preparer
-        ),
-        setup_workspace_service=(
-            setup_workspace_service
-        ),
+        settings=settings,
     )
-
 
 # ====================================================================
 # Testes

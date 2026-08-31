@@ -2,7 +2,8 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : test_setup_flow.py
-Descrição : Teste de integração do fluxo completo de Setup.
+Descrição : Teste de integração do fluxo completo de Setup
+            utilizando exclusivamente o Advanced Installer.
 --------------------------------------------------------------------
 """
 
@@ -13,8 +14,12 @@ from app.abstractions.installer_service import (
     InstallerService,
 )
 
-from app.models.process.process_status import (
-    ProcessStatus,
+from app.models.project.project import (
+    Project,
+)
+
+from app.models.project.project_type import (
+    ProjectType,
 )
 
 from app.models.setup.setup_definition import (
@@ -33,8 +38,12 @@ from app.models.setup.setup_request import (
     SetupRequest,
 )
 
-from app.services.setup.disable_out_of_proc_build_service import (
-    DisableOutOfProcBuildService,
+from app.models.setup.setup_result import (
+    SetupResult,
+)
+
+from app.services.setup.advanced_installer_setup_definition_loader import (
+    AdvancedInstallerSetupDefinitionLoader,
 )
 
 from app.services.setup.setup_factory import (
@@ -45,35 +54,95 @@ from app.services.setup.setup_orchestrator import (
     DefaultSetupOrchestrator,
 )
 
-from app.services.setup.setup_project_preparer import (
-    SetupProjectPreparer,
-)
-
 from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
 )
 
-from app.services.setup.setup_workspace_service import (
-    SetupWorkspaceService,
+from app.workspace.workspace_context import (
+    WorkspaceContext,
 )
 
-from app.services.setup.visual_studio_installer_service import (
-    VisualStudioInstallerService,
+from app.workspace.workspace_resolver import (
+    WorkspaceResolver,
 )
 
-from app.services.setup.visual_studio_setup_definition_loader import (
-    VisualStudioSetupDefinitionLoader,
-)
+
+# ====================================================================
+# Helpers
+# ====================================================================
+
+
+def create_project(
+    tmp_path: Path,
+) -> Project:
+    """
+    Cria um projeto mínimo para o teste.
+    """
+
+    return Project(
+        id="teste",
+        name="Projeto Teste",
+        description=(
+            "Projeto utilizado no teste de integração."
+        ),
+        type=ProjectType.CLIENT,
+        solution_path=str(
+            tmp_path
+            / "Projeto.sln"
+        ),
+        project_path=str(
+            tmp_path
+            / "Projeto.csproj"
+        ),
+        compilation_target="project",
+        compilation_engine="msbuild",
+        publish_path=str(
+            tmp_path
+            / "publish"
+        ),
+        publish_profile=None,
+        aip_path=str(
+            tmp_path
+            / "Setup"
+            / "Teste.aip"
+        ),
+        visualstudio_setup_path=None,
+        output_msi=str(
+            tmp_path
+            / "installer"
+            / "Teste.msi"
+        ),
+        network_path="",
+        configuration="Release",
+        platform="AnyCPU",
+        enabled=True,
+    )
+
+
+def create_solution(
+    solution_path: Path,
+) -> None:
+    """
+    Cria uma Solution mínima para o teste.
+    """
+
+    solution_path.write_text(
+        """
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+""".strip(),
+        encoding="utf-8",
+    )
 
 
 def create_project_file(
-    path: Path,
+    project_path: Path,
 ) -> None:
     """
     Cria um projeto mínimo para o teste.
     """
 
-    path.write_text(
+    project_path.write_text(
         """
 <Project>
     <PropertyGroup>
@@ -85,48 +154,46 @@ def create_project_file(
     )
 
 
-def create_solution(
-    solution_path: Path,
-    project_path: Path,
-) -> None:
-    """
-    Cria uma Solution mínima para o teste.
-    """
-
-    solution_path.write_text(
-        f"""
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-Project("{{FAKE-GUID}}") = "Projeto", "{project_path.name}", "{{PROJECT-GUID}}"
-EndProject
-""".strip(),
-        encoding="utf-8",
-    )
-
-
-def test_deve_executar_fluxo_completo_de_setup_visual_studio(
+def create_workspace_context(
     tmp_path: Path,
-):
+) -> WorkspaceContext:
     """
-    Deve executar o fluxo completo do Setup utilizando
-    Visual Studio sem executar o processo externo real.
+    Cria o WorkspaceContext utilizado pelo teste.
     """
 
-    #
-    # Request
-    #
-
-    request = SetupRequest(
-        project_id="teste",
-        environment_id="producao",
-        version="1.0.0",
-        revision=1,
-        configuration="Release",
+    project = create_project(
+        tmp_path=tmp_path,
     )
 
-    #
-    # Diretórios
-    #
+    create_project_file(
+        Path(
+            project.project_path,
+        ),
+    )
+
+    create_solution(
+        Path(
+            project.solution_path,
+        ),
+    )
+
+    return WorkspaceContext(
+        project=project,
+        environment=MagicMock(
+            root_path=tmp_path,
+        ),
+        project_file=Path(
+            project.project_path,
+        ),
+    )
+
+
+def create_paths(
+    tmp_path: Path,
+) -> SetupPaths:
+    """
+    Cria os caminhos utilizados pelo Setup.
+    """
 
     publish_path = (
         tmp_path
@@ -138,9 +205,15 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         / "installer"
     )
 
-    setup_path = (
+    aip_path = (
         tmp_path
         / "Setup"
+        / "Teste.aip"
+    )
+
+    output_msi = (
+        setup_output_path
+        / "Teste.msi"
     )
 
     publish_path.mkdir(
@@ -153,95 +226,29 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         exist_ok=True,
     )
 
-    setup_path.mkdir(
+    aip_path.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    #
-    # Arquivos do projeto
-    #
-
-    project_file = (
-        tmp_path
-        / "Projeto.csproj"
-    )
-
-    solution_file = (
-        tmp_path
-        / "Projeto.sln"
-    )
-
-    setup_project_file = (
-        setup_path
-        / "Teste.vdproj"
-    )
-
-    create_project_file(
-        project_file,
-    )
-
-    create_solution(
-        solution_path=solution_file,
-        project_path=project_file,
-    )
-
-    setup_project_file.write_text(
-        """
-"FileSystem"
-{
-    "DefaultLocation" = "8:[ProgramFilesFolder][Manufacturer]\\[ProductName]"
-
-    "{AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA}:_11111111111111111111111111111111"
-    {
-        "AssemblyRegister" = "3:1"
-        "AssemblyIsInGAC" = "11:FALSE"
-        "AssemblyAsmDisplayName" = "8:Teste, Version=1.0.0.0"
-
-        "ScatterAssemblies"
-        {
-            "_111111"
-            {
-                "Name" = "8:Teste.dll"
-                "Attributes" = "3:512"
-            }
-        }
-
-        "SourcePath" = "8:Teste.dll"
-        "TargetName" = "8:"
-        "Tag" = "8:"
-        "Folder" = "8:_AAAAAA"
-        "Condition" = "8:"
-        "Transitive" = "11:FALSE"
-        "Vital" = "11:TRUE"
-    }
-}
-""".strip(),
-        encoding="utf-8",
-    )
-
-    #
-    # Setup Paths
-    #
-
-    paths = SetupPaths(
+    return SetupPaths(
         publish_path=publish_path,
         setup_output_path=setup_output_path,
-        output_msi=(
-            setup_output_path
-            / "Teste.msi"
-        ),
-        aip_path=setup_project_file,
-        visualstudio_setup_path=(
-            setup_project_file
-        ),
+        output_msi=output_msi,
+        aip_path=aip_path,
+        visualstudio_setup_path=None,
     )
 
-    #
-    # Setup Definition
-    #
 
-    definition = SetupDefinition(
+def create_definition(
+    paths: SetupPaths,
+    solution_path: Path,
+) -> SetupDefinition:
+    """
+    Cria uma definição mínima do Advanced Installer.
+    """
+
+    return SetupDefinition(
         project_id="teste",
         name="Projeto Teste",
         product_name="Produto Teste",
@@ -249,60 +256,77 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         version="1.0.0",
         configuration="Release",
         platform="AnyCPU",
-        solution_path=solution_file,
-        setup_project_path=setup_project_file,
-        output_msi=(
-            setup_output_path
-            / "Teste.msi"
-        ),
+        solution_path=solution_path,
+        setup_project_path=paths.aip_path,
+        output_msi=paths.output_msi,
     )
 
+
+def create_request() -> SetupRequest:
+    """
+    Cria a solicitação de Setup.
+    """
+
+    return SetupRequest(
+        project_id="teste",
+        environment_id="producao",
+        version="1.0.0",
+        revision=1,
+        configuration="Release",
+    )
+
+
+# ====================================================================
+# Teste de integração
+# ====================================================================
+
+
+def test_deve_executar_fluxo_completo_de_setup_advanced_installer(
+    tmp_path: Path,
+):
+    """
+    Deve executar o fluxo completo de Setup utilizando
+    exclusivamente o Advanced Installer.
+
+    O processo externo real não é executado.
+
+    O teste valida a integração entre:
+
+        WorkspaceResolver
+            ↓
+        SetupPathResolver
+            ↓
+        AdvancedInstallerSetupDefinitionLoader
+            ↓
+        SetupFactory
+            ↓
+        InstallerService
+            ↓
+        SetupResult
+    """
+
     #
+    # ================================================================
+    # Request
+    # ================================================================
+    #
+
+    request = create_request()
+
+    #
+    # ================================================================
     # Workspace
+    # ================================================================
     #
 
-    workspace_resolver = MagicMock()
-
-    workspace_context = MagicMock()
-
-    workspace_context.project = (
-        MagicMock()
+    workspace_context = (
+        create_workspace_context(
+            tmp_path=tmp_path,
+        )
     )
 
-    workspace_context.project.id = (
-        "teste"
-    )
-
-    workspace_context.project.publish_path = (
-        "publish"
-    )
-
-    workspace_context.project.aip_path = (
-        r"Setup\Teste.vdproj"
-    )
-
-    workspace_context.project.output_msi = (
-        "Teste.msi"
-    )
-
-    workspace_context.project.configuration = (
-        "Release"
-    )
-
-    workspace_context.project.platform = (
-        "AnyCPU"
-    )
-
-    workspace_context.project_file = (
-        project_file
-    )
-
-    workspace_context.environment = (
-        MagicMock()
-    )
-
-    workspace_context.environment.root_path = (
-        tmp_path
+    workspace_resolver = MagicMock(
+        spec=WorkspaceResolver,
     )
 
     workspace_resolver.resolve.return_value = (
@@ -310,11 +334,17 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     )
 
     #
-    # Setup Path Resolver
+    # ================================================================
+    # Paths
+    # ================================================================
     #
 
+    paths = create_paths(
+        tmp_path=tmp_path,
+    )
+
     setup_path_resolver = MagicMock(
-        spec=SetupPathResolver,
+    spec=SetupPathResolver,
     )
 
     setup_path_resolver.resolve.return_value = (
@@ -322,255 +352,128 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     )
 
     #
-    # Solution Locator
+    # ================================================================
+    # AIP
+    # ================================================================
     #
 
-    solution_locator = MagicMock()
-
-    solution_locator.find_solution.return_value = (
-        solution_file
+    paths.aip_path.write_text(
+        """
+; OuroBuild integration test
+""".strip(),
+        encoding="utf-8",
     )
 
     #
-    # Definition Loader
+    # ================================================================
+    # Advanced Installer Definition
+    # ================================================================
     #
 
-    definition_loader = MagicMock(
-        spec=VisualStudioSetupDefinitionLoader,
+    solution_path = Path(
+        workspace_context.project.solution_path,
     )
 
-    definition_loader.load.return_value = (
+    definition = create_definition(
+        paths=paths,
+        solution_path=solution_path,
+    )
+
+    advanced_installer_definition_loader = (
+        MagicMock(
+            spec=AdvancedInstallerSetupDefinitionLoader,
+        )
+    )
+
+    advanced_installer_definition_loader.load.return_value = (
         definition
     )
 
     #
-    # Setup Project Preparer
+    # ================================================================
+    # Installer
+    # ================================================================
     #
 
-    # O teste não executa a preparação real.
-    # Simulamos o retorno de um projeto preparado.
-    #
-
-    setup_project_preparer = MagicMock(
-        spec=SetupProjectPreparer,
-    )
-
-    prepared_setup_file = (
-        setup_path
-        / ".ourobuild"
-        / "Teste.vdproj"
-    )
-
-    prepared_setup_file.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    prepared_setup_file.write_text(
-        setup_project_file.read_text(
-            encoding="utf-8",
-        ),
-        encoding="utf-8",
-    )
-
-    setup_project_preparer.prepare.return_value = (
-        prepared_setup_file
-    )
-
-    #
-    # Setup Workspace Service
-    #
-
-    # O projeto original nunca é substituído.
-    # O workspace temporário é utilizado somente
-    # para preparação e limpeza.
-    #
-
-    setup_workspace_service = MagicMock(
-        spec=SetupWorkspaceService,
-    )
-
-    #
-    # Process Service
-    #
-
-    # O processo externo NÃO será executado.
-    #
-    # O mock simula:
-    #
-    # 1. execução bem-sucedida do Visual Studio;
-    # 2. criação do MSI intermediário.
-    #
-
-    process_service = MagicMock()
-
-    def execute_process(
-        command,
-    ):
-        """
-        Simula a execução do Visual Studio
-        e a criação do MSI intermediário.
-        """
-
-        intermediate_msi = (
-            prepared_setup_file.parent
-            / "Release"
-            / "Teste.msi"
-        )
-
-        intermediate_msi.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        intermediate_msi.write_bytes(
-            b"MSI_TESTE",
-        )
-
-        return MagicMock(
-            status=ProcessStatus.SUCCESS,
-            exit_code=0,
-            stdout="",
-            stderr="",
-            duration=1.0,
-        )
-
-    process_service.execute.side_effect = (
-        execute_process
-    )
-
-    #
-    # Disable Out Of Proc Build
-    #
-
-    # O teste não executa o utilitário real.
-    # Simulamos uma execução bem-sucedida.
-    #
-
-    disable_out_of_proc_build_service = MagicMock(
-        spec=DisableOutOfProcBuildService,
-    )
-
-    disable_out_of_proc_build_service.execute.return_value = (
-        MagicMock(
-            status=ProcessStatus.SUCCESS,
-            exit_code=0,
-            stdout="Success.",
-            stderr="",
-            duration=0.1,
-        )
-    )
-
-    #
-    # Visual Studio Locator
-    #
-
-    visual_studio_locator = MagicMock()
-
-    visual_studio_locator.locate.return_value = (
-        Path(
-            r"C:\Program Files"
-            r"\Microsoft Visual Studio"
-            r"\2022\Professional"
-            r"\Common7\IDE"
-            r"\devenv.com"
-        )
-    )
-
-    #
-    # Visual Studio Installer
-    #
-
-    installer = (
-        VisualStudioInstallerService(
-            process_service=process_service,
-            visual_studio_locator=(
-                visual_studio_locator
-            ),
-            disable_out_of_proc_build_service=(
-                disable_out_of_proc_build_service
-            ),
-        )
-    )
-
-    #
-    # Advanced Installer
-    #
-
-    # O teste está validando especificamente
-    # o fluxo do Visual Studio.
-    #
-    # Portanto não executamos o Advanced Installer.
-    # Apenas fornecemos um InstallerService
-    # simulado para satisfazer o contrato da Factory.
-    #
-
-    advanced_installer = MagicMock(
+    installer = MagicMock(
         spec=InstallerService,
     )
 
-    #
-    # Factory
-    #
+    expected_result = SetupResult(
+        success=True,
+        message="Setup gerado com sucesso.",
+        project_id="teste",
+        output_msi=paths.output_msi,
+        duration_seconds=2.0,
+    )
 
-    setup_factory = (
-        DefaultSetupFactory(
-            visual_studio_installer=(
-                installer
-            ),
-            advanced_installer=(
-                advanced_installer
-            ),
-        )
+    installer.install.return_value = (
+        expected_result
     )
 
     #
+    # ================================================================
+    # Factory
+    # ================================================================
+    #
+
+    setup_factory = DefaultSetupFactory(
+        visual_studio_installer=MagicMock(
+            spec=InstallerService,
+        ),
+        advanced_installer=installer,
+    )
+
+    #
+    # ================================================================
     # Settings
+    # ================================================================
     #
 
     settings = MagicMock()
 
-    settings.setup_output_path = (
-        setup_output_path
-    )
+    settings.setup = MagicMock()
 
     settings.setup.engine = (
-        SetupEngine.VISUAL_STUDIO
+        SetupEngine.ADVANCED_INSTALLER
+    )
+
+    settings.setup.output_root = (
+        tmp_path
+        / "installer"
+    )
+
+    settings.setup.aip_root = (
+        tmp_path
+        / "Setup"
     )
 
     #
+    # ================================================================
     # Orchestrator
+    # ================================================================
     #
 
-    orchestrator = (
-        DefaultSetupOrchestrator(
-            workspace_resolver=(
-                workspace_resolver
-            ),
-            setup_path_resolver=(
-                setup_path_resolver
-            ),
-            solution_locator=(
-                solution_locator
-            ),
-            definition_loader=(
-                definition_loader
-            ),
-            setup_factory=(
-                setup_factory
-            ),
-            setup_project_preparer=(
-                setup_project_preparer
-            ),
-            setup_workspace_service=(
-                setup_workspace_service
-            ),
-            settings=settings,
-        )
+    orchestrator = DefaultSetupOrchestrator(
+        workspace_resolver=(
+            workspace_resolver
+        ),
+        setup_path_resolver=(
+            setup_path_resolver
+        ),
+        advanced_installer_definition_loader=(
+            advanced_installer_definition_loader
+        ),
+        setup_factory=(
+            setup_factory
+        ),
+        settings=settings,
     )
 
     #
+    # ================================================================
     # Execução
+    # ================================================================
     #
 
     result = orchestrator.execute(
@@ -578,8 +481,12 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
     )
 
     #
-    # Validações
+    # ================================================================
+    # Resultado
+    # ================================================================
     #
+
+    assert result is expected_result
 
     assert result.success is True
 
@@ -591,42 +498,47 @@ def test_deve_executar_fluxo_completo_de_setup_visual_studio(
         paths.output_msi
     )
 
-    assert result.output_msi.exists()
+    #
+    # ================================================================
+    # Workspace
+    # ================================================================
+    #
 
-    assert result.output_msi.read_bytes() == (
-        b"MSI_TESTE"
+    workspace_resolver.resolve.assert_called_once_with(
+        project_id="teste",
+        environment_id="producao",
     )
 
     #
-    # Confirma que o workspace foi criado
-    # fora de C:\Setups.
+    # ================================================================
+    # Setup Path Resolver
+    # ================================================================
     #
 
-    setup_project_preparer.prepare.assert_called_once()
-
-    setup_workspace_service.backup_original.assert_not_called()
-
-    setup_workspace_service.replace_original.assert_not_called()
-
-    setup_workspace_service.restore_original.assert_not_called()
-
-    setup_workspace_service.cleanup.assert_called_once()
+    setup_path_resolver.resolve.assert_called_once()
 
     #
-    # Confirma execução do processo.
+    # ================================================================
+    # Definition Loader
+    # ================================================================
     #
 
-    process_service.execute.assert_called_once()
-
-    visual_studio_locator.locate.assert_called_once()
+    advanced_installer_definition_loader.load.assert_called_once_with(
+        aip_path=paths.aip_path,
+        project_id="teste",
+        configuration="Release",
+        platform="AnyCPU",
+        output_msi=paths.output_msi,
+    )
 
     #
-    # Confirma que o DisableOutOfProcBuild
-    # foi executado antes do Visual Studio.
+    # ================================================================
+    # Installer
+    # ================================================================
     #
 
-    disable_out_of_proc_build_service.execute.assert_called_once_with(
-        visual_studio_path=(
-            visual_studio_locator.locate.return_value
-        )
+    installer.install.assert_called_once_with(
+        request=request,
+        definition=definition,
+        paths=paths,
     )

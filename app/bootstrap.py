@@ -187,7 +187,6 @@ from app.services.setup.setup_project_preparer import (
     SetupProjectPreparer,
 )
 
-
 from app.services.setup.setup_workspace_service import (
     SetupWorkspaceService,
 )
@@ -225,8 +224,13 @@ from app.services.setup.disable_out_of_proc_build_service import (
 from app.services.setup.advanced_installer_service import (
     AdvancedInstallerService,
 )
+from app.services.cleanup.build_artifact_cleanup_service import (
+    BuildArtifactCleanupService,
+)
 
-
+from app.services.cleanup.cleanup_rules_provider import (
+    CleanupRulesProvider,
+)
 
 class Bootstrap:
     """
@@ -271,7 +275,7 @@ class Bootstrap:
         #
 
         self.project_repository = JsonProjectRepository(
-            configuration_path=configuration_path,            
+            configuration_path=configuration_path,
         )
 
         self.environment_repository = (
@@ -305,7 +309,7 @@ class Bootstrap:
         )
 
         self.hash_service = (
-            HashService() 
+            HashService()
         )
 
         self.project_metadata_service = (
@@ -323,20 +327,16 @@ class Bootstrap:
                 settings=self.settings,
             )
         )
-       
 
         #
         # Pipeline Runner
         #
-        
-        
+
         self.pipeline_runner = (
             PipelineRunner(
                 repository=self.pipeline_execution_repository,
             )
         )
-
-            
 
         self.project_metadata_service = (
             ProjectMetadataService(
@@ -379,19 +379,19 @@ class Bootstrap:
         self.project_reader = (
             ProjectReader()
         )
-    
+
         self.project_analyzer = (
             ProjectAnalyzer()
         )
-    
+
         self.framework_analyzer = (
             FrameworkAnalyzer()
         )
-    
+
         self.build_analyzer = (
             BuildAnalyzer()
         )
-    
+
         self.project_validator = (
             ProjectValidator()
         )
@@ -438,12 +438,19 @@ class Bootstrap:
             )
         )
 
+        self.cleanup_rules_provider = CleanupRulesProvider()
+
+        self.cleanup_service = BuildArtifactCleanupService(
+            rules=self.cleanup_rules_provider.get_rules(),
+        )
+
         self.advanced_installer_service = (
             AdvancedInstallerService(
                 process_service=self.process_service,
                 advanced_installer_path=(
                     self.settings.build_tools.advanced_installer_path
                 ),
+                cleanup_service=self.cleanup_service,
             )
         )
 
@@ -527,7 +534,7 @@ class Bootstrap:
         self.setup_workspace_service = (
             SetupWorkspaceService()
         )
-        
+
         self.temporary_solution_service = (
             TemporarySolutionService()
         )
@@ -556,31 +563,18 @@ class Bootstrap:
                 setup_path_resolver=(
                     self.setup_path_resolver
                 ),
-                solution_locator=(
-                    self.solution_locator_service
-                ),
-                definition_loader=(
-                    self.visual_studio_setup_definition_loader
-                ),
                 advanced_installer_definition_loader=(
                     self.advanced_installer_setup_definition_loader
                 ),
-                
                 setup_factory=(
                     self.setup_factory
-                ),
-                setup_project_preparer=(
-                    self.setup_project_preparer
-                ),
-                setup_workspace_service=(
-                    self.setup_workspace_service
                 ),
                 settings=(
                     self.settings
                 ),
             )
         )
-        
+
         self.execute_setup_use_case = (
             DefaultExecuteSetupUseCase(
                 setup_orchestrator=(
@@ -588,7 +582,7 @@ class Bootstrap:
                 ),
             )
         )
-        
+
         #
         # Use Cases Sempre  deve ir por ultio
         #
@@ -637,9 +631,6 @@ class Bootstrap:
             )
         )
 
-        
-
-
     def create_app(
         self,
     ) -> FastAPI:
@@ -660,7 +651,7 @@ class Bootstrap:
         register_exception_handlers(
             app,
         )
-        
+
         @app.get("/")
         def root():
             return {

@@ -16,6 +16,10 @@ from app.abstractions.process_service import (
     ProcessService,
 )
 
+from app.models.cleanup.cleanup_result import (
+    CleanupResult,
+)
+
 from app.models.process.command import (
     Command,
 )
@@ -42,6 +46,10 @@ from app.models.setup.setup_request import (
 
 from app.models.setup.setup_result import (
     SetupResult,
+)
+
+from app.services.cleanup.build_artifact_cleanup_service import (
+    BuildArtifactCleanupService,
 )
 
 from app.services.setup.advanced_installer_service import (
@@ -99,6 +107,20 @@ def create_service(
         create_process_result()
     )
 
+    cleanup_service = MagicMock(
+        spec=BuildArtifactCleanupService,
+    )
+
+    cleanup_service.execute.return_value = (
+        CleanupResult(
+            workspace_path=(
+                tmp_path
+                / "Publish"
+            ),
+            dry_run=False,
+        )
+    )
+
     advanced_installer_path = (
         tmp_path
         / "AdvancedInstaller.com"
@@ -115,12 +137,14 @@ def create_service(
             advanced_installer_path=(
                 advanced_installer_path
             ),
+            cleanup_service=cleanup_service,
         )
     )
 
     return (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     )
 
@@ -228,6 +252,7 @@ def test_deve_gerar_setup_com_sucesso(
     (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     ) = create_service(
         tmp_path,
@@ -293,6 +318,67 @@ def test_deve_gerar_setup_com_sucesso(
     )
 
 
+def test_deve_executar_cleanup_antes_do_refresh_sync(
+    tmp_path: Path,
+):
+    """
+    Deve executar o Cleanup do Release antes
+    do RefreshSync do Advanced Installer.
+    """
+
+    (
+        service,
+        process_service,
+        cleanup_service,
+        advanced_installer_path,
+    ) = create_service(
+        tmp_path,
+    )
+
+    definition = create_definition(
+        tmp_path,
+    )
+
+    paths = create_paths(
+        tmp_path,
+    )
+
+    paths.output_msi.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    paths.output_msi.write_text(
+        "MSI",
+        encoding="utf-8",
+    )
+
+    process_service.execute.side_effect = [
+        create_process_result(
+            duration=2.0,
+        ),
+        create_process_result(
+            duration=3.0,
+        ),
+    ]
+
+    service.install(
+        request=create_request(),
+        definition=definition,
+        paths=paths,
+    )
+
+    cleanup_service.execute.assert_called_once_with(
+        workspace_path=paths.publish_path,
+        project_id="teste",
+    )
+
+    assert (
+        process_service.execute.call_count
+        == 2
+    )
+
+
 def test_deve_executar_refresh_sync_antes_do_build(
     tmp_path: Path,
 ):
@@ -303,6 +389,7 @@ def test_deve_executar_refresh_sync_antes_do_build(
     (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     ) = create_service(
         tmp_path,
@@ -403,6 +490,7 @@ def test_deve_montar_comando_refresh_sync_do_advanced_installer(
     (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     ) = create_service(
         tmp_path,
@@ -480,6 +568,7 @@ def test_deve_montar_comando_build_do_advanced_installer(
     (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     ) = create_service(
         tmp_path,
@@ -556,6 +645,7 @@ def test_deve_retornar_falha_quando_refresh_sync_falhar(
     (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     ) = create_service(
         tmp_path,
@@ -617,6 +707,7 @@ def test_deve_retornar_falha_quando_build_falhar(
     (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     ) = create_service(
         tmp_path,
@@ -685,6 +776,7 @@ def test_deve_retorna_falha_quando_msi_nao_for_gerado(
     (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     ) = create_service(
         tmp_path,
@@ -747,6 +839,10 @@ def test_deve_rejeitar_advanced_installer_inexistente(
         spec=ProcessService,
     )
 
+    cleanup_service = MagicMock(
+        spec=BuildArtifactCleanupService,
+    )
+
     service = (
         AdvancedInstallerService(
             process_service=process_service,
@@ -754,6 +850,7 @@ def test_deve_rejeitar_advanced_installer_inexistente(
                 tmp_path
                 / "AdvancedInstaller.com"
             ),
+            cleanup_service=cleanup_service,
         )
     )
 
@@ -777,6 +874,8 @@ def test_deve_rejeitar_advanced_installer_inexistente(
 
     process_service.execute.assert_not_called()
 
+    cleanup_service.execute.assert_not_called()
+
 
 def test_deve_rejeitar_aip_inexistente(
     tmp_path: Path,
@@ -788,6 +887,7 @@ def test_deve_rejeitar_aip_inexistente(
     (
         service,
         process_service,
+        cleanup_service,
         advanced_installer_path,
     ) = create_service(
         tmp_path,
@@ -828,3 +928,5 @@ def test_deve_rejeitar_aip_inexistente(
         )
 
     process_service.execute.assert_not_called()
+
+    cleanup_service.execute.assert_not_called()

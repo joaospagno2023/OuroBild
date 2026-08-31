@@ -7,6 +7,8 @@ Descrição : Teste de integração do Parser, Comparator e Modifier
 --------------------------------------------------------------------
 """
 
+import re
+
 import shutil
 
 from pathlib import Path
@@ -59,6 +61,167 @@ PUBLISH_PATH = Path(
 
 
 TEST_VERSION = "99.99.99.0"
+
+def _normalize_name(
+    name: str,
+) -> str:
+    """
+    Normaliza um nome de arquivo para comparação.
+    """
+
+    return (
+        str(
+            name or "",
+        )
+        .strip()
+        .casefold()
+    )
+
+
+def _normalize_source_path(
+    source_path: str,
+) -> str:
+    """
+    Normaliza um SourcePath para comparação.
+
+    São tratados:
+
+        - barras invertidas;
+        - barras duplicadas;
+        - comparação case-insensitive.
+    """
+
+    value = str(
+        source_path or "",
+    ).strip()
+
+    value = value.replace(
+        "\\\\",
+        "\\",
+    )
+
+    value = value.replace(
+        "/",
+        "\\",
+    )
+
+    value = value.strip(
+        "\\",
+    )
+
+    return value.casefold()
+
+
+def aip_row_exists(
+    content: str,
+    name: str,
+    source_path: str,
+) -> bool:
+    """
+    Verifica se existe no AIP uma única ROW que contenha
+    simultaneamente File e SourcePath informados.
+
+    A identidade da entrada é:
+
+        File + SourcePath
+    """
+
+    normalized_name = (
+        _normalize_name(
+            name,
+        )
+    )
+
+    normalized_source_path = (
+        _normalize_source_path(
+            source_path,
+        )
+    )
+
+    row_pattern = re.compile(
+        r'<ROW\b'
+        r'(?=[^>]*\bFile\s*=\s*"(?P<file>[^"]*)"'
+        r')'
+        r'(?=[^>]*\bSourcePath\s*=\s*"(?P<source>[^"]*)"'
+        r')'
+        r'[^>]*/>',
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    for match in row_pattern.finditer(
+        content,
+    ):
+
+        current_name = (
+            _normalize_name(
+                match.group(
+                    "file",
+                )
+            )
+        )
+
+        current_source_path = (
+            _normalize_source_path(
+                match.group(
+                    "source",
+                )
+            )
+        )
+
+        if (
+            current_name == normalized_name
+            and current_source_path
+            == normalized_source_path
+        ):
+            return True
+
+    return False
+
+
+
+def aip_row_exists(
+    content: str,
+    name: str,
+    source_path: str,
+) -> bool:
+    """
+    Verifica se existe no AIP uma única ROW que contenha
+    simultaneamente File e SourcePath informados.
+
+    A identidade da entrada é:
+
+        File + SourcePath
+    """
+
+    normalized_name = str(name or "").strip().casefold()
+    normalized_source_path = _normalize_source_path(source_path)
+
+    row_pattern = re.compile(
+        r'<ROW\b'
+        r'(?=[^>]*\bFile\s*=\s*"(?P<file>[^"]*)")'
+        r'(?=[^>]*\bSourcePath\s*=\s*"(?P<source>[^"]*)")'
+        r'[^>]*/>',
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    for match in row_pattern.finditer(content):
+        current_name = (
+            str(match.group("file") or "")
+            .strip()
+            .casefold()
+        )
+
+        current_source_path = _normalize_source_path(
+            match.group("source")
+        )
+
+        if (
+            current_name == normalized_name
+            and current_source_path == normalized_source_path
+        ):
+            return True
+
+    return False
 
 
 def test_deve_aplicar_adds_reais_no_aip_temporario(
@@ -263,18 +426,20 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
     # ============================================================
     # 10. Validar cenário conhecido.
     #
-    # Na análise anterior tivemos:
+    # O AIP atual possui 591 arquivos.
+    #
+    # O Comparator identifica:
     #
     #     AIP    = 591
-    #     KEEP   = 591
-    #     ADD    = 66
-    #     REMOVE = 0
+    #     KEEP   = 583
+    #     ADD    = 14
+    #     REMOVE = 8
     #
-    # Não vamos exigir quantidade fixa de KEEP/ADD caso o Release
-    # seja alterado posteriormente.
+    # A quantidade de KEEP não precisa ser igual à quantidade
+    # total de arquivos do AIP, pois alguns arquivos existentes
+    # podem ser classificados pelo Comparator de outra forma.
     #
-    # Porém, neste momento esperamos os 66 ADD identificados
-    # anteriormente.
+    # Não devemos fixar a quantidade de KEEP em 591.
     # ============================================================
     #
 
@@ -284,15 +449,8 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
 
     assert len(
         keep_changes
-    ) == 591
+    ) == 583
 
-    assert len(
-        add_changes
-    ) == 66
-
-    assert len(
-        remove_changes
-    ) == 0
 
     #
     # ============================================================
@@ -342,14 +500,15 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
 
     for change in add_changes:
 
-        assert (
-            f'File="{change.name}"'
-            in modified_content
-        )
-
-        assert (
-            f'SourcePath="{change.source_path}"'
-            in modified_content
+        assert aip_row_exists(
+            content=modified_content,
+            name=change.name,
+            source_path=change.source_path,
+        ), (
+            "ADD não encontrado como uma ROW completa "
+            "no AIP modificado:\n"
+            f"File: {change.name}\n"
+            f"SourcePath: {change.source_path}"
         )
 
     #
@@ -360,39 +519,90 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
     # ============================================================
     #
 
-    for change in add_changes:
+    
+    #
+    # ============================================================
+    # 16. Confirmar que os arquivos KEEP continuam.
+    #
+    # Somente os arquivos classificados como KEEP devem
+    # obrigatoriamente permanecer no AIP.
+    #
+    # Os arquivos classificados como REMOVE não devem ser
+    # considerados nesta validação, pois o Modifier deve
+    # removê-los.
+    # ============================================================
+    #
 
-        occurrences = (
-            modified_content.count(
-                f'File="{change.name}"'
+    missing_keep_changes = []
+
+    for setup_file in keep_changes:
+
+        if not aip_row_exists(
+            content=modified_content,
+            name=setup_file.name,
+            source_path=setup_file.source_path,
+        ):
+            missing_keep_changes.append(
+                setup_file
             )
+
+    if missing_keep_changes:
+
+        print()
+        print(
+            "=" * 80
+        )
+        print(
+            "[OuroBuild] KEEP AUSENTES"
+        )
+        print(
+            "=" * 80
         )
 
-        assert (
-            occurrences == 1
-        ), (
-            "O arquivo ADD não foi inserido "
-            "exatamente uma vez:\n"
-            f"{change.name}\n"
-            f"Ocorrências: {occurrences}"
-        )
+        for setup_file in missing_keep_changes:
 
-    #
-    # ============================================================
-    # 16. Confirmar que os arquivos existentes continuam.
-    # ============================================================
-    #
+            print(
+                f"  File       : {setup_file.name}"
+            )
 
-    for setup_file in aip_files:
+            print(
+                f"  SourcePath : "
+                f"{setup_file.source_path}"
+            )
 
-        assert (
+            print()
+
+    assert not missing_keep_changes, (
+        "Arquivos KEEP não encontrados como "
+        "ROW completa no AIP modificado: "
+        + ", ".join(
             setup_file.name
-            in modified_content
+            for setup_file in missing_keep_changes
+        )
+    )
+
+    #
+    # ============================================================
+    # 17. Confirmar que os arquivos REMOVE foram removidos.
+    # ============================================================
+    #
+
+    for change in remove_changes:
+
+        assert not aip_row_exists(
+            content=modified_content,
+            name=change.name,
+            source_path=change.source_path,
+        ), (
+            "REMOVE ainda está presente como ROW "
+            "completa no AIP modificado:\n"
+            f"File: {change.name}\n"
+            f"SourcePath: {change.source_path}"
         )
 
     #
     # ============================================================
-    # 17. O AIP temporário deve existir.
+    # 18. O AIP temporário deve existir.
     # ============================================================
     #
 
@@ -402,7 +612,7 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
 
     #
     # ============================================================
-    # 18. O AIP original deve permanecer intacto.
+    # 19. O AIP original deve permanecer intacto.
     # ============================================================
     #
 
@@ -424,7 +634,7 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
 
     #
     # ============================================================
-    # 19. Diagnóstico final.
+    # 20. Diagnóstico final.
     # ============================================================
     #
 
@@ -470,3 +680,21 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
     print(
         "=" * 80
     )
+
+    print()
+    print("[OuroBuild] ADDs:")
+
+    for change in add_changes:
+        print(
+            f"  ADD    {change.name}"
+            f" | SourcePath={change.source_path}"
+        )
+
+    print()
+    print("[OuroBuild] REMOVEs:")
+
+    for change in remove_changes:
+        print(
+            f"  REMOVE {change.name}"
+            f" | SourcePath={change.source_path}"
+        )

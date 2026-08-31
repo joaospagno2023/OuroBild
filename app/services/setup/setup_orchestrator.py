@@ -46,18 +46,17 @@ class DefaultSetupOrchestrator:
     """
     Orquestra a geração de Setup através do Advanced Installer.
 
-    O fluxo é intencionalmente simples:
+    Fluxo:
 
-        - Resolver o Workspace.
-        - Obter o mecanismo configurado.
-        - Resolver os caminhos do Setup.
-        - Carregar a definição do AIP.
-        - Selecionar o Installer.
-        - Executar o InstallerService.
+        1. Resolve o Workspace.
+        2. Valida o Engine.
+        3. Resolve os caminhos do Setup.
+        4. Carrega a definição do Advanced Installer.
+        5. Obtém o InstallerService através da Factory.
+        6. Executa a geração do Setup.
 
-    O Orchestrator não conhece detalhes internos do
-    Advanced Installer. Essas responsabilidades permanecem
-    nos serviços especializados.
+    O Orchestrator não possui conhecimento dos detalhes internos
+    do Advanced Installer.
     """
 
     def __init__(
@@ -68,26 +67,10 @@ class DefaultSetupOrchestrator:
             AdvancedInstallerSetupDefinitionLoader
         ),
         setup_factory: DefaultSetupFactory,
-        settings: AppSettings,
+        settings: AppSettings | None = None,
     ) -> None:
         """
         Inicializa o Orchestrator.
-
-        Args:
-            workspace_resolver:
-                Resolve o Workspace do projeto.
-
-            setup_path_resolver:
-                Resolve os caminhos necessários para o Setup.
-
-            advanced_installer_definition_loader:
-                Carrega a definição do projeto Advanced Installer.
-
-            setup_factory:
-                Seleciona o InstallerService.
-
-            settings:
-                Configurações da aplicação.
         """
 
         if workspace_resolver is None:
@@ -115,12 +98,6 @@ class DefaultSetupOrchestrator:
                 "SetupFactory não foi informado."
             )
 
-        if settings is None:
-
-            raise ValueError(
-                "AppSettings não foi informado."
-            )
-
         self.__workspace_resolver = (
             workspace_resolver
         )
@@ -145,9 +122,6 @@ class DefaultSetupOrchestrator:
     ) -> SetupResult:
         """
         Executa a geração do Setup.
-
-        O engine deve ser Advanced Installer. Qualquer
-        configuração diferente é rejeitada explicitamente.
         """
 
         if request is None:
@@ -166,12 +140,22 @@ class DefaultSetupOrchestrator:
 
             workspace = (
                 self.__workspace_resolver.resolve(
-                    project_id=request.project_id,
+                    project_id=(
+                        request.project_id
+                    ),
                     environment_id=(
                         request.environment_id
                     ),
                 )
             )
+
+            if workspace is None:
+
+                raise ValueError(
+                    "Workspace não foi encontrado "
+                    "para o projeto: "
+                    f"{request.project_id}"
+                )
 
             #
             # ========================================================
@@ -180,17 +164,8 @@ class DefaultSetupOrchestrator:
             #
 
             engine = (
-                self.__settings.setup.engine
+                self.__get_engine()
             )
-
-            if isinstance(
-                engine,
-                str,
-            ):
-
-                engine = SetupEngine(
-                    engine,
-                )
 
             if engine != SetupEngine.ADVANCED_INSTALLER:
 
@@ -208,27 +183,46 @@ class DefaultSetupOrchestrator:
 
             paths = (
                 self.__setup_path_resolver.resolve(
-                    project=workspace.project,
+                    project=(
+                        workspace.project
+                    ),
                     project_root=(
-                        workspace.project_file.parent
+                        self.__get_project_root(
+                            workspace.project
+                        )
                     ),
                     workspace_root=(
-                        workspace.environment.root_path
+                        self.__get_workspace_root(
+                            workspace.project
+                        )
                     ),
                     installer_root=(
-                        self.__settings.setup.output_root
+                        self.__get_installer_root()
                     ),
                     aip_root=(
-                        self.__settings.setup.aip_root
+                        self.__get_aip_root(
+                            workspace.project
+                        )
                     ),
-                    version=request.version,
-                    revision=request.revision,
+                    version=(
+                        request.version
+                    ),
+                    revision=(
+                        request.revision
+                    ),
                 )
             )
 
+            if paths is None:
+
+                raise ValueError(
+                    "SetupPathResolver não retornou "
+                    "os caminhos do Setup."
+                )
+
             #
             # ========================================================
-            # Advanced Installer
+            # Definição do Advanced Installer
             # ========================================================
             #
 
@@ -252,6 +246,13 @@ class DefaultSetupOrchestrator:
                 )
             )
 
+            if definition is None:
+
+                raise ValueError(
+                    "AdvancedInstallerSetupDefinitionLoader "
+                    "não retornou uma definição de Setup."
+                )
+
             #
             # ========================================================
             # Installer
@@ -263,6 +264,13 @@ class DefaultSetupOrchestrator:
                     SetupEngine.ADVANCED_INSTALLER,
                 )
             )
+
+            if installer is None:
+
+                raise ValueError(
+                    "SetupFactory não retornou "
+                    "um InstallerService."
+                )
 
             #
             # ========================================================
@@ -288,3 +296,136 @@ class DefaultSetupOrchestrator:
                     request.project_id
                 ),
             )
+
+    def __get_engine(
+        self,
+    ) -> SetupEngine:
+        """
+        Obtém o engine configurado.
+
+        Quando AppSettings não foi fornecido, utiliza
+        Advanced Installer como padrão.
+        """
+
+        if self.__settings is None:
+
+            return SetupEngine.ADVANCED_INSTALLER
+
+        engine = (
+            self.__settings.setup.engine
+        )
+
+        if isinstance(
+            engine,
+            str,
+        ):
+
+            engine = SetupEngine(
+                engine,
+            )
+
+        return engine
+
+    def __get_project_root(
+        self,
+        project,
+    ) -> Path:
+        """
+        Obtém a raiz do projeto.
+        """
+
+        if getattr(
+            project,
+            "project_path",
+            None,
+        ):
+
+            return Path(
+                project.project_path,
+            ).parent
+
+        if getattr(
+            project,
+            "publish_path",
+            None,
+        ):
+
+            return Path(
+                project.publish_path,
+            ).parent
+
+        return Path.cwd()
+
+    def __get_workspace_root(
+        self,
+        project,
+    ) -> Path:
+        """
+        Obtém a raiz do Workspace.
+
+        Quando não existe uma estrutura explícita de Workspace,
+        utiliza a raiz derivada do projeto.
+        """
+
+        if getattr(
+            project,
+            "project_path",
+            None,
+        ):
+
+            return Path(
+                project.project_path,
+            ).parent
+
+        if getattr(
+            project,
+            "publish_path",
+            None,
+        ):
+
+            return Path(
+                project.publish_path,
+            ).parent
+
+        return Path.cwd()
+
+    def __get_installer_root(
+        self,
+    ) -> Path:
+        """
+        Obtém a raiz de saída dos instaladores.
+        """
+
+        if self.__settings is not None:
+
+            return Path(
+                self.__settings.setup.output_root,
+            )
+
+        return Path.cwd()
+
+    def __get_aip_root(
+        self,
+        project,
+    ) -> Path:
+        """
+        Obtém a raiz dos arquivos AIP.
+        """
+
+        if self.__settings is not None:
+
+            return Path(
+                self.__settings.setup.aip_root,
+            )
+
+        if getattr(
+            project,
+            "aip_path",
+            None,
+        ):
+
+            return Path(
+                project.aip_path,
+            ).parent
+
+        return Path.cwd()

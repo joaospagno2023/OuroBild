@@ -28,13 +28,22 @@ class SetupPathResolver:
     Regras:
 
     publish_path
-        É obtido do Project.publish_path e considerado
-        relativo à raiz física do projeto quando não for
-        um caminho absoluto.
+        É obtido do Project.publish_path.
+
+        Caminho relativo:
+            project_root / publish_path
+
+        Caminho absoluto:
+            utilizado diretamente.
 
     aip_path
-        É obtido do Project.aip_path e considerado relativo
-        à raiz física do projeto quando não for absoluto.
+        É obtido do Project.aip_path.
+
+        Caminho relativo:
+            aip_root / aip_path
+
+        Caminho absoluto:
+            utilizado diretamente.
 
     output_msi
         É obtido do Project.output_msi.
@@ -42,6 +51,15 @@ class SetupPathResolver:
     installer_path
         É a pasta configurada nas configurações do OuroBuild
         onde os instaladores serão armazenados.
+
+    visualstudio_setup_path
+        É obtido do Project.visualstudio_setup_path.
+
+        Caminho relativo:
+            workspace_root / visualstudio_setup_path
+
+        Caminho absoluto:
+            utilizado diretamente.
 
     Estrutura de saída:
 
@@ -56,6 +74,7 @@ class SetupPathResolver:
         project: Project,
         project_root: Path,
         installer_root: Path,
+        aip_root: Path,
         workspace_root: Path | None = None,
         version: str | None = None,
         revision: int | None = None,
@@ -70,12 +89,15 @@ class SetupPathResolver:
             project_root:
                 Diretório físico onde o projeto está localizado.
 
-            workspace_root:
-                Diretório físico raiz do workspace.
-
             installer_root:
                 Diretório configurado em settings.json
                 para armazenamento dos instaladores.
+
+            aip_root:
+                Diretório raiz dos projetos Advanced Installer.
+
+            workspace_root:
+                Diretório físico raiz do workspace.
 
             version:
                 Versão do Setup.
@@ -93,23 +115,34 @@ class SetupPathResolver:
         """
 
         #
+        # ============================================================
         # Validações básicas
+        # ============================================================
         #
 
         if project is None:
+
             raise ValueError(
                 "O projeto não foi informado."
             )
 
         if project_root is None:
+
             raise ValueError(
                 "A raiz do projeto não foi informada."
             )
 
-
         if installer_root is None:
+
             raise ValueError(
                 "A raiz dos instaladores não foi informada."
+            )
+
+        if aip_root is None:
+
+            raise ValueError(
+                "A raiz dos projetos Advanced Installer "
+                "não foi informada."
             )
 
         project_root = Path(
@@ -117,6 +150,7 @@ class SetupPathResolver:
         )
 
         if workspace_root is None:
+
             workspace_root = project_root
 
         workspace_root = Path(
@@ -127,8 +161,14 @@ class SetupPathResolver:
             installer_root,
         )
 
+        aip_root = Path(
+            aip_root,
+        )
+
         #
+        # ============================================================
         # Publish
+        # ============================================================
         #
 
         publish_path = (
@@ -140,24 +180,35 @@ class SetupPathResolver:
         )
 
         #
+        # ============================================================
         # Advanced Installer
+        # ============================================================
         #
 
         aip_path = (
-            self.__resolve_project_path(
+            self.__resolve_aip_path(
                 value=project.aip_path,
-                project_root=project_root,
-                field_name="aip_path",
+                aip_root=aip_root,
             )
         )
+
+        #
+        # ============================================================
+        # Visual Studio Setup
+        # ============================================================
+        #
+
         visualstudio_setup_path = (
             self.__resolve_optional_workspace_path(
                 value=project.visualstudio_setup_path,
                 workspace_root=workspace_root,
             )
         )
+
         #
+        # ============================================================
         # Pasta de saída dos instaladores
+        # ============================================================
         #
 
         resolved_installer_path = (
@@ -170,7 +221,9 @@ class SetupPathResolver:
         )
 
         #
+        # ============================================================
         # Nome do MSI
+        # ============================================================
         #
 
         output_msi = (
@@ -181,8 +234,9 @@ class SetupPathResolver:
         )
 
         #
-        # Cria a estrutura de diretórios
-        # necessária para o Setup.
+        # ============================================================
+        # Cria a estrutura de diretórios necessária
+        # ============================================================
         #
 
         resolved_installer_path.mkdir(
@@ -191,8 +245,9 @@ class SetupPathResolver:
         )
 
         #
-        # Garante que o diretório de
-        # publicação exista.
+        # ============================================================
+        # Garante que o diretório de publicação exista.
+        # ============================================================
         #
 
         publish_path.mkdir(
@@ -201,11 +256,23 @@ class SetupPathResolver:
         )
 
         #
-        # Garante que o diretório do
-        # Advanced Installer exista.
+        # ============================================================
+        # Garante que a raiz dos AIPs exista.
+        # ============================================================
         #
-        # Se aip_path representar um arquivo
-        # .aip, criamos somente o diretório pai.
+
+        aip_root.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        #
+        # ============================================================
+        # Garante que o diretório do AIP exista.
+        #
+        # Se aip_path representar um arquivo .aip,
+        # criamos somente o diretório pai.
+        # ============================================================
         #
 
         if aip_path.suffix.lower() == ".aip":
@@ -223,7 +290,9 @@ class SetupPathResolver:
             )
 
         #
+        # ============================================================
         # Retorna os caminhos resolvidos.
+        # ============================================================
         #
 
         return SetupPaths(
@@ -260,6 +329,7 @@ class SetupPathResolver:
         #
 
         if version is None and revision is None:
+
             return installer_root
 
         #
@@ -268,16 +338,19 @@ class SetupPathResolver:
         #
 
         if version is None or not str(version).strip():
+
             raise ValueError(
                 "A versão do Setup não foi informada."
             )
 
         if revision is None:
+
             raise ValueError(
                 "A revisão do Setup não foi informada."
             )
 
         if revision < 0:
+
             raise ValueError(
                 "A revisão do Setup não pode ser negativa."
             )
@@ -320,9 +393,11 @@ class SetupPathResolver:
         """
 
         if project_type == ProjectType.CLIENT:
+
             return "Cliente"
 
         if project_type == ProjectType.SERVER:
+
             return "Server"
 
         raise ValueError(
@@ -372,38 +447,46 @@ class SetupPathResolver:
         return (
             project_root / path
         )
-    def __resolve_optional_project_path(
+
+    def __resolve_aip_path(
         self,
-        value: str | None,
-        project_root: Path,
-    ) -> Path | None:
+        value: str,
+        aip_root: Path,
+    ) -> Path:
         """
-        Resolve um caminho opcional configurado no Project.
+        Resolve o caminho do projeto Advanced Installer.
 
         Caminhos absolutos são respeitados.
 
         Caminhos relativos são considerados relativos
-        à raiz física do projeto.
-
-        Quando o valor não estiver configurado,
-        retorna None.
+        à raiz central dos projetos Advanced Installer.
         """
 
-        if value is None:
-            return None
+        if not value or not value.strip():
 
-        if not value.strip():
-            return None
+            raise ValueError(
+                "O projeto não possui "
+                "aip_path configurado."
+            )
 
         path = Path(
             value.strip(),
         )
 
+        #
+        # Caminho absoluto.
+        #
+
         if path.is_absolute():
+
             return path
 
+        #
+        # Caminho relativo à raiz central dos AIPs.
+        #
+
         return (
-            project_root / path
+            aip_root / path
         )
 
     def __resolve_optional_workspace_path(
@@ -425,9 +508,11 @@ class SetupPathResolver:
         """
 
         if value is None:
+
             return None
 
         if not value.strip():
+
             return None
 
         path = Path(
@@ -435,6 +520,7 @@ class SetupPathResolver:
         )
 
         if path.is_absolute():
+
             return path
 
         return (
