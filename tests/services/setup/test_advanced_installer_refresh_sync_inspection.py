@@ -49,7 +49,7 @@ PUBLISH_PATH = Path(
 ADVANCED_INSTALLER_PATH = Path(
     r"C:\Program Files (x86)"
     r"\Caphyon"
-    r"\Advanced Installer 23.7"
+    r"\Advanced Installer 21.9"
     r"\bin"
     r"\x86"
     r"\AdvancedInstaller.com"

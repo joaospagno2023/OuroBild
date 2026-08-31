@@ -25,3 +25,5 @@ class SetupFile(
     publish_path: Path
 
     assembly_display_name: str | None = None
+
+    aip_file_id: str | None = None

@@ -66,7 +66,7 @@ def create_settings() -> AppSettings:
             ),
             advanced_installer_path=(
                 r"C:\Program Files\Caphyon"
-                r"\Advanced Installer 23.7"
+                r"\Advanced Installer 21.9"
                 r"\bin\x86\AdvancedInstaller.com"
             ),
             robocopy_path=(

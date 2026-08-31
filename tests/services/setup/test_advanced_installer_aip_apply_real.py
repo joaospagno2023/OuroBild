@@ -7,24 +7,16 @@ Descrição : Teste de integração do Parser, Comparator e Modifier
 --------------------------------------------------------------------
 """
 
-import re
-
 import shutil
-
 from pathlib import Path
 
-from app.models.setup.setup_file_action import (
-    SetupFileAction,
-)
-
+from app.models.setup.setup_file_action import SetupFileAction
 from app.services.setup.advanced_installer_aip_file_comparator import (
     AdvancedInstallerAipFileComparator,
 )
-
 from app.services.setup.advanced_installer_aip_file_parser import (
     AdvancedInstallerAipFileParser,
 )
-
 from app.services.setup.advanced_installer_aip_modifier import (
     AdvancedInstallerAipModifier,
 )
@@ -39,12 +31,7 @@ AIP_ROOT = Path(
     r"\Projects"
 )
 
-
-AIP_PATH = (
-    AIP_ROOT
-    / "OuroNet.WinServiceLinkPagamento.aip"
-)
-
+AIP_PATH = AIP_ROOT / "OuroNet.WinServiceLinkPagamento.aip"
 
 PUBLISH_PATH = Path(
     r"C:\DvpLocal\WorkSpaceTFS"
@@ -59,28 +46,18 @@ PUBLISH_PATH = Path(
     r"\Release"
 )
 
-
 TEST_VERSION = "99.99.99.0"
 
-def _normalize_name(
-    name: str,
-) -> str:
+
+def _normalize_name(name: str) -> str:
     """
     Normaliza um nome de arquivo para comparação.
     """
 
-    return (
-        str(
-            name or "",
-        )
-        .strip()
-        .casefold()
-    )
+    return str(name or "").strip().casefold()
 
 
-def _normalize_source_path(
-    source_path: str,
-) -> str:
+def _normalize_source_path(source_path: str) -> str:
     """
     Normaliza um SourcePath para comparação.
 
@@ -91,137 +68,12 @@ def _normalize_source_path(
         - comparação case-insensitive.
     """
 
-    value = str(
-        source_path or "",
-    ).strip()
-
-    value = value.replace(
-        "\\\\",
-        "\\",
-    )
-
-    value = value.replace(
-        "/",
-        "\\",
-    )
-
-    value = value.strip(
-        "\\",
-    )
+    value = str(source_path or "").strip()
+    value = value.replace("\\\\", "\\")
+    value = value.replace("/", "\\")
+    value = value.strip("\\")
 
     return value.casefold()
-
-
-def aip_row_exists(
-    content: str,
-    name: str,
-    source_path: str,
-) -> bool:
-    """
-    Verifica se existe no AIP uma única ROW que contenha
-    simultaneamente File e SourcePath informados.
-
-    A identidade da entrada é:
-
-        File + SourcePath
-    """
-
-    normalized_name = (
-        _normalize_name(
-            name,
-        )
-    )
-
-    normalized_source_path = (
-        _normalize_source_path(
-            source_path,
-        )
-    )
-
-    row_pattern = re.compile(
-        r'<ROW\b'
-        r'(?=[^>]*\bFile\s*=\s*"(?P<file>[^"]*)"'
-        r')'
-        r'(?=[^>]*\bSourcePath\s*=\s*"(?P<source>[^"]*)"'
-        r')'
-        r'[^>]*/>',
-        re.IGNORECASE | re.DOTALL,
-    )
-
-    for match in row_pattern.finditer(
-        content,
-    ):
-
-        current_name = (
-            _normalize_name(
-                match.group(
-                    "file",
-                )
-            )
-        )
-
-        current_source_path = (
-            _normalize_source_path(
-                match.group(
-                    "source",
-                )
-            )
-        )
-
-        if (
-            current_name == normalized_name
-            and current_source_path
-            == normalized_source_path
-        ):
-            return True
-
-    return False
-
-
-
-def aip_row_exists(
-    content: str,
-    name: str,
-    source_path: str,
-) -> bool:
-    """
-    Verifica se existe no AIP uma única ROW que contenha
-    simultaneamente File e SourcePath informados.
-
-    A identidade da entrada é:
-
-        File + SourcePath
-    """
-
-    normalized_name = str(name or "").strip().casefold()
-    normalized_source_path = _normalize_source_path(source_path)
-
-    row_pattern = re.compile(
-        r'<ROW\b'
-        r'(?=[^>]*\bFile\s*=\s*"(?P<file>[^"]*)")'
-        r'(?=[^>]*\bSourcePath\s*=\s*"(?P<source>[^"]*)")'
-        r'[^>]*/>',
-        re.IGNORECASE | re.DOTALL,
-    )
-
-    for match in row_pattern.finditer(content):
-        current_name = (
-            str(match.group("file") or "")
-            .strip()
-            .casefold()
-        )
-
-        current_source_path = _normalize_source_path(
-            match.group("source")
-        )
-
-        if (
-            current_name == normalized_name
-            and current_source_path == normalized_source_path
-        ):
-            return True
-
-    return False
 
 
 def test_deve_aplicar_adds_reais_no_aip_temporario(
@@ -240,69 +92,50 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
     O Advanced Installer não é executado neste teste.
     """
 
-    #
     # ============================================================
     # 1. Validar AIP.
     # ============================================================
-    #
 
     if not AIP_PATH.exists():
-
         raise FileNotFoundError(
             "AIP do LinkPagamento não encontrado:\n"
             f"{AIP_PATH}"
         )
 
     if not AIP_PATH.is_file():
-
         raise ValueError(
             "O AIP do LinkPagamento não é um arquivo:\n"
             f"{AIP_PATH}"
         )
 
-    #
     # ============================================================
     # 2. Validar Release.
     # ============================================================
-    #
 
     if not PUBLISH_PATH.exists():
-
         raise FileNotFoundError(
             "Pasta Release do LinkPagamento não encontrada:\n"
             f"{PUBLISH_PATH}"
         )
 
     if not PUBLISH_PATH.is_dir():
-
         raise ValueError(
             "A pasta Release do LinkPagamento "
             "não é um diretório:\n"
             f"{PUBLISH_PATH}"
         )
 
-    #
     # ============================================================
     # 3. Guardar conteúdo original.
     # ============================================================
-    #
 
-    original_content = (
-        AIP_PATH.read_text(
-            encoding="utf-8",
-        )
-    )
+    original_content = AIP_PATH.read_text(encoding="utf-8")
 
-    #
     # ============================================================
     # 4. Criar cópia temporária.
     # ============================================================
-    #
 
-    temporary_aip = (
-        tmp_path
-        / AIP_PATH.name
-    )
+    temporary_aip = tmp_path / AIP_PATH.name
 
     shutil.copy2(
         AIP_PATH,
@@ -310,119 +143,73 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
     )
 
     temporary_aip.chmod(
-        temporary_aip.stat().st_mode
-        | 0o200
+        temporary_aip.stat().st_mode | 0o200
     )
 
-    #
     # ============================================================
     # 5. Ler AIP temporário.
     # ============================================================
-    #
 
-    content = (
-        temporary_aip.read_text(
-            encoding="utf-8",
-        )
-    )
+    content = temporary_aip.read_text(encoding="utf-8")
 
-    #
     # ============================================================
     # 6. Executar Parser.
     # ============================================================
-    #
 
-    parser = (
-        AdvancedInstallerAipFileParser()
+    parser = AdvancedInstallerAipFileParser()
+
+    aip_files = parser.parse(
+        content=content,
+        publish_path=PUBLISH_PATH,
     )
 
-    aip_files = (
-        parser.parse(
-            content=content,
-            publish_path=PUBLISH_PATH,
-        )
-    )
-
-    #
     # ============================================================
     # 7. Executar Comparator.
     # ============================================================
-    #
 
-    comparator = (
-        AdvancedInstallerAipFileComparator()
+    comparator = AdvancedInstallerAipFileComparator()
+
+    changes = comparator.compare(
+        aip_files=aip_files,
+        publish_path=PUBLISH_PATH,
     )
 
-    changes = (
-        comparator.compare(
-            aip_files=aip_files,
-            publish_path=PUBLISH_PATH,
-        )
-    )
-
-    #
     # ============================================================
     # 8. Separar alterações.
     # ============================================================
-    #
 
     add_changes = [
         change
         for change in changes
-        if change.action
-        == SetupFileAction.ADD
+        if change.action == SetupFileAction.ADD
     ]
 
     remove_changes = [
         change
         for change in changes
-        if change.action
-        == SetupFileAction.REMOVE
+        if change.action == SetupFileAction.REMOVE
     ]
 
     keep_changes = [
         change
         for change in changes
-        if change.action
-        == SetupFileAction.KEEP
+        if change.action == SetupFileAction.KEEP
     ]
 
-    #
     # ============================================================
     # 9. Diagnóstico do Comparator.
     # ============================================================
-    #
 
     print()
-    print(
-        "=" * 80
-    )
+    print("=" * 80)
+    print("[OuroBuild] ALTERAÇÕES REAIS")
+    print("=" * 80)
 
-    print(
-        "[OuroBuild] ALTERAÇÕES REAIS"
-    )
+    print(f"[OuroBuild] AIP: {len(aip_files)}")
+    print(f"[OuroBuild] KEEP: {len(keep_changes)}")
+    print(f"[OuroBuild] ADD: {len(add_changes)}")
+    print(f"[OuroBuild] REMOVE: {len(remove_changes)}")
 
-    print(
-        "=" * 80
-    )
-
-    print(
-        f"[OuroBuild] AIP: {len(aip_files)}"
-    )
-
-    print(
-        f"[OuroBuild] KEEP: {len(keep_changes)}"
-    )
-
-    print(
-        f"[OuroBuild] ADD: {len(add_changes)}"
-    )
-
-    print(
-        f"[OuroBuild] REMOVE: {len(remove_changes)}"
-    )
-
-    #
     # ============================================================
     # 10. Validar cenário conhecido.
     #
@@ -441,26 +228,15 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
     #
     # Não devemos fixar a quantidade de KEEP em 591.
     # ============================================================
-    #
 
-    assert len(
-        aip_files
-    ) == 591
+    assert len(aip_files) == 591
+    assert len(keep_changes) == 583
 
-    assert len(
-        keep_changes
-    ) == 583
-
-
-    #
     # ============================================================
     # 11. Aplicar alterações no AIP temporário.
     # ============================================================
-    #
 
-    modifier = (
-        AdvancedInstallerAipModifier()
-    )
+    modifier = AdvancedInstallerAipModifier()
 
     modifier.apply(
         aip_path=temporary_aip,
@@ -469,60 +245,58 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
         changes=changes,
     )
 
-    #
     # ============================================================
     # 12. Ler AIP modificado.
     # ============================================================
-    #
 
-    modified_content = (
-        temporary_aip.read_text(
-            encoding="utf-8",
-        )
+    modified_content = temporary_aip.read_text(encoding="utf-8")
+
+    modified_aip_files = parser.parse(
+        content=modified_content,
+        publish_path=PUBLISH_PATH,
     )
 
-    #
     # ============================================================
     # 13. Validar versão.
     # ============================================================
-    #
 
-    assert (
-        f'Value="{TEST_VERSION}"'
-        in modified_content
-    )
+    assert f'Value="{TEST_VERSION}"' in modified_content
 
-    #
     # ============================================================
     # 14. Validar todos os ADDs.
     # ============================================================
-    #
 
     for change in add_changes:
+        matching_adds = [
+            setup_file
+            for setup_file in modified_aip_files
+            if (
+                setup_file.name.casefold() == change.name.casefold()
+                and _normalize_source_path(
+                    setup_file.source_path
+                )
+                == _normalize_source_path(
+                    change.source_path
+                )
+            )
+        ]
 
-        assert aip_row_exists(
-            content=modified_content,
-            name=change.name,
-            source_path=change.source_path,
-        ), (
-            "ADD não encontrado como uma ROW completa "
+        assert matching_adds, (
+            "ADD não encontrado pelo Parser "
             "no AIP modificado:\n"
             f"File: {change.name}\n"
             f"SourcePath: {change.source_path}"
         )
 
-    #
-    # ============================================================
-    # 15. Contar os arquivos adicionados.
-    #
-    # Cada ADD deve produzir exatamente um ROW.
-    # ============================================================
-    #
+        assert len(matching_adds) == 1, (
+            "ADD produziu mais de um ROW no AIP modificado:\n"
+            f"File: {change.name}\n"
+            f"SourcePath: {change.source_path}\n"
+            f"Quantidade encontrada: {len(matching_adds)}"
+        )
 
-    
-    #
     # ============================================================
-    # 16. Confirmar que os arquivos KEEP continuam.
+    # 15. Confirmar que os arquivos KEEP continuam.
     #
     # Somente os arquivos classificados como KEEP devem
     # obrigatoriamente permanecer no AIP.
@@ -531,46 +305,26 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
     # considerados nesta validação, pois o Modifier deve
     # removê-los.
     # ============================================================
-    #
 
     missing_keep_changes = []
 
     for setup_file in keep_changes:
-
-        if not aip_row_exists(
-            content=modified_content,
-            name=setup_file.name,
-            source_path=setup_file.source_path,
-        ):
-            missing_keep_changes.append(
-                setup_file
+        matching_keep = any(
+            (
+                parsed_file.name.casefold()
+                == setup_file.name.casefold()
+                and _normalize_source_path(
+                    parsed_file.source_path
+                )
+                == _normalize_source_path(
+                    setup_file.source_path
+                )
             )
-
-    if missing_keep_changes:
-
-        print()
-        print(
-            "=" * 80
-        )
-        print(
-            "[OuroBuild] KEEP AUSENTES"
-        )
-        print(
-            "=" * 80
+            for parsed_file in modified_aip_files
         )
 
-        for setup_file in missing_keep_changes:
-
-            print(
-                f"  File       : {setup_file.name}"
-            )
-
-            print(
-                f"  SourcePath : "
-                f"{setup_file.source_path}"
-            )
-
-            print()
+        if not matching_keep:
+            missing_keep_changes.append(setup_file)
 
     assert not missing_keep_changes, (
         "Arquivos KEEP não encontrados como "
@@ -581,105 +335,74 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
         )
     )
 
-    #
     # ============================================================
-    # 17. Confirmar que os arquivos REMOVE foram removidos.
+    # 16. Confirmar que os arquivos REMOVE foram removidos.
     # ============================================================
-    #
 
     for change in remove_changes:
+        matching_remove = any(
+            (
+                change.aip_file_id
+                and parsed_file.aip_file_id
+                and (
+                    parsed_file.aip_file_id.casefold()
+                    == change.aip_file_id.casefold()
+                )
+            )
+            or (
+                parsed_file.name.casefold()
+                == change.name.casefold()
+                and _normalize_source_path(
+                    parsed_file.source_path
+                )
+                == _normalize_source_path(
+                    change.source_path
+                )
+            )
+            for parsed_file in modified_aip_files
+        )
 
-        assert not aip_row_exists(
-            content=modified_content,
-            name=change.name,
-            source_path=change.source_path,
-        ), (
-            "REMOVE ainda está presente como ROW "
-            "completa no AIP modificado:\n"
+        assert not matching_remove, (
+            "REMOVE ainda está presente no AIP modificado:\n"
             f"File: {change.name}\n"
             f"SourcePath: {change.source_path}"
         )
 
-    #
     # ============================================================
-    # 18. O AIP temporário deve existir.
+    # 17. O AIP temporário deve existir.
     # ============================================================
-    #
 
-    assert (
-        temporary_aip.exists()
+    assert temporary_aip.exists()
+
+    # ============================================================
+    # 18. O AIP original deve permanecer intacto.
+    # ============================================================
+
+    current_original_content = AIP_PATH.read_text(
+        encoding="utf-8"
     )
 
-    #
-    # ============================================================
-    # 19. O AIP original deve permanecer intacto.
-    # ============================================================
-    #
+    assert current_original_content == original_content
 
-    current_original_content = (
-        AIP_PATH.read_text(
-            encoding="utf-8",
-        )
-    )
+    assert f'Value="{TEST_VERSION}"' not in current_original_content
 
-    assert (
-        current_original_content
-        == original_content
-    )
-
-    assert (
-        f'Value="{TEST_VERSION}"'
-        not in current_original_content
-    )
-
-    #
     # ============================================================
-    # 20. Diagnóstico final.
+    # 19. Diagnóstico final.
     # ============================================================
-    #
 
     print()
-    print(
-        "=" * 80
-    )
+    print("=" * 80)
+    print("[OuroBuild] APLICAÇÃO CONCLUÍDA")
+    print("=" * 80)
 
-    print(
-        "[OuroBuild] APLICAÇÃO CONCLUÍDA"
-    )
+    print("[OuroBuild] Parser: OK")
+    print("[OuroBuild] Comparator: OK")
+    print("[OuroBuild] Modifier: OK")
+    print(f"[OuroBuild] ADD aplicados: {len(add_changes)}")
+    print("[OuroBuild] AIP original: intacto")
+    print(f"[OuroBuild] AIP temporário: {temporary_aip}")
 
-    print(
-        "=" * 80
-    )
-
-    print(
-        "[OuroBuild] Parser: OK"
-    )
-
-    print(
-        "[OuroBuild] Comparator: OK"
-    )
-
-    print(
-        "[OuroBuild] Modifier: OK"
-    )
-
-    print(
-        f"[OuroBuild] ADD aplicados: "
-        f"{len(add_changes)}"
-    )
-
-    print(
-        "[OuroBuild] AIP original: intacto"
-    )
-
-    print(
-        f"[OuroBuild] AIP temporário: "
-        f"{temporary_aip}"
-    )
-
-    print(
-        "=" * 80
-    )
+    print("=" * 80)
 
     print()
     print("[OuroBuild] ADDs:")

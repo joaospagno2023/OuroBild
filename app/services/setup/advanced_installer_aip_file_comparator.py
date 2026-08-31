@@ -1,7 +1,9 @@
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
+
 Arquivo : advanced_installer_aip_file_comparator.py
+
 Descrição : Compara arquivos individuais de um projeto Advanced
             Installer com os arquivos existentes no diretório
             de publicação.
@@ -72,13 +74,11 @@ class AdvancedInstallerAipFileComparator:
         """
 
         if aip_files is None:
-
             raise ValueError(
                 "Os arquivos do AIP não foram informados."
             )
 
         if publish_path is None:
-
             raise ValueError(
                 "PublishPath não foi informado."
             )
@@ -88,14 +88,12 @@ class AdvancedInstallerAipFileComparator:
         )
 
         if not publish_path.exists():
-
             raise FileNotFoundError(
                 "PublishPath não encontrado:\n"
                 f"{publish_path}"
             )
 
         if not publish_path.is_dir():
-
             raise ValueError(
                 "PublishPath não é um diretório:\n"
                 f"{publish_path}"
@@ -125,7 +123,6 @@ class AdvancedInstallerAipFileComparator:
         ] = {}
 
         for setup_file in aip_files:
-
             key = (
                 self.__get_file_identity(
                     setup_file=setup_file,
@@ -134,7 +131,6 @@ class AdvancedInstallerAipFileComparator:
             )
 
             if not key:
-
                 continue
 
             #
@@ -144,7 +140,6 @@ class AdvancedInstallerAipFileComparator:
             #
 
             if key in aip_index:
-
                 continue
 
             aip_index[key] = setup_file
@@ -158,7 +153,6 @@ class AdvancedInstallerAipFileComparator:
         #
 
         for key, setup_file in aip_index.items():
-
             publish_file = (
                 publish_files.get(
                     key,
@@ -166,7 +160,6 @@ class AdvancedInstallerAipFileComparator:
             )
 
             if publish_file is None:
-
                 results.append(
                     self.__create_sync(
                         setup_file=setup_file,
@@ -190,9 +183,7 @@ class AdvancedInstallerAipFileComparator:
         #
 
         for key, publish_file in publish_files.items():
-
             if key in aip_index:
-
                 continue
 
             setup_file = (
@@ -234,9 +225,7 @@ class AdvancedInstallerAipFileComparator:
         files: dict[str, Path] = {}
 
         for file_path in publish_path.rglob("*"):
-
             if not file_path.is_file():
-
                 continue
 
             #
@@ -263,7 +252,6 @@ class AdvancedInstallerAipFileComparator:
             if cls.__contains_excluded_directory(
                 relative_path=relative_path,
             ):
-
                 continue
 
             #
@@ -283,7 +271,6 @@ class AdvancedInstallerAipFileComparator:
             if cls.__has_excluded_extension(
                 file_path=file_path,
             ):
-
                 continue
 
             key = (
@@ -309,12 +296,10 @@ class AdvancedInstallerAipFileComparator:
         """
 
         for part in relative_path.parts:
-
             if (
                 part.strip().lower()
                 in cls.__EXCLUDED_DIRECTORIES
             ):
-
                 return True
 
         return False
@@ -370,15 +355,15 @@ class AdvancedInstallerAipFileComparator:
 
             ...\\Versoes\\10.4\\...\\bin\\Release\\ADODB.dll
                 ->
-            adodb.dll
+                adodb.dll
 
             ...\\Versoes\\10.4\\...\\bin\\Release\\x64\\foo.dll
                 ->
-            x64/foo.dll
+                x64/foo.dll
 
             x64\\foo.dll
                 ->
-            x64/foo.dll
+                x64/foo.dll
         """
 
         source_path = str(
@@ -428,7 +413,6 @@ class AdvancedInstallerAipFileComparator:
         )
 
         if marker_index >= 0:
-
             relative_path = (
                 normalized[
                     marker_index
@@ -451,7 +435,6 @@ class AdvancedInstallerAipFileComparator:
         )
 
         if not path.is_absolute():
-
             return cls.__normalize_key(
                 normalized,
             )
@@ -463,7 +446,6 @@ class AdvancedInstallerAipFileComparator:
         #
 
         try:
-
             relative_path = (
                 path.relative_to(
                     publish_path,
@@ -475,7 +457,6 @@ class AdvancedInstallerAipFileComparator:
             )
 
         except ValueError:
-
             pass
 
         #
@@ -531,6 +512,9 @@ class AdvancedInstallerAipFileComparator:
             publish_path=setup_file.publish_path,
             assembly_display_name=(
                 setup_file.assembly_display_name
+            ),
+            aip_file_id=(
+                setup_file.aip_file_id
             ),
             action=action,
         )

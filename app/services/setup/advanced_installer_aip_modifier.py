@@ -417,6 +417,7 @@ class AdvancedInstallerAipModifier(
                         content=content,
                         source_path=change.source_path,
                         name=change.name,
+                        aip_file_id=change.aip_file_id,
                     )
                 )
 
@@ -428,6 +429,7 @@ class AdvancedInstallerAipModifier(
         content: str,
         source_path: str,
         name: str | None = None,
+        aip_file_id: str | None = None,
     ) -> str:
         """
         Remove uma única ROW do MsiFilesComponent.
@@ -490,6 +492,19 @@ class AdvancedInstallerAipModifier(
                     row_match.group("source")
                 )
 
+                normalized_aip_file_id = (
+                    str(aip_file_id or "")
+                    .strip()
+                    .casefold()
+                )
+
+                if (
+                    normalized_aip_file_id
+                    and current_name == normalized_aip_file_id
+                ):
+                    removed = True
+                    return ""
+
                 if (
                     current_source_path == normalized_source_path
                     and (
@@ -521,9 +536,13 @@ class AdvancedInstallerAipModifier(
 
         if not removed:
             identity = (
-                f"File='{name}' + SourcePath='{source_path}'"
-                if normalized_name
-                else f"SourcePath='{source_path}'"
+                f"FileId='{aip_file_id}'"
+                if aip_file_id
+                else (
+                    f"File='{name}' + SourcePath='{source_path}'"
+                    if normalized_name
+                    else f"SourcePath='{source_path}'"
+                )
             )
 
             raise ValueError(
