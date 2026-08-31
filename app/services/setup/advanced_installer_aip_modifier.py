@@ -184,6 +184,7 @@ class AdvancedInstallerAipModifier(
                 self.__apply_changes(
                     content=content,
                     changes=changes,
+                    publish_path=publish_path,
                 )
             )
 
@@ -372,12 +373,14 @@ class AdvancedInstallerAipModifier(
         cls,
         content: str,
         changes: list[SetupFileSync],
+        publish_path: Path,
     ) -> str:
         """
         Aplica as alterações de arquivos ao AIP.
 
         KEEP:
-            Não altera o AIP.
+            Mantém o arquivo no Setup e atualiza seu SourcePath
+            para a pasta Release atual.
 
         UPDATE:
             Ainda não implementado.
@@ -392,6 +395,14 @@ class AdvancedInstallerAipModifier(
         for change in changes:
 
             if change.action == SetupFileAction.KEEP:
+
+                content = (
+                    cls.__update_file_source_path(
+                        content=content,
+                        change=change,
+                        publish_path=publish_path,
+                    )
+                )
 
                 continue
 
@@ -422,6 +433,383 @@ class AdvancedInstallerAipModifier(
                 )
 
         return content
+
+    @classmethod
+    def __update_file_source_path(
+        cls,
+        content: str,
+        change: SetupFileSync,
+        publish_path: Path,
+    ) -> str:
+        """
+        Atualiza o SourcePath de um arquivo individual existente.
+
+        A identificação da ROW é feita de forma progressiva:
+
+            1. Component_ quando aip_file_id estiver disponível;
+            2. caminho relativo do SourcePath (comparado contra a
+               parte do SourcePath atual que vem depois de
+               "\\bin\\Release\\");
+            3. File / FileName, apenas como último recurso, e
+               somente quando exatamente uma ROW do componente
+               possuir aquele nome (evita atualizar a ROW errada
+               quando o mesmo nome de arquivo aparece em vários
+               diretórios, como "nfse.xsd" ou
+               "xmldsig-core-schema_v1.01.xsd").
+
+        O novo SourcePath é construído preservando o prefixo da
+        ROW encontrada (tudo até e incluindo "\\bin\\Release\\"),
+        e substituindo apenas a parte final pelo caminho relativo
+        atual do arquivo dentro da pasta de publicação. Isso evita
+        gravar um SourcePath incompleto/relativo à raiz errada.
+        """
+
+        if not change.name:
+            raise ValueError(
+                "Arquivo para atualização não possui nome."
+            )
+
+        if not change.source_path:
+            raise ValueError(
+                "Arquivo para atualização não possui SourcePath."
+            )
+
+        publish_path = Path(
+            publish_path,
+        ).resolve()
+
+        file_publish_path = Path(
+            change.publish_path,
+        ).resolve()
+
+        try:
+            relative_path = file_publish_path.relative_to(
+                publish_path,
+            )
+        except ValueError as exc:
+            raise ValueError(
+                "PublishPath do arquivo não pertence à pasta "
+                "de publicação informada:\n"
+                f"Arquivo: {file_publish_path}\n"
+                f"PublishPath: {publish_path}"
+            ) from exc
+
+        expected_relative_path = cls.__normalize_source_path(
+            relative_path.as_posix(),
+        )
+
+        relative_path_windows = str(
+            relative_path,
+        )
+
+        normalized_name = (
+            str(change.name)
+            .strip()
+            .casefold()
+        )
+
+        normalized_aip_file_id = (
+            str(change.aip_file_id or "")
+            .strip()
+            .casefold()
+        )
+
+        component_pattern = re.compile(
+            r'(?P<header>'
+            r'<COMPONENT\b'
+            r'(?=[^>]*\bcid\s*=\s*"'
+            + re.escape(
+                cls.__MSI_FILES_COMPONENT,
+            )
+            + r'"'
+            r')[^>]*>'
+            r')'
+            r'(?P<body>.*?)'
+            r'(?P<footer>'
+            r'</COMPONENT>'
+            r')',
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        row_pattern = re.compile(
+            r'(?P<row>'
+            r'<ROW\b'
+            r'(?=[^>]*\bFile\s*=\s*"(?P<file>[^"]*)")'
+            r'(?=[^>]*\bComponent_\s*=\s*"(?P<component>[^"]*)")'
+            r'(?=[^>]*\bFileName\s*=\s*"(?P<file_name>[^"]*)")?'
+            r'(?=[^>]*\bSourcePath\s*=\s*"(?P<source>[^"]*)")'
+            r'[^>]*/>'
+            r')',
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        source_pattern = re.compile(
+            r'(?P<prefix>'
+            r'\bSourcePath\s*=\s*"'
+            r')'
+            r'(?P<value>[^"]*)'
+            r'(?P<suffix>")',
+            re.IGNORECASE,
+        )
+
+        def normalize_row_source_path(
+            source_path: str,
+        ) -> str:
+            normalized = (
+                str(source_path or "")
+                .replace("\\", "/")
+                .strip()
+            )
+
+            lower_normalized = normalized.casefold()
+
+            release_marker = "/bin/release/"
+
+            marker_index = lower_normalized.find(
+                release_marker,
+            )
+
+            if marker_index >= 0:
+                normalized = normalized[
+                    marker_index + len(release_marker):
+                ]
+
+            return cls.__normalize_source_path(
+                normalized,
+            )
+
+        def build_new_source_path(
+            current_source_path: str,
+        ) -> str:
+            """
+            Preserva o prefixo da ROW atual (até e incluindo
+            "\\bin\\Release\\") e troca apenas a parte final
+            pelo caminho relativo atual do arquivo.
+            """
+
+            normalized_current = str(
+                current_source_path or "",
+            ).replace(
+                "/",
+                "\\",
+            )
+
+            marker = "\\bin\\Release\\"
+
+            marker_index = (
+                normalized_current
+                .casefold()
+                .find(
+                    marker.casefold(),
+                )
+            )
+
+            if marker_index < 0:
+                raise ValueError(
+                    "SourcePath atual não contém "
+                    "'\\bin\\Release\\' para calcular o "
+                    "novo caminho:\n"
+                    f"{current_source_path}"
+                )
+
+            prefix = normalized_current[
+                : marker_index + len(marker)
+            ]
+
+            return prefix + relative_path_windows
+
+        #
+        # ------------------------------------------------------------
+        # Passo 1: varrer o MsiFilesComponent identificando ROWs
+        # candidatas por aip_file_id / caminho relativo (critérios
+        # não-ambíguos) e, paralelamente, contar quantas ROWs
+        # possuem o mesmo nome (para decidir se o fallback por
+        # nome pode ser usado com segurança).
+        # ------------------------------------------------------------
+        #
+
+        component_match = component_pattern.search(
+            content,
+        )
+
+        if component_match is None:
+            raise ValueError(
+                "MsiFilesComponent não encontrado no AIP."
+            )
+
+        body = component_match.group(
+            "body",
+        )
+
+        target_row_match = None
+        name_matches_count = 0
+
+        for row_match in row_pattern.finditer(body):
+
+            current_name = (
+                str(
+                    row_match.group("file") or "",
+                )
+                .strip()
+                .casefold()
+            )
+
+            current_component = (
+                str(
+                    row_match.group("component") or "",
+                )
+                .strip()
+                .casefold()
+            )
+
+            current_file_name = (
+                str(
+                    row_match.group("file_name") or "",
+                )
+                .strip()
+            )
+
+            file_name_parts = {
+                part.strip().casefold()
+                for part in current_file_name.split("|")
+                if part.strip()
+            }
+
+            matches_aip_file_id = (
+                bool(normalized_aip_file_id)
+                and current_component
+                == normalized_aip_file_id
+            )
+
+            matches_relative_source_path = (
+                bool(expected_relative_path)
+                and normalize_row_source_path(
+                    row_match.group("source"),
+                )
+                == expected_relative_path
+            )
+
+            if current_name == normalized_name or (
+                normalized_name in file_name_parts
+            ):
+                name_matches_count += 1
+
+            if target_row_match is not None:
+                continue
+
+            if matches_aip_file_id or matches_relative_source_path:
+                target_row_match = row_match
+
+        #
+        # ------------------------------------------------------------
+        # Passo 2: se nada bateu por aip_file_id/caminho relativo,
+        # só recorrer ao nome quando ele for inequívoco no
+        # componente (exatamente uma ROW com aquele nome).
+        # ------------------------------------------------------------
+        #
+
+        if target_row_match is None and name_matches_count == 1:
+
+            for row_match in row_pattern.finditer(body):
+
+                current_name = (
+                    str(
+                        row_match.group("file") or "",
+                    )
+                    .strip()
+                    .casefold()
+                )
+
+                current_file_name = (
+                    str(
+                        row_match.group("file_name") or "",
+                    )
+                    .strip()
+                )
+
+                file_name_parts = {
+                    part.strip().casefold()
+                    for part in current_file_name.split("|")
+                    if part.strip()
+                }
+
+                if (
+                    current_name == normalized_name
+                    or normalized_name in file_name_parts
+                ):
+                    target_row_match = row_match
+                    break
+
+        if target_row_match is None:
+
+            ambiguity_note = (
+                " (nome ambíguo: existem "
+                f"{name_matches_count} ROWs com esse nome "
+                "no AIP; forneça aip_file_id para desambiguar)"
+                if name_matches_count > 1
+                else ""
+            )
+
+            raise ValueError(
+                "Arquivo para atualização do SourcePath "
+                "não encontrado de forma inequívoca no "
+                "MsiFilesComponent do AIP:\n"
+                f"File: {change.name}\n"
+                f"SourcePath: {change.source_path}\n"
+                f"FileId: {change.aip_file_id}\n"
+                f"SourcePath esperado no Release: "
+                f"{relative_path.as_posix()}"
+                + ambiguity_note
+            )
+
+        current_row_text = target_row_match.group(
+            "row",
+        )
+
+        new_source_path = build_new_source_path(
+            target_row_match.group("source"),
+        )
+
+        escaped_source_path = cls.__escape_attribute(
+            new_source_path,
+        )
+
+        updated_row_text, count = source_pattern.subn(
+            lambda source_match: (
+                source_match.group("prefix")
+                + escaped_source_path
+                + source_match.group("suffix")
+            ),
+            current_row_text,
+            count=1,
+        )
+
+        if count == 0:
+            raise ValueError(
+                "ROW encontrada não possui SourcePath "
+                "para atualizar:\n"
+                f"{current_row_text}"
+            )
+
+        updated_body = (
+            body[: target_row_match.start()]
+            + updated_row_text
+            + body[target_row_match.end():]
+        )
+
+        return (
+            content[
+                : component_match.start(
+                    "body",
+                )
+            ]
+            + updated_body
+            + content[
+                component_match.end(
+                    "body",
+                ):
+            ]
+        )
 
     @classmethod
     def __remove_file(
@@ -850,7 +1238,7 @@ class AdvancedInstallerAipModifier(
 
     @staticmethod
     def __normalize_source_path(
-    source_path: str,
+        source_path: str,
     ) -> str:
         """
         Normaliza um SourcePath para comparação.

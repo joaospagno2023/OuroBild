@@ -298,37 +298,84 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
     # ============================================================
     # 15. Confirmar que os arquivos KEEP continuam.
     #
-    # Somente os arquivos classificados como KEEP devem
-    # obrigatoriamente permanecer no AIP.
+    # O Modifier deve preservar a ROW do arquivo e atualizar
+    # o SourcePath para o arquivo correspondente no Release atual.
     #
-    # Os arquivos classificados como REMOVE não devem ser
-    # considerados nesta validação, pois o Modifier deve
-    # removê-los.
+    # Portanto, NÃO devemos comparar o SourcePath antigo do AIP
+    # com o SourcePath depois da aplicação.
+    #
+    # A validação deve confirmar:
+    #
+    #     1. o arquivo continua presente;
+    #     2. existe somente uma ocorrência;
+    #     3. o SourcePath aponta para o arquivo físico correto
+    #        dentro do PublishPath.
     # ============================================================
 
     missing_keep_changes = []
 
     for setup_file in keep_changes:
-        matching_keep = any(
-            (
+
+        expected_publish_path = (
+            Path(
+                setup_file.publish_path,
+            )
+            .resolve()
+        )
+
+        try:
+            expected_relative_path = (
+                expected_publish_path
+                .relative_to(
+                    PUBLISH_PATH.resolve(),
+                )
+            )
+        except ValueError:
+            missing_keep_changes.append(
+                setup_file
+            )
+            continue
+
+        expected_source_path = (
+            expected_relative_path
+            .as_posix()
+            .casefold()
+        )
+
+        matching_keep = [
+            parsed_file
+            for parsed_file in modified_aip_files
+            if (
                 parsed_file.name.casefold()
                 == setup_file.name.casefold()
                 and _normalize_source_path(
-                    parsed_file.source_path
+                    parsed_file.source_path,
                 )
                 == _normalize_source_path(
-                    setup_file.source_path
+                    expected_source_path,
                 )
             )
-            for parsed_file in modified_aip_files
-        )
+        ]
 
         if not matching_keep:
-            missing_keep_changes.append(setup_file)
+            missing_keep_changes.append(
+                setup_file
+            )
+
+        elif len(matching_keep) > 1:
+            raise AssertionError(
+                "KEEP produziu mais de um ROW no AIP modificado:\n"
+                f"File: {setup_file.name}\n"
+                f"SourcePath esperado: "
+                f"{expected_source_path}\n"
+                f"Quantidade encontrada: "
+                f"{len(matching_keep)}"
+            )
+
 
     assert not missing_keep_changes, (
-        "Arquivos KEEP não encontrados como "
-        "ROW completa no AIP modificado: "
+        "Arquivos KEEP não encontrados com "
+        "SourcePath atualizado no AIP modificado: "
         + ", ".join(
             setup_file.name
             for setup_file in missing_keep_changes

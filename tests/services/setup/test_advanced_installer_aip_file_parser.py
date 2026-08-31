@@ -264,6 +264,6 @@ def test_deve_normalizar_source_path_com_subdiretorio():
     assert (
         files[0].publish_path
         == Path(
-            r"C:\Build\Biblioteca.dll"
+            r"C:\Build\x64\Biblioteca.dll"
         )
     )

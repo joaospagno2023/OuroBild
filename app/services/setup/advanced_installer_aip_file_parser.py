@@ -1,7 +1,9 @@
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
+
 Arquivo : advanced_installer_aip_file_parser.py
+
 Descrição : Extrai referências individuais de arquivos de um
             projeto Advanced Installer (.aip).
 --------------------------------------------------------------------
@@ -70,25 +72,14 @@ class AdvancedInstallerAipFileParser:
         """
         Analisa o conteúdo do AIP e retorna os arquivos
         individuais encontrados.
-
-        :param content:
-            Conteúdo completo do arquivo .aip.
-
-        :param publish_path:
-            Diretório de publicação da versão atual.
-
-        :return:
-            Lista de SetupFile.
         """
 
         if content is None:
-
             raise ValueError(
                 "Conteúdo do AIP não foi informado."
             )
 
         if publish_path is None:
-
             raise ValueError(
                 "PublishPath não foi informado."
             )
@@ -121,11 +112,6 @@ class AdvancedInstallerAipFileParser:
                     header,
                 )
             )
-
-            #
-            # Somente MsiFilesComponent contém arquivos
-            # individuais que queremos analisar.
-            #
 
             if not self.__is_msi_files_component(
                 component_id,
@@ -163,21 +149,13 @@ class AdvancedInstallerAipFileParser:
                     )
                 )
 
-                #
-                # Um arquivo individual precisa possuir
-                # identificação, componente e origem.
-                #
-
                 if not file_name:
-
                     continue
 
                 if not source_path:
-
                     continue
 
                 if not component:
-
                     continue
 
                 physical_name = (
@@ -188,28 +166,26 @@ class AdvancedInstallerAipFileParser:
                 )
 
                 if not physical_name:
-
                     continue
-
-                #
-                # Evitar duplicidade.
-                #
 
                 if self.__contains_file(
                     results=results,
                     source_path=source_path,
                 ):
-
                     continue
+
+                publish_file_path = (
+                    self.__resolve_publish_file_path(
+                        source_path=source_path,
+                        publish_path=publish_path,
+                    )
+                )
 
                 results.append(
                     SetupFile(
                         name=physical_name,
                         source_path=source_path,
-                        publish_path=(
-                            publish_path
-                            / physical_name
-                        ),
+                        publish_path=publish_file_path,
                     )
                 )
 
@@ -247,7 +223,6 @@ class AdvancedInstallerAipFileParser:
         """
 
         if not component_id:
-
             return False
 
         return (
@@ -266,7 +241,6 @@ class AdvancedInstallerAipFileParser:
         """
 
         if not component_id:
-
             return False
 
         return (
@@ -281,7 +255,6 @@ class AdvancedInstallerAipFileParser:
     ) -> dict[str, str]:
         """
         Extrai os atributos de uma estrutura do AIP.
-
         A ordem dos atributos não é relevante.
         """
 
@@ -309,12 +282,12 @@ class AdvancedInstallerAipFileParser:
         return attributes
 
     @staticmethod
-    def __get_file_name(
+    def __resolve_publish_file_path(
         source_path: str,
-        fallback: str,
-    ) -> str:
+        publish_path: Path,
+    ) -> Path:
         """
-        Obtém o nome físico do arquivo.
+        Resolve o caminho físico do arquivo dentro do Release.
 
         SourcePath pode conter:
 
@@ -327,6 +300,73 @@ class AdvancedInstallerAipFileParser:
         ou:
 
             C:\\Build\\x64\\arquivo.dll
+
+        Para caminhos absolutos que contenham bin\\Release, somente
+        a parte posterior a bin\\Release é preservada.
+
+        Para caminhos relativos, a estrutura de diretórios é
+        preservada abaixo de publish_path.
+        """
+
+        normalized_source_path = (
+            str(source_path)
+            .replace(
+                "\\",
+                "/",
+            )
+            .strip()
+        )
+
+        normalized_publish_path = Path(
+            publish_path,
+        )
+
+        release_marker = "/bin/release/"
+
+        lower_source_path = (
+            normalized_source_path.lower()
+        )
+
+        marker_index = (
+            lower_source_path.find(
+                release_marker,
+            )
+        )
+
+        if marker_index >= 0:
+            relative_source_path = (
+                normalized_source_path[
+                    marker_index
+                    + len(release_marker):
+                ]
+            )
+
+            return (
+                normalized_publish_path
+                / Path(
+                    relative_source_path,
+                )
+            )
+
+        source_path_object = Path(
+            normalized_source_path,
+        )
+
+        if source_path_object.is_absolute():
+            return source_path_object
+
+        return (
+            normalized_publish_path
+            / source_path_object
+        )
+
+    @staticmethod
+    def __get_file_name(
+        source_path: str,
+        fallback: str,
+    ) -> str:
+        """
+        Obtém o nome físico do arquivo.
         """
 
         normalized_path = (
@@ -343,7 +383,6 @@ class AdvancedInstallerAipFileParser:
         )
 
         if file_name:
-
             return file_name
 
         return fallback
@@ -369,7 +408,6 @@ class AdvancedInstallerAipFileParser:
         )
 
         for result in results:
-
             existing_source_path = (
                 result.source_path
                 .replace(
@@ -384,7 +422,6 @@ class AdvancedInstallerAipFileParser:
                 existing_source_path
                 == normalized_source_path
             ):
-
                 return True
 
         return False
