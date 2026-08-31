@@ -52,6 +52,10 @@ from app.services.cleanup.build_artifact_cleanup_service import (
     BuildArtifactCleanupService,
 )
 
+from app.services.setup.advanced_installer_aip_synchronizer import (
+    AdvancedInstallerAipSynchronizer,
+)
+
 from app.services.setup.advanced_installer_service import (
     AdvancedInstallerService,
 )
@@ -131,6 +135,10 @@ def create_service(
         encoding="utf-8",
     )
 
+    aip_synchronizer = MagicMock(
+        spec=AdvancedInstallerAipSynchronizer,
+    )
+
     service = (
         AdvancedInstallerService(
             process_service=process_service,
@@ -138,6 +146,7 @@ def create_service(
                 advanced_installer_path
             ),
             cleanup_service=cleanup_service,
+            aip_synchronizer=aip_synchronizer,
         )
     )
 
@@ -146,6 +155,7 @@ def create_service(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     )
 
 
@@ -254,6 +264,7 @@ def test_deve_gerar_setup_com_sucesso(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )
@@ -331,6 +342,7 @@ def test_deve_executar_cleanup_antes_do_refresh_sync(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )
@@ -391,6 +403,7 @@ def test_deve_executar_refresh_sync_antes_do_build(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )
@@ -492,6 +505,7 @@ def test_deve_montar_comando_refresh_sync_do_advanced_installer(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )
@@ -570,6 +584,7 @@ def test_deve_montar_comando_build_do_advanced_installer(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )
@@ -647,6 +662,7 @@ def test_deve_retornar_falha_quando_refresh_sync_falhar(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )
@@ -709,6 +725,7 @@ def test_deve_retornar_falha_quando_build_falhar(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )
@@ -778,6 +795,7 @@ def test_deve_retorna_falha_quando_msi_nao_for_gerado(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )
@@ -843,6 +861,10 @@ def test_deve_rejeitar_advanced_installer_inexistente(
         spec=BuildArtifactCleanupService,
     )
 
+    aip_synchronizer = MagicMock(
+        spec=AdvancedInstallerAipSynchronizer,
+    )
+
     service = (
         AdvancedInstallerService(
             process_service=process_service,
@@ -851,6 +873,7 @@ def test_deve_rejeitar_advanced_installer_inexistente(
                 / "AdvancedInstaller.com"
             ),
             cleanup_service=cleanup_service,
+            aip_synchronizer=aip_synchronizer,
         )
     )
 
@@ -889,6 +912,7 @@ def test_deve_rejeitar_aip_inexistente(
         process_service,
         cleanup_service,
         advanced_installer_path,
+        aip_synchronizer,
     ) = create_service(
         tmp_path,
     )

@@ -224,6 +224,18 @@ from app.services.setup.disable_out_of_proc_build_service import (
 from app.services.setup.advanced_installer_service import (
     AdvancedInstallerService,
 )
+from app.services.setup.advanced_installer_aip_file_parser import (
+    AdvancedInstallerAipFileParser,
+)
+from app.services.setup.advanced_installer_aip_file_comparator import (
+    AdvancedInstallerAipFileComparator,
+)
+from app.services.setup.advanced_installer_aip_modifier import (
+    AdvancedInstallerAipModifier,
+)
+from app.services.setup.advanced_installer_aip_synchronizer import (
+    AdvancedInstallerAipSynchronizer,
+)
 from app.services.cleanup.build_artifact_cleanup_service import (
     BuildArtifactCleanupService,
 )
@@ -444,6 +456,32 @@ class Bootstrap:
             rules=self.cleanup_rules_provider.get_rules(),
         )
 
+        self.advanced_installer_aip_file_parser = (
+            AdvancedInstallerAipFileParser()
+        )
+
+        self.advanced_installer_aip_file_comparator = (
+            AdvancedInstallerAipFileComparator()
+        )
+
+        self.advanced_installer_aip_modifier = (
+            AdvancedInstallerAipModifier()
+        )
+
+        self.advanced_installer_aip_synchronizer = (
+            AdvancedInstallerAipSynchronizer(
+                parser=(
+                    self.advanced_installer_aip_file_parser
+                ),
+                comparator=(
+                    self.advanced_installer_aip_file_comparator
+                ),
+                modifier=(
+                    self.advanced_installer_aip_modifier
+                ),
+            )
+        )
+
         self.advanced_installer_service = (
             AdvancedInstallerService(
                 process_service=self.process_service,
@@ -451,6 +489,9 @@ class Bootstrap:
                     self.settings.build_tools.advanced_installer_path
                 ),
                 cleanup_service=self.cleanup_service,
+                aip_synchronizer=(
+                    self.advanced_installer_aip_synchronizer
+                ),
             )
         )
 

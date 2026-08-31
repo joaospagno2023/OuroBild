@@ -48,6 +48,10 @@ from app.services.cleanup.build_artifact_cleanup_service import (
     BuildArtifactCleanupService,
 )
 
+from app.services.setup.advanced_installer_aip_synchronizer import (
+    AdvancedInstallerAipSynchronizer,
+)
+
 
 class AdvancedInstallerService(
     InstallerService,
@@ -61,6 +65,7 @@ class AdvancedInstallerService(
         process_service: ProcessService,
         advanced_installer_path: Path,
         cleanup_service: BuildArtifactCleanupService,
+        aip_synchronizer: AdvancedInstallerAipSynchronizer,
     ) -> None:
         """
         Inicializa o serviço.
@@ -87,6 +92,13 @@ class AdvancedInstallerService(
                 "não foi informado."
             )
 
+        if aip_synchronizer is None:
+
+            raise ValueError(
+                "AdvancedInstallerAipSynchronizer "
+                "não foi informado."
+            )
+
         self.__process_service = (
             process_service
         )
@@ -97,6 +109,10 @@ class AdvancedInstallerService(
 
         self.__cleanup_service = (
             cleanup_service
+        )
+
+        self.__aip_synchronizer = (
+            aip_synchronizer
         )
 
     def install(
@@ -111,9 +127,11 @@ class AdvancedInstallerService(
         O fluxo executado é:
 
             1. Cleanup dos artefatos da publicação.
-            2. RefreshSync do AIP.
-            3. Build do AIP.
-            4. Validação do MSI gerado.
+            2. Sincronização do AIP com os arquivos reais
+               do Release (KEEP/ADD/REMOVE + versão).
+            3. RefreshSync do AIP.
+            4. Build do AIP.
+            5. Validação do MSI gerado.
         """
 
         self.__validate(
@@ -152,6 +170,28 @@ class AdvancedInstallerService(
         aip_path = Path(
             paths.aip_path,
         )
+
+        try:
+
+            self.__aip_synchronizer.synchronize(
+                aip_path=aip_path,
+                version=definition.version,
+                publish_path=publish_path,
+            )
+
+        except Exception as exc:
+
+            return SetupResult(
+                success=False,
+                message=(
+                    "Falha durante a sincronização "
+                    "do AIP com o Release: "
+                    f"{exc}"
+                ),
+                project_id=request.project_id,
+                output_msi=None,
+                duration_seconds=0.0,
+            )
 
         refresh_sync_result = (
             self.__execute_refresh_sync(

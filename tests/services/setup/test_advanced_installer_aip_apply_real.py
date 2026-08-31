@@ -324,11 +324,8 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
         )
 
         try:
-            expected_relative_path = (
-                expected_publish_path
-                .relative_to(
-                    PUBLISH_PATH.resolve(),
-                )
+            expected_publish_path.relative_to(
+                PUBLISH_PATH.resolve(),
             )
         except ValueError:
             missing_keep_changes.append(
@@ -336,11 +333,16 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
             )
             continue
 
-        expected_source_path = (
-            expected_relative_path
-            .as_posix()
-            .casefold()
-        )
+        #
+        # --------------------------------------------------------
+        # O Modifier reescreve o SourcePath como um caminho
+        # absoluto apontando diretamente para o arquivo dentro
+        # do PublishPath atual (não preserva mais o prefixo
+        # histórico do AIP). Portanto a validação deve resolver
+        # o SourcePath resultante e compará-lo com o caminho
+        # físico esperado, em vez de comparar strings truncadas.
+        # --------------------------------------------------------
+        #
 
         matching_keep = [
             parsed_file
@@ -348,12 +350,10 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
             if (
                 parsed_file.name.casefold()
                 == setup_file.name.casefold()
-                and _normalize_source_path(
+                and Path(
                     parsed_file.source_path,
-                )
-                == _normalize_source_path(
-                    expected_source_path,
-                )
+                ).resolve()
+                == expected_publish_path
             )
         ]
 
@@ -367,7 +367,7 @@ def test_deve_aplicar_adds_reais_no_aip_temporario(
                 "KEEP produziu mais de um ROW no AIP modificado:\n"
                 f"File: {setup_file.name}\n"
                 f"SourcePath esperado: "
-                f"{expected_source_path}\n"
+                f"{expected_publish_path}\n"
                 f"Quantidade encontrada: "
                 f"{len(matching_keep)}"
             )

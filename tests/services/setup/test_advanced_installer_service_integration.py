@@ -176,19 +176,45 @@ def test_deve_executar_refresh_sync_e_build_no_aip_real(
     # ============================================================
     # 6. Preparar o AIP.
     #
-    # Utilizamos o modificador já validado.
+    # Utilizamos o mesmo sincronizador conectado ao
+    # AdvancedInstallerService em produção (Parser +
+    # Comparator + Modifier), garantindo que ROWs de
+    # arquivos obsoletos (REMOVE) sejam removidas antes
+    # do RefreshSync/Build nativos do Advanced Installer.
     # ============================================================
     #
+
+    from app.services.setup.advanced_installer_aip_file_parser import (
+        AdvancedInstallerAipFileParser,
+    )
+
+    from app.services.setup.advanced_installer_aip_file_comparator import (
+        AdvancedInstallerAipFileComparator,
+    )
 
     from app.services.setup.advanced_installer_aip_modifier import (
         AdvancedInstallerAipModifier,
     )
 
-    modifier = (
-        AdvancedInstallerAipModifier()
+    from app.services.setup.advanced_installer_aip_synchronizer import (
+        AdvancedInstallerAipSynchronizer,
     )
 
-    modifier.apply(
+    aip_synchronizer = (
+        AdvancedInstallerAipSynchronizer(
+            parser=(
+                AdvancedInstallerAipFileParser()
+            ),
+            comparator=(
+                AdvancedInstallerAipFileComparator()
+            ),
+            modifier=(
+                AdvancedInstallerAipModifier()
+            ),
+        )
+    )
+
+    aip_synchronizer.synchronize(
         aip_path=temporary_aip,
         version=TEST_VERSION,
         publish_path=PUBLISH_PATH,
