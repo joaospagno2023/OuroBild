@@ -27,3 +27,5 @@ class SetupSettings(
     engine: SetupEngine
 
     output_root: Path
+
+    aip_root: Path

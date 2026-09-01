@@ -186,6 +186,7 @@ class AdvancedInstallerAipFileParser:
                         name=physical_name,
                         source_path=source_path,
                         publish_path=publish_file_path,
+                        aip_file_id=file_name,  # <- adiciona o ID do AIP (coluna File)
                     )
                 )
 

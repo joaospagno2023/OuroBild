@@ -7,6 +7,11 @@ Descrição : Gera o Setup utilizando o Advanced Installer.
 """
 
 from pathlib import Path
+import shutil
+import os
+import stat
+import subprocess
+import re
 
 from app.abstractions.installer_service import (
     InstallerService,
@@ -128,10 +133,13 @@ class AdvancedInstallerService(
 
             1. Cleanup dos artefatos da publicação.
             2. Sincronização do AIP com os arquivos reais
-               do Release (KEEP/ADD/REMOVE + versão).
-            3. RefreshSync do AIP.
-            4. Build do AIP.
-            5. Validação do MSI gerado.
+               do Release (KEEP/ADD/REMOVE + versão),
+               sempre em cima de uma cópia de trabalho.
+            3. Atualização do PATHFOLDER para a pasta de saída
+               configurada (output_root/version.revision/...).
+            4. RefreshSync do AIP de trabalho.
+            5. Build do AIP de trabalho.
+            6. Validação do MSI gerado.
         """
 
         self.__validate(
@@ -167,14 +175,91 @@ class AdvancedInstallerService(
                 duration_seconds=0.0,
             )
 
-        aip_path = Path(
+        #
+        # ------------------------------------------------------------
+        # Preparar cópia de trabalho do AIP
+        #
+        # O arquivo original (normalmente em TFS) permanece somente
+        # leitura/intocado. A cópia é criada na MESMA PASTA do AIP
+        # original, para manter Prerequisites e demais caminhos.
+        # ------------------------------------------------------------
+        #
+
+        original_aip_path = Path(
             paths.aip_path,
+        ).resolve()
+
+        aip_dir = original_aip_path.parent
+
+        # Nome da cópia de trabalho (ex.: OuroNet...build.aip)
+        workspace_aip_path = aip_dir / (
+            original_aip_path.stem + ".build.aip"
         )
+
+        shutil.copy2(
+            original_aip_path,
+            workspace_aip_path,
+        )
+
+        # Remover atributo somente leitura da cópia (Windows)
+        try:
+            subprocess.run(
+                [
+                    "attrib",
+                    "-R",
+                    str(workspace_aip_path),
+                ],
+                check=False,
+                shell=False,
+            )
+        except Exception:
+            pass
+
+        try:
+            os.chmod(
+                workspace_aip_path,
+                stat.S_IWRITE | stat.S_IREAD,
+            )
+        except OSError:
+            pass
+
+        #
+        # ------------------------------------------------------------
+        # Atualizar PATHFOLDER para a pasta de saída configurada.
+        #
+        # Usamos a pasta pai do paths.output_msi, que já é
+        # resolvida pelo SetupPathResolver a partir do settings.json
+        # (setup.output_root + versão + revisão + Cliente/Server).
+        #
+        # O PATHFOLDER é gravado como caminho RELATIVO ao AIP.
+        # ------------------------------------------------------------
+        #
+
+        output_folder = Path(
+            paths.output_msi,
+        ).parent
+
+        self.__update_pathfolder(
+            aip_path=workspace_aip_path,
+            output_folder=output_folder,
+        )
+
+        # Atualiza MSINAME com o nome configurado no projects.json
+        self.__update_msiname(
+            aip_path=workspace_aip_path,
+            output_msi=Path(paths.output_msi),
+        )
+
+        #
+        # ------------------------------------------------------------
+        # Sincronizar o AIP em cima da cópia de trabalho.
+        # ------------------------------------------------------------
+        #
 
         try:
 
             self.__aip_synchronizer.synchronize(
-                aip_path=aip_path,
+                aip_path=workspace_aip_path,
                 version=definition.version,
                 publish_path=publish_path,
             )
@@ -195,7 +280,7 @@ class AdvancedInstallerService(
 
         refresh_sync_result = (
             self.__execute_refresh_sync(
-                aip_path=aip_path,
+                aip_path=workspace_aip_path,
             )
         )
 
@@ -212,7 +297,7 @@ class AdvancedInstallerService(
 
         build_result = (
             self.__execute_build(
-                aip_path=aip_path,
+                aip_path=workspace_aip_path,
             )
         )
 
@@ -256,6 +341,13 @@ class AdvancedInstallerService(
                 ),
             )
 
+        # Remover a cópia de trabalho; o AIP original permanece intacto.
+        try:
+            if workspace_aip_path.exists():
+                workspace_aip_path.unlink()
+        except OSError:
+            pass
+
         return SetupResult(
             success=True,
             message=(
@@ -267,6 +359,88 @@ class AdvancedInstallerService(
                 total_duration
             ),
         )
+
+    def __update_pathfolder(
+        self,
+        aip_path: Path,
+        output_folder: Path,
+    ) -> None:
+        """
+        Atualiza a propriedade PATHFOLDER no AIP de trabalho para
+        apontar para a pasta de saída configurada.
+
+        O valor gravado é um caminho relativo ao diretório do AIP,
+        mantendo a mesma semântica utilizada no AIP original.
+        """
+
+        aip_path = Path(aip_path)
+        output_folder = Path(output_folder)
+
+        if not aip_path.exists():
+            return
+
+        try:
+            content = aip_path.read_text(
+                encoding="utf-8",
+            )
+        except OSError:
+            return
+
+        # Caminho relativo do output_folder em relação ao diretório do AIP.
+        try:
+            relative_folder = os.path.relpath(
+                output_folder,
+                start=aip_path.parent,
+            )
+        except ValueError:
+            # Se não conseguir resolver relativo (drivers diferentes, etc.),
+            # cai para o caminho absoluto mesmo.
+            relative_folder = str(output_folder)
+
+        # Normalizar para separadores de Windows, como no AIP original.
+        relative_folder = (
+            str(relative_folder)
+            .replace("/", "\\")
+            .strip()
+        )
+
+        if not relative_folder:
+            return
+
+        pattern = re.compile(
+            r'(<ROW\b'
+            r'(?=[^>]*\bProperty\s*=\s*"PATHFOLDER")'
+            r'[^>]*\bValue\s*=\s*")'
+            r'([^"]*)'
+            r'(")',
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        def repl(match: re.Match) -> str:
+            return (
+                match.group(1)
+                + relative_folder
+                + match.group(3)
+            )
+
+        new_content, count = pattern.subn(
+            repl,
+            content,
+            count=1,
+        )
+
+        if count == 0:
+            # Nenhuma linha PATHFOLDER encontrada; não falha o fluxo.
+            return
+
+        try:
+            aip_path.write_text(
+                new_content,
+                encoding="utf-8",
+            )
+        except OSError:
+            # Se não conseguir gravar, não interrompe o fluxo.
+            return
 
     def __execute_refresh_sync(
         self,
@@ -488,3 +662,76 @@ class AdvancedInstallerService(
                 + process_result.duration
             ),
         )
+    
+    def __update_msiname(
+        self,
+        aip_path: Path,
+        output_msi: Path,
+    ) -> None:
+        """
+        Atualiza a propriedade MSINAME no AIP de trabalho para
+        refletir o nome configurado em output_msi (projects.json).
+
+        O AIP usa [|MSINAME] em PackageFileName, e o Advanced Installer
+        adiciona a extensão .msi automaticamente. Então aqui gravamos
+        apenas o NOME base, sem .msi.
+        """
+
+        aip_path = Path(aip_path)
+        output_msi = Path(output_msi)
+
+        # Usa só o nome base; o Advanced Installer adiciona .msi
+        if output_msi.suffix.lower() == ".msi":
+            msi_name = output_msi.stem
+        else:
+            msi_name = output_msi.name
+
+        msi_name = msi_name.strip()
+        if not msi_name:
+            return
+
+        if not aip_path.exists():
+            return
+
+        try:
+            content = aip_path.read_text(
+                encoding="utf-8",
+            )
+        except OSError:
+            return
+
+        pattern = re.compile(
+            r'(<ROW\b'
+            r'(?=[^>]*\bProperty\s*=\s*"MSINAME")'
+            r'[^>]*\bValue\s*=\s*")'
+            r'([^"]*)'
+            r'(")',
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        def repl(match: re.Match) -> str:
+            return (
+                match.group(1)
+                + msi_name
+                + match.group(3)
+            )
+
+        new_content, count = pattern.subn(
+            repl,
+            content,
+            count=1,
+        )
+
+        if count == 0:
+            # Nenhuma MSINAME encontrada; não quebra a geração.
+            return
+
+        try:
+            aip_path.write_text(
+                new_content,
+                encoding="utf-8",
+            )
+        except OSError:
+            # Se não conseguir gravar, apenas segue com o valor antigo.
+            return
+
