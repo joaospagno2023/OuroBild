@@ -51,7 +51,15 @@ class CleanupRulesProvider:
     @staticmethod
     def __get_global_rules() -> list[CleanupRule]:
         """
-        Retorna as regras globais.
+        Retorna as regras globais de limpeza.
+
+        Política padrão:
+
+            - Todos os arquivos são removidos.
+            - Todos os diretórios são removidos.
+
+        Projetos podem preservar arquivos ou diretórios
+        através de regras específicas.
         """
 
         return [
@@ -63,31 +71,13 @@ class CleanupRulesProvider:
 
             CleanupRule(
                 target=CleanupTarget.FILE,
-                pattern="*.pdb",
+                pattern="*",
                 action=CleanupAction.REMOVE,
                 description=(
-                    "Remove arquivos de símbolos "
-                    "de debug."
-                ),
-            ),
-
-            CleanupRule(
-                target=CleanupTarget.FILE,
-                pattern="*.xml",
-                action=CleanupAction.REMOVE,
-                description=(
-                    "Remove arquivos XML gerados "
-                    "pelo Build."
-                ),
-            ),
-
-            CleanupRule(
-                target=CleanupTarget.FILE,
-                pattern="*.config",
-                action=CleanupAction.REMOVE,
-                description=(
-                    "Remove arquivos de configuração "
-                    "gerados pelo Build."
+                    "Remove todos os arquivos do resultado "
+                    "do Build. Arquivos necessários devem "
+                    "ser preservados através de uma regra "
+                    "específica do projeto."
                 ),
             ),
 
@@ -96,29 +86,16 @@ class CleanupRulesProvider:
             # Diretórios
             # ====================================================
             #
-            # Por padrão, todos os diretórios do resultado
-            # do Build são removidos.
-            #
-            # Projetos podem preservar diretórios específicos
-            # através de regras PRESERVE.
-            #
-            # Exemplo:
-            #
-            #     Movement
-            #         XML -> PRESERVE
-            #
-            # ====================================================
-            #
 
             CleanupRule(
                 target=CleanupTarget.DIRECTORY,
                 pattern="*",
                 action=CleanupAction.REMOVE,
                 description=(
-                    "Remove diretórios do resultado "
-                    "do Build. Diretórios necessários "
-                    "devem ser preservados através "
-                    "de uma regra específica do projeto."
+                    "Remove todos os diretórios do resultado "
+                    "do Build. Diretórios necessários devem "
+                    "ser preservados através de uma regra "
+                    "específica do projeto."
                 ),
             ),
         ]
@@ -141,6 +118,33 @@ class CleanupRulesProvider:
 
         if project_id == "linkpagamento":
 
+            #
+            # ----------------------------------------------------
+            # Executável principal
+            # ----------------------------------------------------
+            #
+
+            rules.append(
+                CleanupRule(
+                    target=CleanupTarget.FILE,
+                    pattern=(
+                        "OuroNetWinServiceLinkPagamento.exe"
+                    ),
+                    action=CleanupAction.PRESERVE,
+                    project_id=project_id,
+                    description=(
+                        "Preserva o executável principal "
+                        "do Windows Service LinkPagamento."
+                    ),
+                )
+            )
+
+            #
+            # ----------------------------------------------------
+            # Arquivo de configuração principal
+            # ----------------------------------------------------
+            #
+
             rules.append(
                 CleanupRule(
                     target=CleanupTarget.FILE,
@@ -151,7 +155,8 @@ class CleanupRulesProvider:
                     project_id=project_id,
                     description=(
                         "Preserva o arquivo de configuração "
-                        "principal do Windows Service."
+                        "principal do Windows Service "
+                        "LinkPagamento."
                     ),
                 )
             )
@@ -178,3 +183,4 @@ class CleanupRulesProvider:
             )
 
         return rules
+

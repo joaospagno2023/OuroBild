@@ -2,8 +2,8 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : bootstrap.py
-Descrição : Responsável por inicializar a aplicação e criar as
-             dependências da aplicação.
+DescriÃ§Ã£o : ResponsÃ¡vel por inicializar a aplicaÃ§Ã£o e criar as
+             dependÃªncias da aplicaÃ§Ã£o.
 --------------------------------------------------------------------
 """
 import inspect
@@ -236,17 +236,13 @@ from app.services.setup.advanced_installer_aip_modifier import (
 from app.services.setup.advanced_installer_aip_synchronizer import (
     AdvancedInstallerAipSynchronizer,
 )
-from app.services.cleanup.build_artifact_cleanup_service import (
-    BuildArtifactCleanupService,
-)
-
-from app.services.cleanup.cleanup_rules_provider import (
-    CleanupRulesProvider,
+from app.services.cleanup.build_artifact_cleanup_factory import (
+    BuildArtifactCleanupFactory,
 )
 
 class Bootstrap:
     """
-    Responsável por criar e inicializar a aplicação.
+    ResponsÃ¡vel por criar e inicializar a aplicaÃ§Ã£o.
     """
 
     def __init__(
@@ -256,7 +252,7 @@ class Bootstrap:
         configuration_path = Path("config")
 
         #
-        # Configurações
+        # ConfiguraÃ§Ãµes
         #
 
         self.configuration_loader = ConfigurationLoader(
@@ -283,7 +279,7 @@ class Bootstrap:
             )
         )
         #
-        # Repositórios
+        # RepositÃ³rios
         #
 
         self.project_repository = JsonProjectRepository(
@@ -331,7 +327,7 @@ class Bootstrap:
             )
         )
         #
-        # Repositório de execuções
+        # RepositÃ³rio de execuÃ§Ãµes
         #
 
         self.pipeline_execution_repository = (
@@ -450,11 +446,7 @@ class Bootstrap:
             )
         )
 
-        self.cleanup_rules_provider = CleanupRulesProvider()
-
-        self.cleanup_service = BuildArtifactCleanupService(
-            rules=self.cleanup_rules_provider.get_rules(),
-        )
+        self.cleanup_factory = BuildArtifactCleanupFactory()
 
         self.advanced_installer_aip_file_parser = (
             AdvancedInstallerAipFileParser()
@@ -488,7 +480,7 @@ class Bootstrap:
                 advanced_installer_path=(
                     self.settings.build_tools.advanced_installer_path
                 ),
-                cleanup_service=self.cleanup_service,
+                cleanup_factory=self.cleanup_factory,
                 aip_synchronizer=(
                     self.advanced_installer_aip_synchronizer
                 ),
@@ -511,7 +503,7 @@ class Bootstrap:
         )
 
         #
-        # Preparação do projeto Visual Studio Setup
+        # PreparaÃ§Ã£o do projeto Visual Studio Setup
         #
 
         self.vdproj_block_parser = (
@@ -676,17 +668,17 @@ class Bootstrap:
         self,
     ) -> FastAPI:
         """
-        Cria e configura a aplicação.
+        Cria e configura a aplicaÃ§Ã£o.
         """
 
         app = FastAPI(
             title="OuroBuild",
-            description="Sistema interno de automação de builds da OuroWeb",
+            description="Sistema interno de automaÃ§Ã£o de builds da OuroWeb",
             version=self.settings.version,
         )
 
         #
-        # Tratamento global de exceções
+        # Tratamento global de exceÃ§Ãµes
         #
 
         register_exception_handlers(

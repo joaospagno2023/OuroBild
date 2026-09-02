@@ -48,6 +48,9 @@ from app.models.setup.setup_result import (
     SetupResult,
 )
 
+from app.services.cleanup.build_artifact_cleanup_factory import (
+    BuildArtifactCleanupFactory,
+)
 from app.services.cleanup.build_artifact_cleanup_service import (
     BuildArtifactCleanupService,
 )
@@ -139,13 +142,21 @@ def create_service(
         spec=AdvancedInstallerAipSynchronizer,
     )
 
+    cleanup_factory = MagicMock(
+        spec=BuildArtifactCleanupFactory,
+    )
+
+    cleanup_factory.create.return_value = (
+        cleanup_service
+    )
+
     service = (
         AdvancedInstallerService(
             process_service=process_service,
             advanced_installer_path=(
                 advanced_installer_path
             ),
-            cleanup_service=cleanup_service,
+            cleanup_factory=cleanup_factory,
             aip_synchronizer=aip_synchronizer,
         )
     )
@@ -480,15 +491,20 @@ def test_deve_executar_refresh_sync_antes_do_build(
         for argument in second_command.arguments
     ]
 
+    workspace_aip_path = (
+        paths.aip_path.parent
+        / (paths.aip_path.stem + ".build.aip")
+    )
+
     assert first_arguments == [
         "/edit",
-        str(paths.aip_path),
+        str(workspace_aip_path),
         "/RefreshSync",
     ]
 
     assert second_arguments == [
         "/build",
-        str(paths.aip_path),
+        str(workspace_aip_path),
     ]
 
 
@@ -564,9 +580,14 @@ def test_deve_montar_comando_refresh_sync_do_advanced_installer(
         for argument in command.arguments
     ]
 
+    workspace_aip_path = (
+        paths.aip_path.parent
+        / (paths.aip_path.stem + ".build.aip")
+    )
+
     assert arguments == [
         "/edit",
-        str(paths.aip_path),
+        str(workspace_aip_path),
         "/RefreshSync",
     ]
 
@@ -643,9 +664,14 @@ def test_deve_montar_comando_build_do_advanced_installer(
         for argument in command.arguments
     ]
 
+    workspace_aip_path = (
+        paths.aip_path.parent
+        / (paths.aip_path.stem + ".build.aip")
+    )
+
     assert arguments == [
         "/build",
-        str(paths.aip_path),
+        str(workspace_aip_path),
     ]
 
 
@@ -861,6 +887,14 @@ def test_deve_rejeitar_advanced_installer_inexistente(
         spec=BuildArtifactCleanupService,
     )
 
+    cleanup_factory = MagicMock(
+        spec=BuildArtifactCleanupFactory,
+    )
+
+    cleanup_factory.create.return_value = (
+        cleanup_service
+    )
+
     aip_synchronizer = MagicMock(
         spec=AdvancedInstallerAipSynchronizer,
     )
@@ -872,7 +906,7 @@ def test_deve_rejeitar_advanced_installer_inexistente(
                 tmp_path
                 / "AdvancedInstaller.com"
             ),
-            cleanup_service=cleanup_service,
+            cleanup_factory=cleanup_factory,
             aip_synchronizer=aip_synchronizer,
         )
     )

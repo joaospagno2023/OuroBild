@@ -49,8 +49,8 @@ from app.models.setup.setup_result import (
     SetupResult,
 )
 
-from app.services.cleanup.build_artifact_cleanup_service import (
-    BuildArtifactCleanupService,
+from app.services.cleanup.build_artifact_cleanup_factory import (
+    BuildArtifactCleanupFactory,
 )
 
 from app.services.setup.advanced_installer_aip_synchronizer import (
@@ -69,7 +69,7 @@ class AdvancedInstallerService(
         self,
         process_service: ProcessService,
         advanced_installer_path: Path,
-        cleanup_service: BuildArtifactCleanupService,
+        cleanup_factory: BuildArtifactCleanupFactory,
         aip_synchronizer: AdvancedInstallerAipSynchronizer,
     ) -> None:
         """
@@ -77,28 +77,24 @@ class AdvancedInstallerService(
         """
 
         if process_service is None:
-
             raise ValueError(
                 "ProcessService "
                 "não foi informado."
             )
 
         if advanced_installer_path is None:
-
             raise ValueError(
                 "Caminho do Advanced Installer "
                 "não foi informado."
             )
 
-        if cleanup_service is None:
-
+        if cleanup_factory is None:
             raise ValueError(
-                "BuildArtifactCleanupService "
+                "BuildArtifactCleanupFactory "
                 "não foi informado."
             )
 
         if aip_synchronizer is None:
-
             raise ValueError(
                 "AdvancedInstallerAipSynchronizer "
                 "não foi informado."
@@ -112,8 +108,8 @@ class AdvancedInstallerService(
             advanced_installer_path,
         )
 
-        self.__cleanup_service = (
-            cleanup_service
+        self.__cleanup_factory = (
+            cleanup_factory
         )
 
         self.__aip_synchronizer = (
@@ -131,15 +127,16 @@ class AdvancedInstallerService(
 
         O fluxo executado é:
 
-            1. Cleanup dos artefatos da publicação.
-            2. Sincronização do AIP com os arquivos reais
+            1. Criação do serviço de cleanup específico do projeto.
+            2. Cleanup dos artefatos da publicação.
+            3. Sincronização do AIP com os arquivos reais
                do Release (KEEP/ADD/REMOVE + versão),
                sempre em cima de uma cópia de trabalho.
-            3. Atualização do PATHFOLDER para a pasta de saída
+            4. Atualização do PATHFOLDER para a pasta de saída
                configurada (output_root/version.revision/...).
-            4. RefreshSync do AIP de trabalho.
-            5. Build do AIP de trabalho.
-            6. Validação do MSI gerado.
+            5. RefreshSync do AIP de trabalho.
+            6. Build do AIP de trabalho.
+            7. Validação do MSI gerado.
         """
 
         self.__validate(
@@ -152,15 +149,20 @@ class AdvancedInstallerService(
             paths.publish_path,
         )
 
+        cleanup_service = (
+            self.__cleanup_factory.create(
+                project_id=request.project_id,
+            )
+        )
+
         cleanup_result = (
-            self.__cleanup_service.execute(
+            cleanup_service.execute(
                 workspace_path=publish_path,
                 project_id=request.project_id,
             )
         )
 
         if cleanup_result.errors:
-
             return SetupResult(
                 success=False,
                 message=(
@@ -191,7 +193,8 @@ class AdvancedInstallerService(
 
         aip_dir = original_aip_path.parent
 
-        # Nome da cópia de trabalho (ex.: OuroNet...build.aip)
+        # Nome da cópia de trabalho
+        # (ex.: OuroNet...build.aip)
         workspace_aip_path = aip_dir / (
             original_aip_path.stem + ".build.aip"
         )
@@ -257,7 +260,6 @@ class AdvancedInstallerService(
         #
 
         try:
-
             self.__aip_synchronizer.synchronize(
                 aip_path=workspace_aip_path,
                 version=definition.version,
@@ -265,7 +267,6 @@ class AdvancedInstallerService(
             )
 
         except Exception as exc:
-
             return SetupResult(
                 success=False,
                 message=(
@@ -288,7 +289,6 @@ class AdvancedInstallerService(
             refresh_sync_result.status
             != ProcessStatus.SUCCESS
         ):
-
             return self.__create_process_failure_result(
                 request=request,
                 process_result=refresh_sync_result,
@@ -305,7 +305,6 @@ class AdvancedInstallerService(
             build_result.status
             != ProcessStatus.SUCCESS
         ):
-
             return self.__create_process_failure_result(
                 request=request,
                 process_result=build_result,
@@ -325,7 +324,6 @@ class AdvancedInstallerService(
         )
 
         if not output_msi.exists():
-
             return SetupResult(
                 success=False,
                 message=(
@@ -341,7 +339,8 @@ class AdvancedInstallerService(
                 ),
             )
 
-        # Remover a cópia de trabalho; o AIP original permanece intacto.
+        # Remover a cópia de trabalho;
+        # o AIP original permanece intacto.
         try:
             if workspace_aip_path.exists():
                 workspace_aip_path.unlink()
@@ -386,18 +385,21 @@ class AdvancedInstallerService(
         except OSError:
             return
 
-        # Caminho relativo do output_folder em relação ao diretório do AIP.
+        # Caminho relativo do output_folder em relação
+        # ao diretório do AIP.
         try:
             relative_folder = os.path.relpath(
                 output_folder,
                 start=aip_path.parent,
             )
         except ValueError:
-            # Se não conseguir resolver relativo (drivers diferentes, etc.),
+            # Se não conseguir resolver relativo
+            # (drivers diferentes, etc.),
             # cai para o caminho absoluto mesmo.
             relative_folder = str(output_folder)
 
-        # Normalizar para separadores de Windows, como no AIP original.
+        # Normalizar para separadores de Windows,
+        # como no AIP original.
         relative_folder = (
             str(relative_folder)
             .replace("/", "\\")
@@ -430,7 +432,8 @@ class AdvancedInstallerService(
         )
 
         if count == 0:
-            # Nenhuma linha PATHFOLDER encontrada; não falha o fluxo.
+            # Nenhuma linha PATHFOLDER encontrada;
+            # não falha o fluxo.
             return
 
         try:
@@ -439,7 +442,8 @@ class AdvancedInstallerService(
                 encoding="utf-8",
             )
         except OSError:
-            # Se não conseguir gravar, não interrompe o fluxo.
+            # Se não conseguir gravar,
+            # não interrompe o fluxo.
             return
 
     def __execute_refresh_sync(
@@ -502,35 +506,30 @@ class AdvancedInstallerService(
         """
 
         if request is None:
-
             raise ValueError(
                 "A solicitação de Setup "
                 "não foi informada."
             )
 
         if definition is None:
-
             raise ValueError(
                 "A definição do Setup "
                 "não foi informada."
             )
 
         if paths is None:
-
             raise ValueError(
                 "Os caminhos do Setup "
                 "não foram informados."
             )
 
         if paths.publish_path is None:
-
             raise ValueError(
                 "O caminho de publicação "
                 "não foi informado."
             )
 
         if not self.__advanced_installer_path.exists():
-
             raise FileNotFoundError(
                 "AdvancedInstaller.com "
                 "não encontrado: "
@@ -538,7 +537,6 @@ class AdvancedInstallerService(
             )
 
         if not self.__advanced_installer_path.is_file():
-
             raise ValueError(
                 "O caminho do Advanced Installer "
                 "não é um arquivo: "
@@ -550,7 +548,6 @@ class AdvancedInstallerService(
         )
 
         if not aip_path.exists():
-
             raise FileNotFoundError(
                 "Arquivo AIP "
                 "não encontrado: "
@@ -558,7 +555,6 @@ class AdvancedInstallerService(
             )
 
         if not aip_path.is_file():
-
             raise ValueError(
                 "O caminho do AIP "
                 "não é um arquivo: "
@@ -662,7 +658,7 @@ class AdvancedInstallerService(
                 + process_result.duration
             ),
         )
-    
+
     def __update_msiname(
         self,
         aip_path: Path,
@@ -680,13 +676,15 @@ class AdvancedInstallerService(
         aip_path = Path(aip_path)
         output_msi = Path(output_msi)
 
-        # Usa só o nome base; o Advanced Installer adiciona .msi
+        # Usa só o nome base;
+        # o Advanced Installer adiciona .msi
         if output_msi.suffix.lower() == ".msi":
             msi_name = output_msi.stem
         else:
             msi_name = output_msi.name
 
         msi_name = msi_name.strip()
+
         if not msi_name:
             return
 
@@ -723,7 +721,8 @@ class AdvancedInstallerService(
         )
 
         if count == 0:
-            # Nenhuma MSINAME encontrada; não quebra a geração.
+            # Nenhuma MSINAME encontrada;
+            # não quebra a geração.
             return
 
         try:
@@ -732,6 +731,6 @@ class AdvancedInstallerService(
                 encoding="utf-8",
             )
         except OSError:
-            # Se não conseguir gravar, apenas segue com o valor antigo.
+            # Se não conseguir gravar,
+            # apenas segue com o valor antigo.
             return
-

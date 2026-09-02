@@ -406,3 +406,819 @@
 2026-08-31 16:37:54 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
 2026-08-31 16:37:54 | INFO    | PipelineLogger.write | Steps............: 1
 2026-08-31 16:37:54 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1794642227424'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1794642228096'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Elapsed.........: 0.020418
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1794642225072'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1794642218352'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Elapsed.........: 0.012249
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1794642222048'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1794642229776'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Elapsed.........: 0.018834
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1794642222720'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1794642216336'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Elapsed.........: 0.019624
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | 
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:31:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1919937343712'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1919937344384'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Elapsed.........: 0.017013
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1919937341360'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1919937334640'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Elapsed.........: 0.010034
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1919937338336'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1919937346064'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Elapsed.........: 0.012791
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1919937339008'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1919937332624'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Elapsed.........: 0.016592
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:43:50 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1832354771168'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1832354771840'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Elapsed.........: 0.015417
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1832354768816'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1832354762096'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Elapsed.........: 0.010023
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1832354765792'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1832354773520'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Elapsed.........: 0.011238
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1832354766464'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1832354760080'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Elapsed.........: 0.01533
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | 
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 14:43:59 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1655904443696'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1655904442688'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Elapsed.........: 0.01846
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1655904438656'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1655904437648'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Elapsed.........: 0.009873
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1655903665664'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1655904446720'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Elapsed.........: 0.016871
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Pipeline.......: Teste Publish
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Quantidade Steps: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | STEP CLASS.....: MagicMock
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Step............: <MagicMock name='Publish.name' id='1655904448064'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Status..........: <MagicMock name='Publish.status' id='1655904436304'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PUBLISH EXECUTION
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PUBLISH ARMAZENADO EM PipelineResult
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Elapsed.........: 0.013573
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Build...........: None
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Publish.........: Executado
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Steps executadas: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | 
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Build............: <class 'NoneType'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Publish..........: <class 'app.models.publish.publish_execution.PublishExecution'>
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | Steps............: 1
+2026-09-01 16:31:47 | INFO    | PipelineLogger.write | ================================================================================

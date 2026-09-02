@@ -17,43 +17,23 @@ from app.services.cleanup.cleanup_rules_provider import (
 
 
 def test_deve_retornar_regras_globais():
-
     rules = (
         CleanupRulesProvider.get_rules()
     )
 
-    assert len(rules) == 4
+    assert len(rules) == 2
 
     assert any(
         rule.target == CleanupTarget.FILE
-        and rule.pattern == "*.pdb"
-        and rule.action
-        == CleanupAction.REMOVE
-        for rule in rules
-    )
-
-    assert any(
-        rule.target == CleanupTarget.FILE
-        and rule.pattern == "*.xml"
-        and rule.action
-        == CleanupAction.REMOVE
-        for rule in rules
-    )
-
-    assert any(
-        rule.target == CleanupTarget.FILE
-        and rule.pattern == "*.config"
-        and rule.action
-        == CleanupAction.REMOVE
-        for rule in rules
-    )
-
-    assert any(
-        rule.target
-        == CleanupTarget.DIRECTORY
         and rule.pattern == "*"
-        and rule.action
-        == CleanupAction.REMOVE
+        and rule.action == CleanupAction.REMOVE
+        for rule in rules
+    )
+
+    assert any(
+        rule.target == CleanupTarget.DIRECTORY
+        and rule.pattern == "*"
+        and rule.action == CleanupAction.REMOVE
         for rule in rules
     )
 
@@ -129,7 +109,7 @@ def test_projeto_desconhecido_deve_receber_somente_regras_globais():
         )
     )
 
-    assert len(rules) == 4
+    assert len(rules) == 2
 
     assert all(
         rule.project_id is None
@@ -137,7 +117,7 @@ def test_projeto_desconhecido_deve_receber_somente_regras_globais():
     )
 
 
-def test_deve_retornar_quatro_regras_globais():
+def test_deve_retornar_duas_regras_globais():
 
     rules = (
         CleanupRulesProvider.get_rules()
@@ -149,7 +129,34 @@ def test_deve_retornar_quatro_regras_globais():
         if rule.project_id is None
     ]
 
-    assert len(global_rules) == 4
+    assert len(global_rules) == 2
+
+
+def test_regra_global_de_arquivo_deve_remover():
+
+    rules = (
+        CleanupRulesProvider.get_rules()
+    )
+
+    rule = next(
+        rule
+        for rule in rules
+        if (
+            rule.target
+            == CleanupTarget.FILE
+            and rule.pattern == "*"
+        )
+    )
+
+    assert (
+        rule.action
+        == CleanupAction.REMOVE
+    )
+
+    assert (
+        rule.project_id
+        is None
+    )
 
 
 def test_regra_global_de_diretorio_deve_remover():
@@ -216,7 +223,46 @@ def test_linkpagamento_deve_manter_regra_global_de_diretorio():
     )
 
 
+def test_linkpagamento_deve_ter_regra_global_de_arquivo_e_excecao_config():
+
+    rules = (
+        CleanupRulesProvider.get_rules(
+            project_id="linkpagamento",
+        )
+    )
+
+    file_rules = [
+        rule
+        for rule in rules
+        if (
+            rule.target
+            == CleanupTarget.FILE
+        )
+    ]
+
+    assert len(file_rules) == 3
+
+    assert any(
+        rule.pattern == "*"
+        and rule.action
+        == CleanupAction.REMOVE
+        and rule.project_id is None
+        for rule in file_rules
+    )
+
+    assert any(
+        rule.pattern
+        == "OuroNetWinServiceLinkPagamento.exe.config"
+        and rule.action
+        == CleanupAction.PRESERVE
+        and rule.project_id
+        == "linkpagamento"
+        for rule in file_rules
+    )
+
+
 def test_movement_deve_ter_regra_global_e_excecao_xml():
+
 
     rules = (
         CleanupRulesProvider.get_rules(
@@ -249,4 +295,71 @@ def test_movement_deve_ter_regra_global_e_excecao_xml():
         == CleanupAction.PRESERVE
         and rule.project_id == "movement"
         for rule in directory_rules
+    )
+    
+def test_linkpagamento_deve_ter_regras_globais_e_excecoes_de_arquivos():
+
+    rules = (
+        CleanupRulesProvider.get_rules(
+            project_id="linkpagamento",
+        )
+    )
+
+    file_rules = [
+        rule
+        for rule in rules
+        if (
+            rule.target
+            == CleanupTarget.FILE
+        )
+    ]
+
+    assert len(file_rules) == 3
+
+    #
+    # Regra global:
+    #
+    #     todos os arquivos -> REMOVE
+    #
+
+    assert any(
+        rule.pattern == "*"
+        and rule.action
+        == CleanupAction.REMOVE
+        and rule.project_id is None
+        for rule in file_rules
+    )
+
+    #
+    # Exceção:
+    #
+    #     OuroNetWinServiceLinkPagamento.exe
+    #         -> PRESERVE
+    #
+
+    assert any(
+        rule.pattern
+        == "OuroNetWinServiceLinkPagamento.exe"
+        and rule.action
+        == CleanupAction.PRESERVE
+        and rule.project_id
+        == "linkpagamento"
+        for rule in file_rules
+    )
+
+    #
+    # Exceção:
+    #
+    #     OuroNetWinServiceLinkPagamento.exe.config
+    #         -> PRESERVE
+    #
+
+    assert any(
+        rule.pattern
+        == "OuroNetWinServiceLinkPagamento.exe.config"
+        and rule.action
+        == CleanupAction.PRESERVE
+        and rule.project_id
+        == "linkpagamento"
+        for rule in file_rules
     )

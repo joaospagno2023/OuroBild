@@ -24,12 +24,13 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
     Deve aplicar as regras globais e específicas do
     projeto LinkPagamento.
 
-    Regras globais:
+    Regra global de arquivos:
 
-        *.pdb     -> REMOVE
-        *.xml     -> REMOVE
-        *.config  -> REMOVE
-        log       -> REMOVE
+        * -> REMOVE
+
+    Regra global de diretórios:
+
+        * -> REMOVE
 
     Regra específica:
 
@@ -121,8 +122,13 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
     )
 
     #
-    # Arquivo cujo nome contém Config,
-    # mas não possui extensão .config.
+    # DLL contendo "Config" no nome.
+    #
+    # A regra global atual é:
+    #
+    #     * -> REMOVE
+    #
+    # Portanto ela deve ser removida.
     #
 
     config_dll = (
@@ -226,6 +232,8 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
 
     assert not config_file.exists()
 
+    assert not config_dll.exists()
+
     #
     # ============================================================
     # 6. Configuração específica deve ser preservada.
@@ -238,30 +246,20 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
 
     #
     # ============================================================
-    # 7. Nome contendo Config não deve ser removido.
-    # ============================================================
-    #
-
-    assert (
-        config_dll.exists()
-    )
-
-    #
-    # ============================================================
-    # 8. Diretório log deve ser removido.
+    # 7. Diretório log deve ser removido.
     # ============================================================
     #
 
     assert not log_directory.exists()
 
     #
-# ============================================================
-# 9. Diretório normal também deve ser removido.
-#
-# No LinkPagamento, a regra global determina que todos
-# os diretórios do Release sejam removidos.
-# ============================================================
-#
+    # ============================================================
+    # 8. Diretório normal também deve ser removido.
+    #
+    # A regra global determina que todos os diretórios
+    # do Release sejam removidos.
+    # ============================================================
+    #
 
     assert not x64_directory.exists()
 
@@ -269,17 +267,21 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
 
     #
     # ============================================================
-    # 10. Arquivo normal deve permanecer.
+    # 9. Arquivo normal também deve ser removido.
+    #
+    # A política atual é:
+    #
+    #     FILE "*" -> REMOVE
+    #
+    # Portanto, nenhum arquivo comum permanece no Release.
     # ============================================================
     #
 
-    assert (
-        dll_file.exists()
-    )
+    assert not dll_file.exists()
 
     #
     # ============================================================
-    # 11. Resultado deve indicar sucesso.
+    # 10. Resultado deve indicar sucesso.
     # ============================================================
     #
 
@@ -287,11 +289,12 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
 
     #
     # ============================================================
-    # 12. Diagnóstico.
+    # 11. Diagnóstico.
     # ============================================================
     #
 
     print()
+
     print(
         "=" * 80
     )
@@ -321,7 +324,7 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
     )
 
     print(
-        "[OuroBuild] MeuConfig.dll preservado: OK"
+        "[OuroBuild] MeuConfig.dll removido: OK"
     )
 
     print(
@@ -329,11 +332,11 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
     )
 
     print(
-        "[OuroBuild] x64 preservado: OK"
+        "[OuroBuild] x64 removido: OK"
     )
 
     print(
-        "[OuroBuild] Arquivo normal preservado: OK"
+        "[OuroBuild] Arquivo normal removido: OK"
     )
 
     print(
