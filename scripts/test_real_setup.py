@@ -65,7 +65,7 @@ from app.bootstrap import Bootstrap
 from app.models.setup.setup_request import SetupRequest
 
 
-PROJECT_ID = "linkpagamento"
+PROJECT_ID = "wcfmovimento"
 ENVIRONMENT_ID = "production"
 
 
@@ -133,6 +133,29 @@ def main() -> int:
     print(f"[OuroBuild] Mensagem    : {result.message}")
     print(f"[OuroBuild] MSI         : {result.output_msi}")
     print(f"[OuroBuild] Duração     : {result.duration_seconds:.2f}s")
+
+    if result.steps:
+        print()
+        print("[OuroBuild] ETAPAS")
+
+        for step in result.steps:
+            print(
+                f"[OuroBuild] {step.name:<12} : {step.status.value}"
+            )
+
+            if step.message:
+                print(
+                    f"[OuroBuild]   Mensagem: {step.message}"
+                )
+
+            if step.errors:
+                print("[OuroBuild]   Erros:")
+
+                for error in step.errors:
+                    print(
+                        f"[OuroBuild]     - {error}"
+                    )
+
     print("=" * 80)
     print()
 

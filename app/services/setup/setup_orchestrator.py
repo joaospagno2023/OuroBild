@@ -17,12 +17,28 @@ from app.models.setup.setup_engine import (
     SetupEngine,
 )
 
+from app.models.build.build_request import (
+    BuildRequest,
+)
+
+from app.use_cases.execute_build_use_case import (
+    ExecuteBuildUseCase,
+)
+
 from app.models.setup.setup_request import (
     SetupRequest,
 )
 
 from app.models.setup.setup_result import (
     SetupResult,
+)
+
+from app.models.pipeline.step_result import (
+    StepResult,
+)
+
+from app.models.pipeline.step_status import (
+    StepStatus,
 )
 
 from app.services.setup.advanced_installer_setup_definition_loader import (
@@ -35,10 +51,6 @@ from app.services.setup.setup_factory import (
 
 from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
-)
-
-from app.workspace.workspace_context import (
-    WorkspaceContext,
 )
 
 from app.workspace.workspace_resolver import (
@@ -54,10 +66,11 @@ class DefaultSetupOrchestrator:
 
         1. Resolve o Workspace.
         2. Valida o Engine.
-        3. Resolve os caminhos do Setup.
-        4. Carrega a definição do Advanced Installer.
-        5. Obtém o InstallerService através da Factory.
-        6. Executa a geração do Setup.
+        3. Executa o Build completo do projeto, quando configurado.
+        4. Resolve os caminhos do Setup.
+        5. Carrega a definição do Advanced Installer.
+        6. Obtém o InstallerService através da Factory.
+        7. Executa a geração do Setup.
 
     O Orchestrator não possui conhecimento dos detalhes internos
     do Advanced Installer.
@@ -71,6 +84,7 @@ class DefaultSetupOrchestrator:
             AdvancedInstallerSetupDefinitionLoader
         ),
         setup_factory: DefaultSetupFactory,
+        execute_build_use_case: ExecuteBuildUseCase | None = None,
         settings: AppSettings | None = None,
     ) -> None:
         """
@@ -78,26 +92,22 @@ class DefaultSetupOrchestrator:
         """
 
         if workspace_resolver is None:
-
             raise ValueError(
                 "WorkspaceResolver não foi informado."
             )
 
         if setup_path_resolver is None:
-
             raise ValueError(
                 "SetupPathResolver não foi informado."
             )
 
         if advanced_installer_definition_loader is None:
-
             raise ValueError(
                 "AdvancedInstallerSetupDefinitionLoader "
                 "não foi informado."
             )
 
         if setup_factory is None:
-
             raise ValueError(
                 "SetupFactory não foi informado."
             )
@@ -118,6 +128,10 @@ class DefaultSetupOrchestrator:
             setup_factory
         )
 
+        self.__execute_build_use_case = (
+            execute_build_use_case
+        )
+
         self.__settings = settings
 
     def execute(
@@ -129,7 +143,6 @@ class DefaultSetupOrchestrator:
         """
 
         if request is None:
-
             raise ValueError(
                 "SetupRequest não foi informado."
             )
@@ -154,7 +167,6 @@ class DefaultSetupOrchestrator:
             )
 
             if workspace is None:
-
                 raise ValueError(
                     "Workspace não foi encontrado "
                     "para o projeto: "
@@ -172,12 +184,61 @@ class DefaultSetupOrchestrator:
             )
 
             if engine != SetupEngine.ADVANCED_INSTALLER:
-
                 raise ValueError(
                     "O OuroBuild utiliza exclusivamente "
                     "o Advanced Installer para geração "
                     f"de Setup. Engine configurado: {engine}"
                 )
+
+            #
+            # ========================================================
+            # Build do projeto
+            # ========================================================
+            #
+
+            if (
+                request.run_build
+                and self.__execute_build_use_case is not None
+            ):
+
+                build_request = BuildRequest(
+                    project_id=request.project_id,
+                    environment_id=request.environment_id,
+                    version=request.version,
+                    revision=request.revision,
+                )
+
+                build_result = (
+                    self.__execute_build_use_case.execute(
+                        build_request,
+                    )
+                )
+
+                if not build_result.success:
+
+                    failed_step = (
+                        build_result.failed_step
+                        or "Build"
+                    )
+
+                    message = (
+                        "Falha durante o Build do projeto. "
+                        f"Etapa: {failed_step}. "
+                        f"{build_result.message}"
+                    ).strip()
+
+                    return SetupResult(
+                        success=False,
+                        message=message,
+                        project_id=request.project_id,
+                        output_msi=None,
+                        duration_seconds=(
+                            build_result.elapsed_seconds
+                        ),
+                        steps=list(
+                            build_result.steps
+                        ),
+                    )
 
             #
             # ========================================================
@@ -218,7 +279,6 @@ class DefaultSetupOrchestrator:
             )
 
             if paths is None:
-
                 raise ValueError(
                     "SetupPathResolver não retornou "
                     "os caminhos do Setup."
@@ -251,7 +311,6 @@ class DefaultSetupOrchestrator:
             )
 
             if definition is None:
-
                 raise ValueError(
                     "AdvancedInstallerSetupDefinitionLoader "
                     "não retornou uma definição de Setup."
@@ -270,7 +329,6 @@ class DefaultSetupOrchestrator:
             )
 
             if installer is None:
-
                 raise ValueError(
                     "SetupFactory não retornou "
                     "um InstallerService."
@@ -282,23 +340,61 @@ class DefaultSetupOrchestrator:
             # ========================================================
             #
 
-            return installer.install(
+            setup_result = installer.install(
                 request=request,
                 definition=definition,
                 paths=paths,
             )
 
+            setup_message = (
+                setup_result.message
+                if not setup_result.success
+                else "Setup gerado com sucesso."
+            )
+
+            setup_result.steps.append(
+                StepResult(
+                    name="Setup",
+                    status=(
+                        StepStatus.SUCCESS
+                        if setup_result.success
+                        else StepStatus.FAILED
+                    ),
+                    message=setup_message,
+                    elapsed_seconds=(
+                        setup_result.duration_seconds
+                    ),
+                    errors=(
+                        [setup_result.message]
+                        if not setup_result.success
+                        else []
+                    ),
+                )
+            )
+
+            return setup_result
+
         except Exception as exception:
+
+            message = (
+                "Erro durante a geração do Setup: "
+                f"{exception}"
+            )
 
             return SetupResult(
                 success=False,
-                message=(
-                    "Erro durante a geração do Setup: "
-                    f"{exception}"
-                ),
+                message=message,
                 project_id=(
                     request.project_id
                 ),
+                steps=[
+                    StepResult(
+                        name="Setup",
+                        status=StepStatus.FAILED,
+                        message=message,
+                        errors=[message],
+                    ),
+                ],
             )
 
     def __get_engine(
@@ -312,7 +408,6 @@ class DefaultSetupOrchestrator:
         """
 
         if self.__settings is None:
-
             return SetupEngine.ADVANCED_INSTALLER
 
         engine = (
@@ -323,7 +418,6 @@ class DefaultSetupOrchestrator:
             engine,
             str,
         ):
-
             engine = SetupEngine(
                 engine,
             )
@@ -332,79 +426,33 @@ class DefaultSetupOrchestrator:
 
     def __get_project_root(
         self,
-        workspace: WorkspaceContext,
+        workspace,
     ) -> Path:
         """
         Obtém a raiz física do projeto.
 
-        Utiliza o caminho já resolvido pelo WorkspaceResolver
-        (environment.root_path combinado com
-        project.project_path), garantindo que caminhos
-        relativos configurados no projects.json (como
-        publish_path) sejam calculados a partir da raiz
-        física correta do ambiente (ex.: Produção, Versionado),
-        e não a partir do diretório de trabalho do processo.
+        A raiz deve ser derivada do arquivo de projeto
+        já resolvido pelo WorkspaceResolver.
         """
 
-        if getattr(
-            workspace,
-            "project_file",
-            None,
-        ):
-
-            return Path(
-                workspace.project_file,
-            ).parent
-
-        project = workspace.project
-
-        if getattr(
-            project,
-            "publish_path",
-            None,
-        ):
-
-            return Path(
-                project.publish_path,
-            ).parent
-
-        return Path.cwd()
+        return Path(
+            workspace.project_file,
+        ).parent
 
     def __get_workspace_root(
         self,
-        workspace: WorkspaceContext,
+        workspace,
     ) -> Path:
         """
-        Obtém a raiz física do Workspace.
+        Obtém a raiz física do ambiente.
 
-        Utiliza o caminho já resolvido pelo WorkspaceResolver
-        como base. Quando não disponível, utiliza a raiz
-        derivada do projeto.
+        A raiz deve ser a mesma utilizada pelo
+        WorkspaceResolver para resolver o projeto.
         """
 
-        if getattr(
-            workspace,
-            "project_file",
-            None,
-        ):
-
-            return Path(
-                workspace.project_file,
-            ).parent
-
-        project = workspace.project
-
-        if getattr(
-            project,
-            "publish_path",
-            None,
-        ):
-
-            return Path(
-                project.publish_path,
-            ).parent
-
-        return Path.cwd()
+        return Path(
+            workspace.environment.root_path,
+        )
 
     def __get_installer_root(
         self,
@@ -414,7 +462,6 @@ class DefaultSetupOrchestrator:
         """
 
         if self.__settings is not None:
-
             return Path(
                 self.__settings.setup.output_root,
             )
@@ -430,7 +477,6 @@ class DefaultSetupOrchestrator:
         """
 
         if self.__settings is not None:
-
             return Path(
                 self.__settings.setup.aip_root,
             )
@@ -440,7 +486,6 @@ class DefaultSetupOrchestrator:
             "aip_path",
             None,
         ):
-
             return Path(
                 project.aip_path,
             ).parent

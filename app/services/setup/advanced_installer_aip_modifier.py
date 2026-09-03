@@ -623,6 +623,7 @@ class AdvancedInstallerAipModifier(
                 # Isso impede que um FileName repetido em outra pasta
                 # seja atualizado por engano.
                 #
+
                 if not matches_relative_path:
                     return row_match.group(
                         "row",
@@ -632,7 +633,9 @@ class AdvancedInstallerAipModifier(
                 # Se temos aip_file_id, ele deve corresponder ao
                 # atributo File do AIP.
                 #
+
                 if normalized_aip_file_id:
+
                     if not matches_aip_file_id:
                         return row_match.group(
                             "row",
@@ -641,13 +644,14 @@ class AdvancedInstallerAipModifier(
                 #
                 # Sem aip_file_id, usamos FileName como fallback.
                 #
+
                 elif not matches_file_name:
                     return row_match.group(
                         "row",
                     )
 
                 updated_row, count = (
-                    source_pattern.subn(
+                    source_pattern.sub(
                         lambda source_match: (
                             source_match.group("prefix")
                             + escaped_source_path
@@ -655,7 +659,8 @@ class AdvancedInstallerAipModifier(
                         ),
                         row_match.group("row"),
                         count=1,
-                    )
+                    ),
+                    1,
                 )
 
                 if count == 0:
@@ -725,7 +730,9 @@ class AdvancedInstallerAipModifier(
             r'(?P<header>'
             r'<COMPONENT\b'
             r'(?=[^>]*\bcid\s*=\s*"'
-            + re.escape(cls.__MSI_FILES_COMPONENT)
+            + re.escape(
+                cls.__MSI_FILES_COMPONENT,
+            )
             + r'"'
             r')'
             r'[^>]*>'
@@ -872,7 +879,11 @@ class AdvancedInstallerAipModifier(
         Adiciona um arquivo individual ao
         MsiFilesComponent.
 
-        O arquivo é identificado pelo source_path.
+        O nome físico do arquivo permanece em FileName.
+
+        Os atributos File e Component_ utilizam um
+        identificador MSI válido e independente do
+        nome físico.
         """
 
         source_path = (
@@ -957,6 +968,12 @@ class AdvancedInstallerAipModifier(
             )
         )
 
+        escaped_identifier = (
+            cls.__escape_attribute(
+                component_id,
+            )
+        )
+
         escaped_name = (
             cls.__escape_attribute(
                 name,
@@ -972,8 +989,9 @@ class AdvancedInstallerAipModifier(
         new_row = (
             "\n"
             "  <ROW\n"
-            f'    File="{escaped_name}"\n'
-            f'    Component_="{component_id}"\n'
+            f'    File="{escaped_identifier}"\n'
+            f'    Component_="{escaped_identifier}"\n'
+            f'    FileName="{escaped_name}"\n'
             f'    SourcePath="{escaped_source_path}"\n'
             "  />\n"
         )
@@ -985,12 +1003,14 @@ class AdvancedInstallerAipModifier(
         )
 
         if insertion_position < 0:
+
             updated_body = (
                 body
                 + new_row
             )
 
         else:
+
             updated_body = (
                 body[:insertion_position]
                 + new_row
@@ -1047,7 +1067,9 @@ class AdvancedInstallerAipModifier(
             re.IGNORECASE | re.DOTALL,
         )
 
-        for match in row_pattern.finditer(body):
+        for match in row_pattern.finditer(
+            body,
+        ):
 
             current_name = (
                 str(
@@ -1078,10 +1100,20 @@ class AdvancedInstallerAipModifier(
         name: str,
     ) -> str:
         """
-        Cria um Component_ único para o novo arquivo.
+        Cria um identificador MSI único e válido.
 
-        O nome do arquivo é utilizado como base.
-        Quando já existir, um sufixo numérico é acrescentado.
+        O identificador não é o nome físico do arquivo.
+
+        Exemplo:
+
+            protobuf-net.dll
+                ->
+            protobufnet.dll
+
+        Caracteres não permitidos são removidos.
+
+        Quando o identificador começa com um caractere
+        não permitido, é prefixado com "File".
         """
 
         base = (
@@ -1090,14 +1122,33 @@ class AdvancedInstallerAipModifier(
             ).name
         )
 
+        #
+        # MSI Identifier não deve utilizar hífen.
+        #
+        # Mantemos letras, números, underscore e ponto.
+        #
+
         base = re.sub(
-            r"[^A-Za-z0-9_.-]",
-            "_",
+            r"[^A-Za-z0-9_.]",
+            "",
             base,
         )
 
         if not base:
             base = "File"
+
+        #
+        # Identificadores devem começar com letra ou underscore.
+        #
+
+        if not re.match(
+            r"[A-Za-z_]",
+            base,
+        ):
+            base = (
+                "File_"
+                + base
+            )
 
         existing_pattern = re.compile(
             r'\bComponent_\s*=\s*"'
@@ -1123,6 +1174,7 @@ class AdvancedInstallerAipModifier(
             candidate.casefold()
             in existing_ids
         ):
+
             candidate = (
                 f"{base}_{counter}"
             )
@@ -1231,6 +1283,7 @@ class AdvancedInstallerAipModifier(
         )
 
         if marker_position >= 0:
+
             relative = normalized[
                 marker_position + len(marker):
             ]

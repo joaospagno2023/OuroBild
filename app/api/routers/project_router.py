@@ -8,14 +8,9 @@ Descrição : Endpoints relacionados aos projetos.
 
 from fastapi import APIRouter, Request
 
-from app.models.setup.setup_api_request import (
-    SetupApiRequest,
+from app.models.pipeline.pipeline_execution_request import (
+    PipelineExecutionRequest,
 )
-
-from app.models.setup.setup_request import (
-    SetupRequest,
-)
-
 
 router = APIRouter(
     prefix="/projects",
@@ -24,58 +19,25 @@ router = APIRouter(
 
 
 @router.get("")
-def get_projects(
-    request: Request,
-):
+def get_projects(request: Request):
 
     bootstrap = request.app.state.bootstrap
 
-    return (
-        bootstrap
-        .get_projects_use_case
-        .execute()
-    )
+    return bootstrap.get_projects_use_case.execute()
 
 
 @router.post("/{project_id}/execute")
 def execute_pipeline(
     project_id: str,
     request: Request,
+    execution: PipelineExecutionRequest,
 ):
 
     bootstrap = request.app.state.bootstrap
 
-    return (
-        bootstrap
-        .execute_pipeline_use_case
-        .execute(
-            project_id=project_id,
-        )
-    )
-
-
-@router.post("/{project_id}/setup")
-def execute_setup(
-    project_id: str,
-    setup_request: SetupApiRequest,
-    request: Request,
-):
-
-    bootstrap = request.app.state.bootstrap
-
-    setup_request = SetupRequest(
+    return bootstrap.execute_pipeline_use_case.execute(
         project_id=project_id,
-        environment_id=(
-            setup_request.environment_id
-        ),
-        version=setup_request.version,
-        revision=setup_request.revision,
-    )
-
-    return (
-        bootstrap
-        .execute_setup_use_case
-        .execute(
-            setup_request,
-        )
+        environment_id=execution.environment_id,
+        version=execution.version,
+        revision=execution.revision,
     )

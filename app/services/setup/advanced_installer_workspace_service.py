@@ -1,3 +1,4 @@
+
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
@@ -8,7 +9,10 @@ Descrição : Gerencia o workspace temporário utilizado pelo
 """
 
 from dataclasses import dataclass
+import os
 import shutil
+import stat
+import subprocess
 from pathlib import Path
 
 
@@ -83,7 +87,10 @@ class AdvancedInstallerWorkspaceService:
             project_id,
         )
 
-        if self.__workspace_root.exists() and not self.__workspace_root.is_dir():
+        if (
+            self.__workspace_root.exists()
+            and not self.__workspace_root.is_dir()
+        ):
             raise ValueError(
                 "O workspace do projeto não é um diretório: "
                 f"{self.__workspace_root}"
@@ -95,7 +102,6 @@ class AdvancedInstallerWorkspaceService:
         )
 
         if project_workspace.exists():
-
             if not project_workspace.is_dir():
                 raise ValueError(
                     "O workspace do projeto não é um "
@@ -127,10 +133,13 @@ class AdvancedInstallerWorkspaceService:
         São copiadas três fontes para o workspace:
 
         - AIP para <workspace>/AIP;
-        - Prerequisites para <workspace>/Prerequisites;
+        - Prerequisites para <workspace>/AIP/Prerequisites;
         - Release/Publish para <workspace>/Release.
 
         As fontes originais permanecem intactas.
+
+        Após a cópia, os arquivos e diretórios do workspace são
+        normalizados para permitir escrita pelo Advanced Installer.
         """
 
         project_id = self.__validate_project_id(
@@ -198,6 +207,15 @@ class AdvancedInstallerWorkspaceService:
             / aip_source.name
         )
 
+        #
+        # O workspace é temporário e pertence ao processo de
+        # geração do Setup. Os arquivos copiados precisam estar
+        # disponíveis para alteração pelo Advanced Installer.
+        #
+        self.__make_writable(
+            workspace_path,
+        )
+
         return AdvancedInstallerWorkspacePaths(
             project_id=project_id,
             workspace_path=workspace_path,
@@ -254,14 +272,89 @@ class AdvancedInstallerWorkspaceService:
             )
 
         for item in self.__workspace_root.iterdir():
-
             if item.is_dir():
                 shutil.rmtree(
                     item,
                 )
                 continue
 
+            self.__remove_readonly(
+                item,
+            )
+
             item.unlink()
+
+    @staticmethod
+    def __make_writable(
+        root_path: Path,
+    ) -> None:
+        """
+        Remove o atributo Read-only e garante escrita em todos
+        os arquivos e diretórios do workspace.
+
+        Esta operação é aplicada somente ao workspace de trabalho.
+        Os arquivos originais permanecem intactos.
+        """
+
+        root_path = Path(
+            root_path,
+        )
+
+        if not root_path.exists():
+            return
+
+        paths = [
+            root_path,
+            *root_path.rglob("*"),
+        ]
+
+        for path in paths:
+            try:
+                AdvancedInstallerWorkspaceService.__remove_readonly(
+                    path,
+                )
+
+                current_mode = (
+                    path.stat().st_mode
+                )
+
+                os.chmod(
+                    path,
+                    current_mode | stat.S_IWRITE,
+                )
+            except FileNotFoundError:
+                continue
+
+    @staticmethod
+    def __remove_readonly(
+        path: Path,
+    ) -> None:
+        """
+        Remove explicitamente o atributo Read-only no Windows.
+
+        O os.chmod é mantido como segunda camada para garantir
+        permissão de escrita no arquivo de trabalho.
+        """
+
+        try:
+            subprocess.run(
+                [
+                    "attrib",
+                    "-R",
+                    str(path),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                shell=False,
+            )
+        except FileNotFoundError:
+            #
+            # O comando attrib existe normalmente no Windows.
+            # Caso não esteja disponível, o os.chmod continua
+            # sendo aplicado pela rotina __make_writable.
+            #
+            pass
 
     @staticmethod
     def __validate_project_id(

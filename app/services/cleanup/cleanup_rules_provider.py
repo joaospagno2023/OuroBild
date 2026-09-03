@@ -39,9 +39,7 @@ class CleanupRulesProvider:
         Retorna as regras aplicáveis ao projeto.
         """
 
-        rules = (
-            CleanupRulesProvider.__get_global_rules()
-        )
+        rules = CleanupRulesProvider.__get_global_rules()
 
         if project_id is not None:
 
@@ -191,16 +189,53 @@ class CleanupRulesProvider:
 
         #
         # ========================================================
-        # Movement
+        # WCF Movement
         # ========================================================
         #
 
-        if project_id == "movement":
+        if project_id == "wcfmovimento":
+
+            #
+            # ----------------------------------------------------
+            # Arquivos da raiz do Release
+            # ----------------------------------------------------
+            #
+
+            root_files = [
+                "connectionStrings.config",
+                "custom.configuration.server.config",
+                "Movimento.svc",
+                "packages.config",
+                "Web.config",
+            ]
+
+            for file_name in root_files:
+
+                rules.append(
+                    CleanupRule(
+                        target=CleanupTarget.FILE,
+                        pattern=file_name,
+                        action=CleanupAction.PRESERVE,
+                        project_id=project_id,
+                        description=(
+                            "Preserva o arquivo da raiz do "
+                            "Release necessário para o "
+                            "WCF Movement: "
+                            f"{file_name}."
+                        ),
+                    )
+                )
+
+            #
+            # ----------------------------------------------------
+            # Pasta XML
+            # ----------------------------------------------------
+            #
 
             rules.append(
                 CleanupRule(
                     target=CleanupTarget.DIRECTORY,
-                    pattern="XML",
+                    pattern="Xml",
                     action=CleanupAction.PRESERVE,
                     project_id=project_id,
                     description=(

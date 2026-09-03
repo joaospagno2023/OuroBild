@@ -611,6 +611,26 @@ class Bootstrap:
             )
         )
 
+        #
+        # Use Cases
+        #
+
+        self.get_projects_use_case = (
+            GetProjectsUseCase(
+                repository=self.project_repository,
+            )
+        )
+
+        self.execute_build_use_case = (
+            ExecuteBuildUseCase(
+                build_context_factory=self.build_context_factory,
+                pipeline_factory=self.pipeline_factory,
+                solution_locator=self.solution_locator_service,
+                pipeline_runner=self.pipeline_runner,
+                publish_context_factory=self.publish_context_factory,
+            )
+        )
+
         self.setup_orchestrator = (
             DefaultSetupOrchestrator(
                 workspace_resolver=(
@@ -624,6 +644,9 @@ class Bootstrap:
                 ),
                 setup_factory=(
                     self.setup_factory
+                ),
+                execute_build_use_case=(
+                    self.execute_build_use_case
                 ),
                 settings=(
                     self.settings
@@ -639,29 +662,13 @@ class Bootstrap:
             )
         )
 
-        #
-        # Use Cases Sempre  deve ir por ultio
-        #
-
-        self.get_projects_use_case = (
-            GetProjectsUseCase(
-                repository=self.project_repository,
-            )
-        )
-
         self.execute_pipeline_use_case = (
             ExecutePipelineUseCase(
                 project_repository=self.project_repository,
                 pipeline_factory=self.pipeline_factory,
-            )
-        )
-        self.execute_build_use_case = (
-            ExecuteBuildUseCase(
-                build_context_factory=self.build_context_factory,
-                pipeline_factory=self.pipeline_factory,
-                solution_locator=self.solution_locator_service,
-                pipeline_runner=self.pipeline_runner,
-                publish_context_factory=self.publish_context_factory,
+                execute_setup_use_case=(
+                    self.execute_setup_use_case
+                ),
             )
         )
         self.execute_publish_use_case = (

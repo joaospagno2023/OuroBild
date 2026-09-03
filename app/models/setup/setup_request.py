@@ -1,3 +1,4 @@
+
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
@@ -9,9 +10,7 @@ Descrição : Representa uma solicitação de geração de Setup.
 from pydantic import BaseModel
 
 
-class SetupRequest(
-    BaseModel,
-):
+class SetupRequest(BaseModel):
     """
     Representa uma solicitação de geração de Setup.
     """
@@ -31,3 +30,15 @@ class SetupRequest(
     version: str | None = None
 
     revision: int | None = None
+
+    #
+    # Build
+    #
+
+    run_build: bool = True
+
+    #
+    # Configuração do Setup
+    #
+
+    configuration: str = "Release"

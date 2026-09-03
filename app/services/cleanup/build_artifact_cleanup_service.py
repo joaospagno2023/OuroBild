@@ -7,7 +7,6 @@ Descrição : Remove artefatos desnecessários do workspace do Build.
 """
 
 import shutil
-
 from pathlib import Path
 
 from app.models.cleanup.cleanup_result import (
@@ -28,15 +27,21 @@ class BuildArtifactCleanupService:
     Uma regra DIRECTORY/PRESERVE protege o diretório e
     todos os seus descendentes contra as regras globais
     de limpeza de arquivos e diretórios.
+
+    Diretórios que possuírem arquivos preservados em seu
+    interior também não podem ser removidos, pois a remoção
+    recursiva do diretório apagaria esses arquivos.
     """
 
     def __init__(
         self,
         rules: list[CleanupRule],
     ) -> None:
+        """
+        Inicializa o serviço.
+        """
 
         if rules is None:
-
             raise ValueError(
                 "Regras de Cleanup não foram informadas."
             )
@@ -56,7 +61,6 @@ class BuildArtifactCleanupService:
         """
 
         if workspace_path is None:
-
             raise ValueError(
                 "Workspace do Build não foi informado."
             )
@@ -66,13 +70,11 @@ class BuildArtifactCleanupService:
         )
 
         if not workspace_path.exists():
-
             raise ValueError(
                 "Workspace do Build não existe."
             )
 
         if not workspace_path.is_dir():
-
             raise ValueError(
                 "Workspace do Build não é um diretório."
             )
@@ -184,7 +186,6 @@ class BuildArtifactCleanupService:
                 )
 
                 if dry_run:
-
                     continue
 
                 self.__remove_file(
@@ -202,8 +203,8 @@ class BuildArtifactCleanupService:
         """
         Processa os diretórios.
 
-        Diretórios com regra REMOVE são removidos
-        recursivamente.
+        Diretórios com regra REMOVE somente são removidos
+        quando não contêm arquivos preservados.
 
         Diretórios com regra PRESERVE permanecem,
         juntamente com todo o seu conteúdo.
@@ -235,7 +236,6 @@ class BuildArtifactCleanupService:
         for directory_path in directories:
 
             if not directory_path.exists():
-
                 continue
 
             #
@@ -248,6 +248,27 @@ class BuildArtifactCleanupService:
                 path=directory_path,
                 workspace_path=workspace_path,
                 project_id=project_id,
+            ):
+
+                result.directories_preserved.append(
+                    directory_path
+                )
+
+                continue
+
+            #
+            # ====================================================
+            # Diretório possui arquivo preservado.
+            #
+            # Não podemos removê-lo com rmtree(), pois isso
+            # apagaria os arquivos que já foram preservados
+            # durante o processamento dos arquivos.
+            # ====================================================
+            #
+
+            if self.__contains_preserved_file(
+                directory_path=directory_path,
+                preserved_files=result.files_preserved,
             ):
 
                 result.directories_preserved.append(
@@ -297,13 +318,47 @@ class BuildArtifactCleanupService:
                 )
 
                 if dry_run:
-
                     continue
 
                 self.__remove_directory(
                     directory_path=directory_path,
                     result=result,
                 )
+
+    def __contains_preserved_file(
+        self,
+        directory_path: Path,
+        preserved_files: list[Path],
+    ) -> bool:
+        """
+        Verifica se o diretório contém algum arquivo
+        que tenha sido preservado durante o processamento
+        dos arquivos.
+
+        O arquivo pode estar diretamente no diretório ou
+        em qualquer subdiretório.
+        """
+
+        directory_path = (
+            directory_path.resolve()
+        )
+
+        for preserved_file in preserved_files:
+
+            preserved_file = (
+                Path(preserved_file).resolve()
+            )
+
+            try:
+                preserved_file.relative_to(
+                    directory_path
+                )
+            except ValueError:
+                continue
+
+            return True
+
+        return False
 
     def __is_inside_preserved_directory(
         self,
@@ -321,15 +376,15 @@ class BuildArtifactCleanupService:
         Exemplo:
 
             workspace/
-                Xml/
+                XML/
                     arquivo.xml
 
-        Se Xml for PRESERVE:
+        Se XML for PRESERVE:
 
-            Xml                  -> protegido
-            Xml/arquivo.xml     -> protegido
-            Xml/Movimento       -> protegido
-            Xml/Movimento/a.xml -> protegido
+            XML                  -> protegido
+            XML/arquivo.xml      -> protegido
+            XML/Movimento        -> protegido
+            XML/Movimento/a.xml  -> protegido
         """
 
         try:
@@ -366,7 +421,6 @@ class BuildArtifactCleanupService:
             )
 
             if rule is None:
-
                 continue
 
             if (
@@ -398,14 +452,12 @@ class BuildArtifactCleanupService:
         for rule in self.__rules:
 
             if rule.target != target:
-
                 continue
 
             if not self.__matches_rule(
                 rule=rule,
                 path=path,
             ):
-
                 continue
 
             if (
@@ -416,7 +468,6 @@ class BuildArtifactCleanupService:
                 return rule
 
             if rule.project_id is None:
-
                 global_rule = rule
 
         return global_rule
@@ -431,11 +482,9 @@ class BuildArtifactCleanupService:
         """
 
         if rule.pattern == "*":
-
             return True
 
         if rule.recursive:
-
             return path.match(
                 rule.pattern,
             )
