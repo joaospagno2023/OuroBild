@@ -29,3 +29,5 @@ class SetupSettings(
     output_root: Path
 
     aip_root: Path
+
+    excluirpastawork: bool = False

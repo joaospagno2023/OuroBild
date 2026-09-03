@@ -224,6 +224,10 @@ from app.services.setup.disable_out_of_proc_build_service import (
 from app.services.setup.advanced_installer_service import (
     AdvancedInstallerService,
 )
+
+from app.services.setup.advanced_installer_workspace_service import (
+    AdvancedInstallerWorkspaceService,
+)
 from app.services.setup.advanced_installer_aip_file_parser import (
     AdvancedInstallerAipFileParser,
 )
@@ -448,6 +452,15 @@ class Bootstrap:
 
         self.cleanup_factory = BuildArtifactCleanupFactory()
 
+        self.advanced_installer_workspace_service = (
+            AdvancedInstallerWorkspaceService(
+                workspace_root=(
+                    self.settings.setup.output_root
+                    / ".work"
+                ),
+            )
+        )
+
         self.advanced_installer_aip_file_parser = (
             AdvancedInstallerAipFileParser()
         )
@@ -484,7 +497,17 @@ class Bootstrap:
                 aip_synchronizer=(
                     self.advanced_installer_aip_synchronizer
                 ),
+                workspace_service=(
+                    self.advanced_installer_workspace_service
+                ),
+                excluirpastawork=(
+                    self.settings.setup.excluirpastawork
+                ),
             )
+        )
+        print(
+            "DEBUG excluirpastawork =",
+            self.settings.setup.excluirpastawork,
         )
 
         self.setup_factory = (

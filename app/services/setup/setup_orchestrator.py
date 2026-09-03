@@ -37,6 +37,10 @@ from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
 )
 
+from app.workspace.workspace_context import (
+    WorkspaceContext,
+)
+
 from app.workspace.workspace_resolver import (
     WorkspaceResolver,
 )
@@ -188,12 +192,12 @@ class DefaultSetupOrchestrator:
                     ),
                     project_root=(
                         self.__get_project_root(
-                            workspace.project
+                            workspace
                         )
                     ),
                     workspace_root=(
                         self.__get_workspace_root(
-                            workspace.project
+                            workspace
                         )
                     ),
                     installer_root=(
@@ -328,21 +332,31 @@ class DefaultSetupOrchestrator:
 
     def __get_project_root(
         self,
-        project,
+        workspace: WorkspaceContext,
     ) -> Path:
         """
-        Obtém a raiz do projeto.
+        Obtém a raiz física do projeto.
+
+        Utiliza o caminho já resolvido pelo WorkspaceResolver
+        (environment.root_path combinado com
+        project.project_path), garantindo que caminhos
+        relativos configurados no projects.json (como
+        publish_path) sejam calculados a partir da raiz
+        física correta do ambiente (ex.: Produção, Versionado),
+        e não a partir do diretório de trabalho do processo.
         """
 
         if getattr(
-            project,
-            "project_path",
+            workspace,
+            "project_file",
             None,
         ):
 
             return Path(
-                project.project_path,
+                workspace.project_file,
             ).parent
+
+        project = workspace.project
 
         if getattr(
             project,
@@ -358,24 +372,27 @@ class DefaultSetupOrchestrator:
 
     def __get_workspace_root(
         self,
-        project,
+        workspace: WorkspaceContext,
     ) -> Path:
         """
-        Obtém a raiz do Workspace.
+        Obtém a raiz física do Workspace.
 
-        Quando não existe uma estrutura explícita de Workspace,
-        utiliza a raiz derivada do projeto.
+        Utiliza o caminho já resolvido pelo WorkspaceResolver
+        como base. Quando não disponível, utiliza a raiz
+        derivada do projeto.
         """
 
         if getattr(
-            project,
-            "project_path",
+            workspace,
+            "project_file",
             None,
         ):
 
             return Path(
-                project.project_path,
+                workspace.project_file,
             ).parent
+
+        project = workspace.project
 
         if getattr(
             project,

@@ -77,6 +77,7 @@ def create_settings() -> AppSettings:
         setup=SetupSettings(
             engine=SetupEngine.VISUAL_STUDIO,
             output_root=r"C:\Custom\OuroBuild\Installer",
+            aip_root=r"C:\AIPProjects",
         ),
     )
 

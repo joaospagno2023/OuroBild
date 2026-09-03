@@ -7,10 +7,7 @@ Descrição : Gera o Setup utilizando o Advanced Installer.
 """
 
 from pathlib import Path
-import shutil
 import os
-import stat
-import subprocess
 import re
 
 from app.abstractions.installer_service import (
@@ -57,6 +54,10 @@ from app.services.setup.advanced_installer_aip_synchronizer import (
     AdvancedInstallerAipSynchronizer,
 )
 
+from app.services.setup.advanced_installer_workspace_service import (
+    AdvancedInstallerWorkspaceService,
+)
+
 
 class AdvancedInstallerService(
     InstallerService,
@@ -71,6 +72,8 @@ class AdvancedInstallerService(
         advanced_installer_path: Path,
         cleanup_factory: BuildArtifactCleanupFactory,
         aip_synchronizer: AdvancedInstallerAipSynchronizer,
+        workspace_service: AdvancedInstallerWorkspaceService,
+        excluirpastawork: bool = False,
     ) -> None:
         """
         Inicializa o serviço.
@@ -100,6 +103,20 @@ class AdvancedInstallerService(
                 "não foi informado."
             )
 
+        if workspace_service is None:
+            raise ValueError(
+                "AdvancedInstallerWorkspaceService "
+                "não foi informado."
+            )
+
+        if not isinstance(
+            excluirpastawork,
+            bool,
+        ):
+            raise ValueError(
+                "ExcluirPastawork deve ser booleano."
+            )
+
         self.__process_service = (
             process_service
         )
@@ -116,6 +133,14 @@ class AdvancedInstallerService(
             aip_synchronizer
         )
 
+        self.__workspace_service = (
+            workspace_service
+        )
+
+        self.__excluirpastawork = (
+            excluirpastawork
+        )
+
     def install(
         self,
         request: SetupRequest,
@@ -127,16 +152,16 @@ class AdvancedInstallerService(
 
         O fluxo executado é:
 
-            1. Criação do serviço de cleanup específico do projeto.
-            2. Cleanup dos artefatos da publicação.
-            3. Sincronização do AIP com os arquivos reais
-               do Release (KEEP/ADD/REMOVE + versão),
-               sempre em cima de uma cópia de trabalho.
-            4. Atualização do PATHFOLDER para a pasta de saída
-               configurada (output_root/version.revision/...).
-            5. RefreshSync do AIP de trabalho.
-            6. Build do AIP de trabalho.
-            7. Validação do MSI gerado.
+            1. Criação do workspace temporário.
+            2. Cópia do AIP, Prerequisites e Release.
+            3. Cleanup dos artefatos dentro do workspace.
+            4. Sincronização do AIP com o Release do workspace.
+            5. Atualização do PATHFOLDER e MSINAME.
+            6. RefreshSync do AIP de trabalho.
+            7. Build do AIP de trabalho.
+            8. Validação do MSI gerado.
+            9. Remoção do workspace quando
+               excluirpastawork estiver habilitado.
         """
 
         self.__validate(
@@ -145,219 +170,172 @@ class AdvancedInstallerService(
             paths=paths,
         )
 
-        publish_path = Path(
-            paths.publish_path,
-        )
-
-        cleanup_service = (
-            self.__cleanup_factory.create(
-                project_id=request.project_id,
-            )
-        )
-
-        cleanup_result = (
-            cleanup_service.execute(
-                workspace_path=publish_path,
-                project_id=request.project_id,
-            )
-        )
-
-        if cleanup_result.errors:
-            return SetupResult(
-                success=False,
-                message=(
-                    "Falha durante a limpeza dos "
-                    "artefatos da publicação: "
-                    + "; ".join(
-                        cleanup_result.errors
-                    )
-                ),
-                project_id=request.project_id,
-                output_msi=None,
-                duration_seconds=0.0,
-            )
-
-        #
-        # ------------------------------------------------------------
-        # Preparar cópia de trabalho do AIP
-        #
-        # O arquivo original (normalmente em TFS) permanece somente
-        # leitura/intocado. A cópia é criada na MESMA PASTA do AIP
-        # original, para manter Prerequisites e demais caminhos.
-        # ------------------------------------------------------------
-        #
-
         original_aip_path = Path(
             paths.aip_path,
         ).resolve()
 
-        aip_dir = original_aip_path.parent
-
-        # Nome da cópia de trabalho
-        # (ex.: OuroNet...build.aip)
-        workspace_aip_path = aip_dir / (
-            original_aip_path.stem + ".build.aip"
+        prerequisites_path = (
+            original_aip_path.parent
+            / "Prerequisites"
         )
 
-        shutil.copy2(
-            original_aip_path,
-            workspace_aip_path,
+        workspace = self.__workspace_service.prepare(
+            project_id=request.project_id,
+            aip_path=original_aip_path,
+            prerequisites_path=prerequisites_path,
+            publish_path=Path(paths.publish_path),
         )
 
-        # Remover atributo somente leitura da cópia (Windows)
+        workspace_path = workspace.workspace_path
+        workspace_aip_path = workspace.aip_path
+        workspace_publish_path = workspace.publish_path
+
         try:
-            subprocess.run(
-                [
-                    "attrib",
-                    "-R",
-                    str(workspace_aip_path),
-                ],
-                check=False,
-                shell=False,
+            #
+            # ============================================================
+            # Cleanup
+            # ============================================================
+            #
+
+            cleanup_service = (
+                self.__cleanup_factory.create(
+                    project_id=request.project_id,
+                )
             )
-        except Exception:
-            pass
 
-        try:
-            os.chmod(
-                workspace_aip_path,
-                stat.S_IWRITE | stat.S_IREAD,
+            cleanup_result = (
+                cleanup_service.execute(
+                    workspace_path=workspace_publish_path,
+                    project_id=request.project_id,
+                )
             )
-        except OSError:
-            pass
 
-        #
-        # ------------------------------------------------------------
-        # Atualizar PATHFOLDER para a pasta de saída configurada.
-        #
-        # Usamos a pasta pai do paths.output_msi, que já é
-        # resolvida pelo SetupPathResolver a partir do settings.json
-        # (setup.output_root + versão + revisão + Cliente/Server).
-        #
-        # O PATHFOLDER é gravado como caminho RELATIVO ao AIP.
-        # ------------------------------------------------------------
-        #
+            if cleanup_result.errors:
+                return SetupResult(
+                    success=False,
+                    message=(
+                        "Falha durante a limpeza "
+                        "dos artefatos da publicação: "
+                        + "; ".join(
+                            cleanup_result.errors
+                        )
+                    ),
+                    project_id=request.project_id,
+                    output_msi=None,
+                    duration_seconds=0.0,
+                )
 
-        output_folder = Path(
-            paths.output_msi,
-        ).parent
+            output_folder = Path(
+                paths.output_msi,
+            ).parent
 
-        self.__update_pathfolder(
-            aip_path=workspace_aip_path,
-            output_folder=output_folder,
-        )
-
-        # Atualiza MSINAME com o nome configurado no projects.json
-        self.__update_msiname(
-            aip_path=workspace_aip_path,
-            output_msi=Path(paths.output_msi),
-        )
-
-        #
-        # ------------------------------------------------------------
-        # Sincronizar o AIP em cima da cópia de trabalho.
-        # ------------------------------------------------------------
-        #
-
-        try:
-            self.__aip_synchronizer.synchronize(
+            self.__update_pathfolder(
                 aip_path=workspace_aip_path,
-                version=definition.version,
-                publish_path=publish_path,
+                output_folder=output_folder,
             )
 
-        except Exception as exc:
+            self.__update_msiname(
+                aip_path=workspace_aip_path,
+                output_msi=Path(paths.output_msi),
+            )
+
+            try:
+                self.__aip_synchronizer.synchronize(
+                    aip_path=workspace_aip_path,
+                    version=definition.version,
+                    publish_path=workspace_publish_path,
+                )
+
+            except Exception as exc:
+                return SetupResult(
+                    success=False,
+                    message=(
+                        "Falha durante a sincronização "
+                        "do AIP com o Release: "
+                        f"{exc}"
+                    ),
+                    project_id=request.project_id,
+                    output_msi=None,
+                    duration_seconds=0.0,
+                )
+
+            refresh_sync_result = (
+                self.__execute_refresh_sync(
+                    aip_path=workspace_aip_path,
+                )
+            )
+
+            if (
+                refresh_sync_result.status
+                != ProcessStatus.SUCCESS
+            ):
+                return self.__create_process_failure_result(
+                    request=request,
+                    process_result=refresh_sync_result,
+                    operation="RefreshSync",
+                )
+
+            build_result = (
+                self.__execute_build(
+                    aip_path=workspace_aip_path,
+                )
+            )
+
+            if (
+                build_result.status
+                != ProcessStatus.SUCCESS
+            ):
+                return self.__create_process_failure_result(
+                    request=request,
+                    process_result=build_result,
+                    operation="Build",
+                    previous_duration=(
+                        refresh_sync_result.duration
+                    ),
+                )
+
+            output_msi = Path(
+                paths.output_msi,
+            )
+
+            total_duration = (
+                refresh_sync_result.duration
+                + build_result.duration
+            )
+
+            if not output_msi.exists():
+                return SetupResult(
+                    success=False,
+                    message=(
+                        "O Advanced Installer finalizou "
+                        "a geração do Setup, porém o "
+                        "arquivo MSI não foi encontrado: "
+                        f"{output_msi}"
+                    ),
+                    project_id=request.project_id,
+                    output_msi=None,
+                    duration_seconds=(
+                        total_duration
+                    ),
+                )
+
             return SetupResult(
-                success=False,
+                success=True,
                 message=(
-                    "Falha durante a sincronização "
-                    "do AIP com o Release: "
-                    f"{exc}"
+                    "Setup gerado com sucesso."
                 ),
                 project_id=request.project_id,
-                output_msi=None,
-                duration_seconds=0.0,
-            )
-
-        refresh_sync_result = (
-            self.__execute_refresh_sync(
-                aip_path=workspace_aip_path,
-            )
-        )
-
-        if (
-            refresh_sync_result.status
-            != ProcessStatus.SUCCESS
-        ):
-            return self.__create_process_failure_result(
-                request=request,
-                process_result=refresh_sync_result,
-                operation="RefreshSync",
-            )
-
-        build_result = (
-            self.__execute_build(
-                aip_path=workspace_aip_path,
-            )
-        )
-
-        if (
-            build_result.status
-            != ProcessStatus.SUCCESS
-        ):
-            return self.__create_process_failure_result(
-                request=request,
-                process_result=build_result,
-                operation="Build",
-                previous_duration=(
-                    refresh_sync_result.duration
-                ),
-            )
-
-        output_msi = Path(
-            paths.output_msi,
-        )
-
-        total_duration = (
-            refresh_sync_result.duration
-            + build_result.duration
-        )
-
-        if not output_msi.exists():
-            return SetupResult(
-                success=False,
-                message=(
-                    "O Advanced Installer finalizou "
-                    "a geração do Setup, porém o "
-                    "arquivo MSI não foi encontrado: "
-                    f"{output_msi}"
-                ),
-                project_id=request.project_id,
-                output_msi=None,
+                output_msi=output_msi,
                 duration_seconds=(
                     total_duration
                 ),
             )
 
-        # Remover a cópia de trabalho;
-        # o AIP original permanece intacto.
-        try:
-            if workspace_aip_path.exists():
-                workspace_aip_path.unlink()
-        except OSError:
-            pass
-
-        return SetupResult(
-            success=True,
-            message=(
-                "Setup gerado com sucesso."
-            ),
-            project_id=request.project_id,
-            output_msi=output_msi,
-            duration_seconds=(
-                total_duration
-            ),
-        )
+        finally:
+            if self.__excluirpastawork:
+                self.__workspace_service.cleanup(
+                    workspace_path=workspace_path,
+                )
 
     def __update_pathfolder(
         self,

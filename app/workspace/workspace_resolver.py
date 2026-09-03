@@ -20,12 +20,15 @@ from app.abstractions.project_repository import (
 from app.workspace.workspace_context import (
     WorkspaceContext,
 )
+
 from app.exceptions.project_not_found_exception import (
     ProjectNotFoundException,
 )
+
 from app.exceptions.environment_not_found_exception import (
     EnvironmentNotFoundException,
 )
+
 
 class WorkspaceResolver:
     """
@@ -41,6 +44,16 @@ class WorkspaceResolver:
         """
         Inicializa o resolver.
         """
+
+        if project_repository is None:
+            raise ValueError(
+                "ProjectRepository não foi informado."
+            )
+
+        if environment_repository is None:
+            raise ValueError(
+                "EnvironmentRepository não foi informado."
+            )
 
         self.__project_repository = (
             project_repository
@@ -69,6 +82,13 @@ class WorkspaceResolver:
         Returns:
             WorkspaceContext contendo projeto,
             ambiente e caminho do arquivo.
+
+        Raises:
+            ProjectNotFoundException:
+                Quando o projeto não existe.
+
+            EnvironmentNotFoundException:
+                Quando o ambiente não existe.
         """
 
         project = (
@@ -80,12 +100,14 @@ class WorkspaceResolver:
         if project is None:
             raise ProjectNotFoundException(
                 project_id=project_id,
-        )
+            )
+
         environment = (
             self.__environment_repository.get_by_id(
                 environment_id=environment_id,
             )
         )
+
         if environment is None:
             raise EnvironmentNotFoundException(
                 environment_id=environment_id,
@@ -99,11 +121,7 @@ class WorkspaceResolver:
         )
 
         return WorkspaceContext(
-
             project=project,
-
             environment=environment,
-
             project_file=project_file,
-
         )

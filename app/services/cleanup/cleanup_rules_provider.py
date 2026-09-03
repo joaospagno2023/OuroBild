@@ -24,6 +24,11 @@ class CleanupRulesProvider:
 
     Regras específicas de projeto possuem prioridade sobre
     as regras globais.
+
+    Entre regras globais, quando mais de uma corresponder
+    ao mesmo arquivo/diretório, a última da lista prevalece.
+    Por isso, exceções globais (como a preservação de DLLs)
+    são declaradas após a regra genérica de remoção.
     """
 
     @staticmethod
@@ -55,11 +60,12 @@ class CleanupRulesProvider:
 
         Política padrão:
 
-            - Todos os arquivos são removidos.
+            - Todos os arquivos são removidos, exceto as
+              exceções globais declaradas abaixo (DLLs).
             - Todos os diretórios são removidos.
 
         Projetos podem preservar arquivos ou diretórios
-        através de regras específicas.
+        adicionais através de regras específicas.
         """
 
         return [
@@ -78,6 +84,28 @@ class CleanupRulesProvider:
                     "do Build. Arquivos necessários devem "
                     "ser preservados através de uma regra "
                     "específica do projeto."
+                ),
+            ),
+
+            #
+            # ----------------------------------------------------
+            # Exceção global: DLLs.
+            #
+            # DLLs são necessárias em tempo de execução para
+            # praticamente todo projeto .NET. Removê-las por
+            # padrão quebraria o Setup gerado. Declarada após
+            # a regra "*"/REMOVE para que prevaleça sobre ela.
+            # ----------------------------------------------------
+            #
+
+            CleanupRule(
+                target=CleanupTarget.FILE,
+                pattern="*.dll",
+                action=CleanupAction.PRESERVE,
+                description=(
+                    "Preserva todas as DLLs do resultado "
+                    "do Build, necessárias em tempo de "
+                    "execução da aplicação."
                 ),
             ),
 
@@ -183,4 +211,3 @@ class CleanupRulesProvider:
             )
 
         return rules
-

@@ -16,7 +16,8 @@
     "setup": {
         "engine": "advanced_installer",
         "output_root": "C:\\Setups",
-        "aip_root": "C:\\DvpLocal\\WorkSpaceTFS\\Transferencia de Arquivo\\TransferenciaDeArquivos\\Setups\\Installers\\Projects"
+        "aip_root": "C:\\DvpLocal\\WorkSpaceTFS\\Transferencia de Arquivo\\TransferenciaDeArquivos\\Setups\\Installers\\Projects",
+         "excluirpastawork": false
     },
 
     "logging": {

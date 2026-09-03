@@ -42,10 +42,14 @@ def create_settings() -> AppSettings:
         },
         build_tools={
             "msbuild_path": Path(
-                r"C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe",
+                r"C:\Program Files\Microsoft Visual Studio"
+                r"\2022\Professional\MSBuild"
+                r"\Current\Bin\MSBuild.exe",
             ),
             "advanced_installer_path": Path(
-                r"C:\Program Files\Caphyon\Advanced Installer 23.7\bin\x86\AdvancedInstaller.com",
+                r"C:\Program Files\Caphyon"
+                r"\Advanced Installer 23.7"
+                r"\bin\x86\AdvancedInstaller.com",
             ),
             "robocopy_path": Path(
                 r"C:\Windows\System32\robocopy.exe",
@@ -53,7 +57,12 @@ def create_settings() -> AppSettings:
         },
         setup=SetupSettings(
             engine="visual_studio",
-             output_root=Path(r"C:\Setups"),
+            output_root=Path(
+                r"C:\Setups",
+            ),
+            aip_root=Path(
+                r"C:\AIPProjects",
+            ),
         ),
     )
 
@@ -74,6 +83,10 @@ def test_deve_carregar_configuracao_do_setup():
         "visual_studio"
     )
 
+    assert settings.setup.aip_root == (
+        Path(r"C:\AIPProjects")
+    )
+
 
 def test_deve_permitir_configurar_advanced_installer():
     """
@@ -88,4 +101,8 @@ def test_deve_permitir_configurar_advanced_installer():
 
     assert settings.setup.engine == (
         "advanced_installer"
+    )
+
+    assert settings.setup.aip_root == (
+        Path(r"C:\AIPProjects")
     )

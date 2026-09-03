@@ -30,6 +30,9 @@ def test_deve_criar_setup_settings_com_visual_studio():
         output_root=Path(
             r"C:\Setups"
         ),
+        aip_root=Path(
+            r"C:\AIPProjects"
+        ),
     )
 
     assert settings.engine == (
@@ -38,6 +41,10 @@ def test_deve_criar_setup_settings_com_visual_studio():
 
     assert settings.output_root == (
         Path(r"C:\Setups")
+    )
+
+    assert settings.aip_root == (
+        Path(r"C:\AIPProjects")
     )
 
 
@@ -52,6 +59,9 @@ def test_deve_converter_string_para_setup_engine():
         output_root=Path(
             r"C:\Setups"
         ),
+        aip_root=Path(
+            r"C:\AIPProjects"
+        ),
     )
 
     assert settings.engine == (
@@ -60,6 +70,10 @@ def test_deve_converter_string_para_setup_engine():
 
     assert settings.output_root == (
         Path(r"C:\Setups")
+    )
+
+    assert settings.aip_root == (
+        Path(r"C:\AIPProjects")
     )
 
 
@@ -75,5 +89,8 @@ def test_deve_rejeitar_engine_invalido():
             engine="setup_inexistente",
             output_root=Path(
                 r"C:\Setups"
+            ),
+            aip_root=Path(
+                r"C:\AIPProjects"
             ),
         )
