@@ -34,8 +34,11 @@ class AdvancedInstallerAipModifier(
 
         - atualizar a versão do produto;
         - atualizar a origem da pasta sincronizada;
-        - remover arquivos individuais obsoletos;
-        - adicionar arquivos individuais novos;
+        - remover arquivos individuais obsoletos, incluindo o
+          Component e o vínculo de Feature correspondentes;
+        - adicionar arquivos individuais novos, incluindo o
+          vínculo de Feature necessário para que sejam
+          efetivamente instalados;
         - preservar a estrutura restante do projeto;
         - trabalhar somente sobre o AIP recebido.
 
@@ -51,6 +54,26 @@ class AdvancedInstallerAipModifier(
         "caphyon.advinst.msicomp."
         "MsiFilesComponent"
     )
+
+    __MSI_COMPS_COMPONENT = (
+        "caphyon.advinst.msicomp."
+        "MsiCompsComponent"
+    )
+
+    __MSI_FEAT_COMPS_COMPONENT = (
+        "caphyon.advinst.msicomp."
+        "MsiFeatCompsComponent"
+    )
+
+    #
+    # Feature padrão utilizada pelos AIPs do OuroBuild.
+    #
+    # Todas as tabelas FeatureComponents observadas nos
+    # projetos existentes utilizam exclusivamente esta
+    # Feature.
+    #
+
+    __DEFAULT_FEATURE = "MainFeature"
 
     def apply(
         self,
@@ -370,10 +393,15 @@ class AdvancedInstallerAipModifier(
             Ainda não implementado.
 
         ADD:
-            Adiciona o arquivo ao MsiFilesComponent.
+            Adiciona o arquivo ao MsiFilesComponent, cria o
+            Component correspondente e o vincula à Feature
+            padrão do projeto.
 
         REMOVE:
-            Remove o ROW correspondente ao SourcePath.
+            Remove o ROW correspondente ao SourcePath, além do
+            Component em MsiCompsComponent e do vínculo em
+            MsiFeatCompsComponent, evitando que sobrem
+            registros órfãos no AIP.
         """
 
         for change in changes:
@@ -710,10 +738,21 @@ class AdvancedInstallerAipModifier(
         aip_file_id: str | None = None,
     ) -> str:
         """
-        Remove uma única ROW do MsiFilesComponent.
+        Remove uma única ROW do MsiFilesComponent, além do
+        Component correspondente em MsiCompsComponent e do
+        vínculo de Feature em MsiFeatCompsComponent.
 
         A identidade da entrada é determinada por File + SourcePath.
         Quando name não é informado, SourcePath é usado como fallback.
+
+        A remoção do Component e do vínculo de Feature é feita a
+        partir do identificador Component_ da ROW removida (ou,
+        na ausência dele, do próprio File), evitando que registros
+        órfãos se acumulem no AIP a cada sincronização. Registros
+        órfãos acumulados fazem o RefreshSync do Advanced Installer
+        falhar com "row with this key [...] was already registered
+        in the table" quando a pasta sincronizada volta a conter um
+        arquivo com o mesmo nome.
         """
 
         normalized_source_path = cls.__normalize_source_path(
@@ -745,11 +784,13 @@ class AdvancedInstallerAipModifier(
         )
 
         removed = False
+        removed_component_id: str | None = None
 
         def replace_component(
             match: re.Match,
         ) -> str:
             nonlocal removed
+            nonlocal removed_component_id
 
             header = match.group(
                 "header",
@@ -769,6 +810,9 @@ class AdvancedInstallerAipModifier(
                 r'(?=[^>]*\bFile\s*=\s*"'
                 r'(?P<file>[^"]*)"'
                 r')'
+                r'(?=[^>]*\bComponent_\s*=\s*"'
+                r'(?P<component>[^"]*)"'
+                r')?'
                 r'(?=[^>]*\bSourcePath\s*=\s*"'
                 r'(?P<source>[^"]*)"'
                 r')'
@@ -781,6 +825,7 @@ class AdvancedInstallerAipModifier(
                 row_match: re.Match,
             ) -> str:
                 nonlocal removed
+                nonlocal removed_component_id
 
                 if removed:
                     return row_match.group(
@@ -793,6 +838,13 @@ class AdvancedInstallerAipModifier(
                     )
                     .strip()
                     .casefold()
+                )
+
+                current_component_id = (
+                    str(
+                        row_match.group("component") or "",
+                    )
+                    .strip()
                 )
 
                 current_source_path = (
@@ -813,6 +865,12 @@ class AdvancedInstallerAipModifier(
                     == normalized_aip_file_id
                 ):
                     removed = True
+
+                    removed_component_id = (
+                        current_component_id
+                        or row_match.group("file")
+                    )
+
                     return ""
 
                 if (
@@ -825,6 +883,12 @@ class AdvancedInstallerAipModifier(
                     )
                 ):
                     removed = True
+
+                    removed_component_id = (
+                        current_component_id
+                        or row_match.group("file")
+                    )
+
                     return ""
 
                 return row_match.group(
@@ -867,6 +931,253 @@ class AdvancedInstallerAipModifier(
                 + identity
             )
 
+        #
+        # ============================================================
+        # Remove o Component e o vínculo de Feature órfãos.
+        #
+        # Best-effort: caso as tabelas ou as ROWs correspondentes
+        # não existam (AIPs com estrutura diferente), o conteúdo
+        # é mantido sem alterações adicionais.
+        # ============================================================
+        #
+
+        if removed_component_id:
+
+            updated_content = (
+                cls.__remove_component(
+                    content=updated_content,
+                    component_id=removed_component_id,
+                )
+            )
+
+            updated_content = (
+                cls.__remove_feature_component(
+                    content=updated_content,
+                    component_id=removed_component_id,
+                )
+            )
+
+        return updated_content
+
+    @classmethod
+    def __remove_component(
+        cls,
+        content: str,
+        component_id: str,
+    ) -> str:
+        """
+        Remove a definição de um Component em MsiCompsComponent.
+
+        Best-effort: quando a tabela ou a ROW não existir, o
+        conteúdo é retornado sem alterações.
+        """
+
+        normalized_target = (
+            str(component_id)
+            .strip()
+            .casefold()
+        )
+
+        if not normalized_target:
+            return content
+
+        component_pattern = re.compile(
+            r'(?P<header>'
+            r'<COMPONENT\b'
+            r'(?=[^>]*\bcid\s*=\s*"'
+            + re.escape(
+                cls.__MSI_COMPS_COMPONENT,
+            )
+            + r'"'
+            r')'
+            r'[^>]*>'
+            r')'
+            r'(?P<body>.*?)'
+            r'(?P<footer>'
+            r'</COMPONENT>'
+            r')',
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        row_pattern = re.compile(
+            r'<ROW\b'
+            r'(?=[^>]*\bComponent\s*=\s*"'
+            r'(?P<component>[^"]*)"'
+            r')'
+            r'[^>]*/>',
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        def replace_component(
+            match: re.Match,
+        ) -> str:
+            header = match.group(
+                "header",
+            )
+
+            body = match.group(
+                "body",
+            )
+
+            footer = match.group(
+                "footer",
+            )
+
+            def replace_row(
+                row_match: re.Match,
+            ) -> str:
+                current = (
+                    str(
+                        row_match.group("component") or "",
+                    )
+                    .strip()
+                    .casefold()
+                )
+
+                if current == normalized_target:
+                    return ""
+
+                return row_match.group(
+                    0,
+                )
+
+            updated_body = row_pattern.sub(
+                replace_row,
+                body,
+            )
+
+            return (
+                header
+                + updated_body
+                + footer
+            )
+
+        updated_content, count = (
+            component_pattern.subn(
+                replace_component,
+                content,
+                count=1,
+            )
+        )
+
+        if count == 0:
+            return content
+
+        return updated_content
+
+    @classmethod
+    def __remove_feature_component(
+        cls,
+        content: str,
+        component_id: str,
+    ) -> str:
+        """
+        Remove o(s) vínculo(s) de Feature de um Component em
+        MsiFeatCompsComponent.
+
+        Um mesmo Component pode, em tese, estar vinculado a mais
+        de uma Feature; todas as ocorrências são removidas.
+
+        Best-effort: quando a tabela ou a ROW não existir, o
+        conteúdo é retornado sem alterações.
+        """
+
+        normalized_target = (
+            str(component_id)
+            .strip()
+            .casefold()
+        )
+
+        if not normalized_target:
+            return content
+
+        component_pattern = re.compile(
+            r'(?P<header>'
+            r'<COMPONENT\b'
+            r'(?=[^>]*\bcid\s*=\s*"'
+            + re.escape(
+                cls.__MSI_FEAT_COMPS_COMPONENT,
+            )
+            + r'"'
+            r')'
+            r'[^>]*>'
+            r')'
+            r'(?P<body>.*?)'
+            r'(?P<footer>'
+            r'</COMPONENT>'
+            r')',
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        row_pattern = re.compile(
+            r'<ROW\b'
+            r'(?=[^>]*\bComponent_\s*=\s*"'
+            r'(?P<component>[^"]*)"'
+            r')'
+            r'[^>]*/>',
+            re.IGNORECASE | re.DOTALL,
+        )
+
+        def replace_component(
+            match: re.Match,
+        ) -> str:
+            header = match.group(
+                "header",
+            )
+
+            body = match.group(
+                "body",
+            )
+
+            footer = match.group(
+                "footer",
+            )
+
+            def replace_row(
+                row_match: re.Match,
+            ) -> str:
+                current = (
+                    str(
+                        row_match.group("component") or "",
+                    )
+                    .strip()
+                    .casefold()
+                )
+
+                if current == normalized_target:
+                    return ""
+
+                return row_match.group(
+                    0,
+                )
+
+            #
+            # Remove todas as ocorrências dentro desta tabela,
+            # não somente a primeira.
+            #
+
+            updated_body = row_pattern.sub(
+                replace_row,
+                body,
+            )
+
+            return (
+                header
+                + updated_body
+                + footer
+            )
+
+        updated_content, count = (
+            component_pattern.subn(
+                replace_component,
+                content,
+                count=1,
+            )
+        )
+
+        if count == 0:
+            return content
+
         return updated_content
 
     @classmethod
@@ -876,14 +1187,20 @@ class AdvancedInstallerAipModifier(
         change: SetupFileSync,
     ) -> str:
         """
-        Adiciona um arquivo individual ao
-        MsiFilesComponent.
+        Adiciona um arquivo individual ao AIP.
 
-        O nome físico do arquivo permanece em FileName.
+        O ADD cria as três referências necessárias:
 
-        Os atributos File e Component_ utilizam um
-        identificador MSI válido e independente do
-        nome físico.
+            1. MsiCompsComponent
+            2. MsiFilesComponent
+            3. MsiFeatCompsComponent (vínculo com a Feature
+               padrão do projeto)
+
+        Sem o vínculo de Feature, o arquivo é adicionado ao MSI
+        mas nunca é efetivamente instalado.
+
+        A identificação do COMPONENT é feita pelo atributo cid,
+        sem depender da posição dos atributos no XML.
         """
 
         source_path = (
@@ -916,42 +1233,71 @@ class AdvancedInstallerAipModifier(
             )
         )
 
+        # ============================================================
+        # LOCALIZA COMPONENTES DO AIP
+        # ============================================================
+
         component_pattern = re.compile(
-            r'(?P<header>'
+            r'(?P<component>'
             r'<COMPONENT\b'
             r'(?=[^>]*\bcid\s*=\s*"'
-            + re.escape(
-                cls.__MSI_FILES_COMPONENT,
-            )
-            + r'"'
+            r'(?P<cid>[^"]*)"'
             r')'
             r'[^>]*>'
-            r')'
             r'(?P<body>.*?)'
-            r'(?P<footer>'
             r'</COMPONENT>'
             r')',
             re.IGNORECASE | re.DOTALL,
         )
 
-        component_match = (
-            component_pattern.search(
-                content,
-            )
-        )
+        files_component_match = None
+        comps_component_match = None
+        feat_comps_component_match = None
 
-        if component_match is None:
+        for match in component_pattern.finditer(content):
+            cid = (
+                str(match.group("cid") or "")
+                .strip()
+                .casefold()
+            )
+
+            if cid == cls.__MSI_FILES_COMPONENT.casefold():
+                files_component_match = match
+
+            elif cid == cls.__MSI_COMPS_COMPONENT.casefold():
+                comps_component_match = match
+
+            elif cid == cls.__MSI_FEAT_COMPS_COMPONENT.casefold():
+                feat_comps_component_match = match
+
+        if files_component_match is None:
             raise ValueError(
                 "MsiFilesComponent "
+                "não encontrado no AIP. "
+                "Nenhum COMPONENT com cid "
+                f"'{cls.__MSI_FILES_COMPONENT}' foi localizado."
+            )
+
+        if comps_component_match is None:
+            raise ValueError(
+                "MsiCompsComponent "
                 "não encontrado no AIP."
             )
 
-        body = component_match.group(
+        files_body = files_component_match.group(
             "body",
         )
 
+        comps_body = comps_component_match.group(
+            "body",
+        )
+
+        # ============================================================
+        # VERIFICA DUPLICIDADE
+        # ============================================================
+
         if cls.__contains_file_source_path(
-            body=body,
+            body=files_body,
             name=name,
             source_path=normalized_source_path,
         ):
@@ -961,14 +1307,18 @@ class AdvancedInstallerAipModifier(
                 f"{source_path}"
             )
 
+        # ============================================================
+        # IDENTIFICADOR MSI
+        # ============================================================
+
         component_id = (
             cls.__create_component_id(
-                body=body,
+                body=files_body,
                 name=name,
             )
         )
 
-        escaped_identifier = (
+        escaped_component_id = (
             cls.__escape_attribute(
                 component_id,
             )
@@ -986,50 +1336,186 @@ class AdvancedInstallerAipModifier(
             )
         )
 
-        new_row = (
+        # ============================================================
+        # GUID DO COMPONENT
+        # ============================================================
+
+        from uuid import uuid4
+
+        component_guid = (
+            "{"
+            + str(
+                uuid4(),
+            ).upper()
+            + "}"
+        )
+
+        # ============================================================
+        # MsiCompsComponent
+        # ============================================================
+
+        new_component_row = (
             "\n"
             "  <ROW\n"
-            f'    File="{escaped_identifier}"\n'
-            f'    Component_="{escaped_identifier}"\n'
-            f'    FileName="{escaped_name}"\n'
-            f'    SourcePath="{escaped_source_path}"\n'
+            f'    Component="{escaped_component_id}"\n'
+            f'    ComponentId="{component_guid}"\n'
+            '    Directory_="APPDIR"\n'
+            '    Attributes="0"\n'
+            f'    KeyPath="{escaped_component_id}"\n'
             "  />\n"
         )
 
-        insertion_position = (
-            body.rfind(
-                "\n",
-            )
+        comps_insertion_position = comps_body.rfind(
+            "\n",
         )
 
-        if insertion_position < 0:
-
-            updated_body = (
-                body
-                + new_row
+        if comps_insertion_position < 0:
+            updated_comps_body = (
+                comps_body
+                + new_component_row
             )
-
         else:
-
-            updated_body = (
-                body[:insertion_position]
-                + new_row
-                + body[insertion_position:]
+            updated_comps_body = (
+                comps_body[:comps_insertion_position]
+                + new_component_row
+                + comps_body[comps_insertion_position:]
             )
 
-        return (
-            content[
-                :component_match.start(
+        content = (
+            content[:comps_component_match.start("body")]
+            + updated_comps_body
+            + content[comps_component_match.end("body"):]
+        )
+
+        # ============================================================
+        # MsiFilesComponent
+        # ============================================================
+
+        # O conteúdo foi alterado acima, então a posição da
+        # MsiFilesComponent pode ter mudado. Localizamos novamente.
+
+        files_component_match = None
+        feat_comps_component_match = None
+
+        for match in component_pattern.finditer(content):
+            cid = (
+                str(match.group("cid") or "")
+                .strip()
+                .casefold()
+            )
+
+            if cid == cls.__MSI_FILES_COMPONENT.casefold():
+                files_component_match = match
+
+            elif cid == cls.__MSI_FEAT_COMPS_COMPONENT.casefold():
+                feat_comps_component_match = match
+
+        if files_component_match is None:
+            raise ValueError(
+                "MsiFilesComponent "
+                "não encontrado no AIP após a criação do Component."
+            )
+
+        files_body = files_component_match.group(
+            "body",
+        )
+
+        new_file_row = (
+            "\n"
+            "  <ROW\n"
+            f'    File="{escaped_component_id}"\n'
+            f'    Component_="{escaped_component_id}"\n'
+            f'    FileName="{escaped_name}"\n'
+            '    Attributes="0"\n'
+            f'    SourcePath="{escaped_source_path}"\n'
+            '    SelfReg="false"\n'
+            "  />\n"
+        )
+
+        files_insertion_position = files_body.rfind(
+            "\n",
+        )
+
+        if files_insertion_position < 0:
+            updated_files_body = (
+                files_body
+                + new_file_row
+            )
+        else:
+            updated_files_body = (
+                files_body[:files_insertion_position]
+                + new_file_row
+                + files_body[files_insertion_position:]
+            )
+
+        content = (
+            content[:files_component_match.start("body")]
+            + updated_files_body
+            + content[files_component_match.end("body"):]
+        )
+
+        # ============================================================
+        # MsiFeatCompsComponent
+        #
+        # Vincula o novo Component à Feature padrão do projeto.
+        # Sem este vínculo, o arquivo nunca seria efetivamente
+        # instalado, apesar de existir no MSI.
+        #
+        # Best-effort: caso o AIP não possua esta tabela, o
+        # vínculo é ignorado silenciosamente, preservando o
+        # comportamento anterior para esses casos.
+        # ============================================================
+        #
+
+        if feat_comps_component_match is not None:
+
+            feat_comps_body = (
+                feat_comps_component_match.group(
                     "body",
                 )
-            ]
-            + updated_body
-            + content[
-                component_match.end(
-                    "body",
-                ):
-            ]
-        )
+            )
+
+            new_feature_row = (
+                "\n"
+                "  <ROW\n"
+                f'    Feature_="{cls.__DEFAULT_FEATURE}"\n'
+                f'    Component_="{escaped_component_id}"\n'
+                "  />\n"
+            )
+
+            feat_insertion_position = (
+                feat_comps_body.rfind(
+                    "\n",
+                )
+            )
+
+            if feat_insertion_position < 0:
+                updated_feat_comps_body = (
+                    feat_comps_body
+                    + new_feature_row
+                )
+            else:
+                updated_feat_comps_body = (
+                    feat_comps_body[:feat_insertion_position]
+                    + new_feature_row
+                    + feat_comps_body[feat_insertion_position:]
+                )
+
+            content = (
+                content[
+                    :feat_comps_component_match.start(
+                        "body",
+                    )
+                ]
+                + updated_feat_comps_body
+                + content[
+                    feat_comps_component_match.end(
+                        "body",
+                    ):
+                ]
+            )
+
+        return content
 
     @classmethod
     def __contains_file_source_path(

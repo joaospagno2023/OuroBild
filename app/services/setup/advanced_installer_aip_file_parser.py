@@ -181,12 +181,21 @@ class AdvancedInstallerAipFileParser:
                     )
                 )
 
+                self_reg = (
+                    self.__parse_self_reg(
+                        attributes.get(
+                            "SelfReg",
+                        ),
+                    )
+                )
+
                 results.append(
                     SetupFile(
                         name=physical_name,
                         source_path=source_path,
                         publish_path=publish_file_path,
                         aip_file_id=file_name,  # <- adiciona o ID do AIP (coluna File)
+                        self_reg=self_reg,
                     )
                 )
 
@@ -281,6 +290,26 @@ class AdvancedInstallerAipFileParser:
             attributes[name] = value
 
         return attributes
+
+    @staticmethod
+    def __parse_self_reg(
+        value: str | None,
+    ) -> bool:
+        """
+        Converte o atributo SelfReg do AIP em booleano.
+
+        O AIP grava esse atributo como texto ("true"/"false"),
+        de forma case-insensitive. Qualquer valor ausente ou
+        não reconhecido é tratado como False.
+        """
+
+        if value is None:
+            return False
+
+        return (
+            value.strip().lower()
+            == "true"
+        )
 
     @staticmethod
     def __resolve_publish_file_path(

@@ -27,3 +27,5 @@ class SetupFile(
     assembly_display_name: str | None = None
 
     aip_file_id: str | None = None
+
+    self_reg: bool = False

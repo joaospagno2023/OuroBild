@@ -169,6 +169,48 @@ class AdvancedInstallerAipFileComparator:
 
                 continue
 
+            #
+            # --------------------------------------------------------
+            # Entrada individual redundante com a pasta
+            # sincronizada.
+            #
+            # Arquivos adicionados manualmente no passado (fora
+            # da pasta Release padrão) podem, com o tempo, passar
+            # a existir também dentro do Release sincronizado.
+            # Quando isso acontece, o Advanced Installer tenta
+            # registrar o mesmo arquivo duas vezes durante o
+            # RefreshSync:
+            #
+            #     "A row with this key [...] was already
+            #      registered in the table."
+            #
+            # Para evitar isso, entradas individuais que hoje
+            # coincidem com um arquivo na raiz do Release
+            # sincronizado deixam de ser mantidas (KEEP) e
+            # passam a ser removidas (REMOVE), permitindo que a
+            # pasta sincronizada seja a única responsável por
+            # esse arquivo.
+            #
+            # Entradas com SelfReg="true" nunca são consideradas
+            # redundantes, pois podem existir propositalmente
+            # para forçar o registro COM do arquivo durante a
+            # instalação.
+            # --------------------------------------------------------
+            #
+
+            if self.__is_redundant_with_synchronized_folder(
+                setup_file=setup_file,
+                key=key,
+            ):
+                results.append(
+                    self.__create_sync(
+                        setup_file=setup_file,
+                        action=SetupFileAction.REMOVE,
+                    )
+                )
+
+                continue
+
             results.append(
                 self.__create_sync(
                     setup_file=setup_file,
@@ -201,6 +243,41 @@ class AdvancedInstallerAipFileComparator:
             )
 
         return results
+
+    @staticmethod
+    def __is_redundant_with_synchronized_folder(
+        setup_file: SetupFile,
+        key: str,
+    ) -> bool:
+        """
+        Detecta entradas individuais legadas do AIP que hoje
+        coincidem com um arquivo já coberto pela pasta
+        sincronizada (SynchronizedFolderComponent).
+
+        O padrão observado é o de arquivos adicionados
+        manualmente no passado, na raiz do MSI (sem subpastas),
+        cujo SourcePath histórico apontava para fora do Release
+        padrão. Quando o arquivo físico volta a existir dentro
+        do Release sincronizado, as duas formas de rastreamento
+        colidem na mesma chave durante o RefreshSync.
+
+        Entradas com SelfReg habilitado nunca são consideradas
+        redundantes, pois podem existir propositalmente para
+        forçar o registro COM do arquivo na instalação.
+        """
+
+        if setup_file.self_reg:
+            return False
+
+        #
+        # Somente arquivos na raiz do Release sincronizado
+        # (sem subpastas) correspondem ao padrão de colisão
+        # conhecido.
+        #
+
+        return (
+            "/" not in key
+        )
 
     @classmethod
     def __load_publish_files(
@@ -515,6 +592,9 @@ class AdvancedInstallerAipFileComparator:
             ),
             aip_file_id=(
                 setup_file.aip_file_id
+            ),
+            self_reg=(
+                setup_file.self_reg
             ),
             action=action,
         )
