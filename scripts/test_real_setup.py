@@ -27,30 +27,38 @@ Descrição : Executa a geração real de um Setup através do fluxo
                     ↓
                 MSI
 
-Projeto utilizado neste teste:
+O projeto e o ambiente são informados pela linha de comando,
+permitindo executar o fluxo real para qualquer projeto
+cadastrado em projects.json.
 
-    linkpagamento
-
-Ambiente:
-
-    production
-
-A versão é informada pela linha de comando para evitar que o script
-invente ou sobrescreva a versão desejada pelo usuário.
+A versão é informada pela linha de comando para evitar que o
+script invente ou sobrescreva a versão desejada pelo usuário.
 
 Exemplo:
 
-    python .\\scripts\\test_real_setup.py 10.4.0
+    python .\\scripts\\test_real_setup.py linkpagamento 10.4.0
 
 Com revision:
 
-    python .\\scripts\\test_real_setup.py 10.4.0 1
+    python .\\scripts\\test_real_setup.py linkpagamento 10.4.0 1
+
+Com ambiente explícito:
+
+    python .\\scripts\\test_real_setup.py wcfmovimento 10.4.0 --environment production
+
+Compatibilidade:
+
+    Quando o primeiro argumento não corresponder a um
+    project_id conhecido (ex.: já for a versão, no formato
+    antigo do script), o projeto padrão "linkpagamento" é
+    utilizado automaticamente.
 --------------------------------------------------------------------
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -65,8 +73,18 @@ from app.bootstrap import Bootstrap
 from app.models.setup.setup_request import SetupRequest
 
 
-PROJECT_ID = "wcfmovimento"
-ENVIRONMENT_ID = "production"
+DEFAULT_PROJECT_ID = "linkpagamento"
+DEFAULT_ENVIRONMENT_ID = "production"
+
+#
+# Um identificador de versão sempre contém ao menos um
+# dígito e um ponto (ex.: 10.4.8). Isso é usado apenas
+# para manter compatibilidade com o formato antigo do
+# script, em que o primeiro argumento já era a versão.
+#
+_VERSION_PATTERN = re.compile(
+    r"^\d+(\.\d+)+$",
+)
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -74,14 +92,32 @@ def parse_arguments() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Executa a geração real do Setup do "
-            "WinService LinkPagamento."
+            "Executa a geração real do Setup de um "
+            "projeto configurado no OuroBuild."
         ),
     )
 
     parser.add_argument(
-        "version",
-        help="Versão que será aplicada ao Setup. Exemplo: 10.4.0",
+        "project_or_version",
+        help=(
+            "Identificador do projeto (project_id do "
+            "projects.json). Por compatibilidade, se este "
+            "argumento já for uma versão (ex.: 10.4.0), o "
+            f"projeto padrão '{DEFAULT_PROJECT_ID}' é "
+            "utilizado."
+        ),
+    )
+
+    parser.add_argument(
+        "version_or_revision",
+        nargs="?",
+        default=None,
+        help=(
+            "Versão que será aplicada ao Setup. Exemplo: "
+            "10.4.0. Quando o primeiro argumento já for a "
+            "versão (modo de compatibilidade), este "
+            "argumento é tratado como a revision."
+        ),
     )
 
     parser.add_argument(
@@ -92,7 +128,92 @@ def parse_arguments() -> argparse.Namespace:
         help="Revision opcional da geração do Setup.",
     )
 
+    parser.add_argument(
+        "--environment",
+        dest="environment_id",
+        default=DEFAULT_ENVIRONMENT_ID,
+        help=(
+            "Identificador do ambiente (environment_id do "
+            f"environments.json). Padrão: "
+            f"'{DEFAULT_ENVIRONMENT_ID}'."
+        ),
+    )
+
     return parser.parse_args()
+
+
+def resolve_request_arguments(
+    arguments: argparse.Namespace,
+) -> tuple[str, str, int | None]:
+    """
+    Resolve project_id, version e revision a partir dos
+    argumentos recebidos, preservando compatibilidade com
+    o formato antigo do script (onde o primeiro argumento
+    já era a versão).
+    """
+
+    #
+    # Modo de compatibilidade:
+    #
+    #     test_real_setup.py 10.4.0
+    #     test_real_setup.py 10.4.0 1
+    #
+    # O primeiro argumento já é a versão.
+    #
+
+    if _VERSION_PATTERN.match(
+        arguments.project_or_version,
+    ):
+
+        project_id = DEFAULT_PROJECT_ID
+
+        version = (
+            arguments.project_or_version
+        )
+
+        revision = (
+            int(arguments.version_or_revision)
+            if arguments.version_or_revision is not None
+            else None
+        )
+
+        return (
+            project_id,
+            version,
+            revision,
+        )
+
+    #
+    # Modo atual:
+    #
+    #     test_real_setup.py <project_id> <version>
+    #     test_real_setup.py <project_id> <version> <revision>
+    #
+
+    project_id = (
+        arguments.project_or_version
+    )
+
+    if arguments.version_or_revision is None:
+
+        raise SystemExit(
+            "[OuroBuild] ERRO: a versão do Setup não foi "
+            "informada.\n"
+            "Uso: python .\\scripts\\test_real_setup.py "
+            "<project_id> <version> [revision]"
+        )
+
+    version = (
+        arguments.version_or_revision
+    )
+
+    revision = arguments.revision
+
+    return (
+        project_id,
+        version,
+        revision,
+    )
 
 
 def main() -> int:
@@ -100,11 +221,21 @@ def main() -> int:
 
     arguments = parse_arguments()
 
+    project_id, version, revision = (
+        resolve_request_arguments(
+            arguments,
+        )
+    )
+
+    environment_id = (
+        arguments.environment_id
+    )
+
     request = SetupRequest(
-        project_id=PROJECT_ID,
-        environment_id=ENVIRONMENT_ID,
-        version=arguments.version,
-        revision=arguments.revision,
+        project_id=project_id,
+        environment_id=environment_id,
+        version=version,
+        revision=revision,
     )
 
     print()
@@ -133,29 +264,6 @@ def main() -> int:
     print(f"[OuroBuild] Mensagem    : {result.message}")
     print(f"[OuroBuild] MSI         : {result.output_msi}")
     print(f"[OuroBuild] Duração     : {result.duration_seconds:.2f}s")
-
-    if result.steps:
-        print()
-        print("[OuroBuild] ETAPAS")
-
-        for step in result.steps:
-            print(
-                f"[OuroBuild] {step.name:<12} : {step.status.value}"
-            )
-
-            if step.message:
-                print(
-                    f"[OuroBuild]   Mensagem: {step.message}"
-                )
-
-            if step.errors:
-                print("[OuroBuild]   Erros:")
-
-                for error in step.errors:
-                    print(
-                        f"[OuroBuild]     - {error}"
-                    )
-
     print("=" * 80)
     print()
 
