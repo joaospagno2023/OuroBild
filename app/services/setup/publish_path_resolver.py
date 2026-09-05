@@ -38,7 +38,7 @@ class PublishPathResolver:
 
         Args:
             project:
-                Projeto configurado no projects.json.
+                Projeto configurado no banco de dados.
 
             project_root:
                 Diretório físico onde o projeto está localizado.

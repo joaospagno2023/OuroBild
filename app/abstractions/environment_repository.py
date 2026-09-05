@@ -14,7 +14,9 @@ from app.models.environment.build_environment import (
 )
 
 
-class EnvironmentRepository(ABC):
+class EnvironmentRepository(
+    ABC,
+):
     """
     Contrato do repositório de ambientes.
     """
@@ -35,5 +37,25 @@ class EnvironmentRepository(ABC):
     ) -> BuildEnvironment | None:
         """
         Retorna um ambiente pelo identificador.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def create(
+        self,
+        environment: BuildEnvironment,
+    ) -> BuildEnvironment:
+        """
+        Cria um ambiente.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def update(
+        self,
+        environment: BuildEnvironment,
+    ) -> BuildEnvironment | None:
+        """
+        Atualiza um ambiente existente.
         """
         raise NotImplementedError

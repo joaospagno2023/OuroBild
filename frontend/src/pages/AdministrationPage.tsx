@@ -2,9 +2,13 @@ import {
   FolderCog,
   Settings,
   SlidersHorizontal,
+  Users,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function AdministrationPage() {
+  const navigate = useNavigate();
+
   return (
     <section>
       <div className="page-heading">
@@ -16,12 +20,34 @@ function AdministrationPage() {
           <h1>Administração</h1>
 
           <p>
-            Configurações gerais do ambiente OuroBuild.
+            Gerencie as configurações e recursos
+            administrativos do OuroBuild.
           </p>
         </div>
       </div>
 
       <div className="admin-grid">
+        <div className="admin-card">
+          <div className="admin-card-icon">
+            <Users size={21} />
+          </div>
+
+          <h2>Usuários</h2>
+
+          <p>
+            Cadastre, altere e gerencie os usuários
+            do OuroBuild.
+          </p>
+
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => navigate("/users")}
+          >
+            Configurar
+          </button>
+        </div>
+
         <div className="admin-card">
           <div className="admin-card-icon">
             <FolderCog size={21} />
@@ -30,13 +56,14 @@ function AdministrationPage() {
           <h2>Projetos</h2>
 
           <p>
-            Configuração e gerenciamento dos projetos
+            Cadastre, altere e gerencie os projetos
             disponíveis para build e setup.
           </p>
 
           <button
             className="secondary-button"
             type="button"
+            onClick={() => navigate("/projects")}
           >
             Configurar
           </button>
@@ -50,13 +77,14 @@ function AdministrationPage() {
           <h2>Ambientes</h2>
 
           <p>
-            Gerencie ambientes, caminhos e parâmetros
-            utilizados pelas execuções.
+            Gerencie os ambientes, caminhos e
+            parâmetros utilizados pelas execuções.
           </p>
 
           <button
             className="secondary-button"
             type="button"
+            onClick={() => navigate("/environments")}
           >
             Configurar
           </button>
@@ -70,13 +98,14 @@ function AdministrationPage() {
           <h2>Configurações</h2>
 
           <p>
-            Parâmetros gerais e configurações do
-            sistema de automação.
+            Gerencie os parâmetros gerais e as
+            configurações do sistema de automação.
           </p>
 
           <button
             className="secondary-button"
             type="button"
+            onClick={() => navigate("/settings")}
           >
             Configurar
           </button>

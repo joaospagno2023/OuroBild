@@ -21,6 +21,10 @@ from app.api.routers.project_router import (
     router as project_router,
 )
 
+from app.api.routers.environment_router import (
+    router as environment_router,
+)
+
 # Core
 from app.core.configuration.configuration_loader import (
     ConfigurationLoader,
@@ -36,11 +40,8 @@ from app.factories.default_pipeline_factory import (
 
 # Repositories
 
-from app.repositories.json_environment_repository import (
-    JsonEnvironmentRepository,
-)
-from app.repositories.json_project_repository import (
-    JsonProjectRepository,
+from app.repositories.sql_environment_repository import (
+    SqlEnvironmentRepository,
 )
 
 # Services
@@ -283,6 +284,18 @@ from app.services.authorization.permission_service import (
     PermissionService,
 )
 
+from app.repositories.sql_project_repository import (
+    SqlProjectRepository,
+)
+
+from app.services.project_service import (
+    ProjectService,
+)
+from app.services.environment_service import (
+    EnvironmentService,
+)
+
+
 
 class Bootstrap:
     """
@@ -306,6 +319,10 @@ class Bootstrap:
         self.settings = (
             self.configuration_loader.load_settings()
         )
+        
+        self.database_connection = DatabaseConnection(
+            settings=self.settings.database,
+        )
 
         #
         # Toolchain
@@ -326,13 +343,32 @@ class Bootstrap:
         # RepositÃ³rios
         #
 
-        self.project_repository = JsonProjectRepository(
-            configuration_path=configuration_path,
+        self.project_repository = SqlProjectRepository(
+            database_connection=self.database_connection,
+        )
+        self.environment_repository = (
+            SqlEnvironmentRepository(
+                database_connection=self.database_connection,
+            )
+        )
+
+        self.environment_service = EnvironmentService(
+            environment_repository=self.environment_repository,
+        )
+        
+        self.project_metadata_repository = (
+            JsonProjectMetadataRepository(
+                metadata_path=Path("metadata"),
+            )
+        )
+
+        self.project_service = ProjectService(
+            project_repository=self.project_repository,
         )
 
         self.environment_repository = (
-            JsonEnvironmentRepository(
-                configuration_path=configuration_path,
+            SqlEnvironmentRepository(
+                database_connection=self.database_connection,
             )
         )
 
@@ -738,10 +774,6 @@ class Bootstrap:
             )
         )
 
-        self.database_connection = DatabaseConnection(
-            settings=self.settings.database,
-        )
-
         self.user_repository = SqlUserRepository(
             database_connection=self.database_connection,
         )
@@ -803,6 +835,12 @@ class Bootstrap:
         app.include_router(
             users_router,
         )
+
+        app.include_router(
+            environment_router,
+        )
+
+
         #
         # Tratamento global de exceÃ§Ãµes
         #

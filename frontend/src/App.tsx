@@ -15,6 +15,8 @@ import LoginPage from "./pages/LoginPage";
 import LogsPage from "./pages/LogsPage";
 import SetupPage from "./pages/SetupPage";
 import UsersPage from "./pages/UsersPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import EnvironmentsPage from "./pages/EnvironmentsPage";
 
 function App() {
   return (
@@ -65,7 +67,14 @@ function App() {
             path="/users"
             element={<UsersPage />}
           />
-
+          <Route
+            path="/projects"
+            element={<ProjectsPage />}
+          />
+          <Route
+            path="/environments"
+            element={<EnvironmentsPage />}
+          />
           <Route
             path="/administration"
             element={

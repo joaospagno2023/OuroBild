@@ -38,11 +38,6 @@ const menuItems: MenuItem[] = [
     icon: <FileText size={19} />,
   },
   {
-    label: "Usuários",
-    path: "/users",
-    icon: <Users size={19} />,
-  },
-  {
     label: "Administração",
     path: "/administration",
     icon: <Settings size={19} />,

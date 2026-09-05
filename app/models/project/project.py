@@ -22,7 +22,7 @@ from app.models.project.project_type import (
 
 class Project(BaseModel):
     """
-    Representa um projeto configurado no arquivo projects.json.
+    Representa um projeto configurado no banco de dados.
     """
 
     id: str

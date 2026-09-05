@@ -45,6 +45,6 @@
     "security": {
         "jwt_secret": "2cef9cb810968552e9d5877e25beb16a65621c0c7a9b42e0f041c71903e9a0b0",
         "jwt_algorithm": "HS256",
-        "token_expiration_minutes": 60
+        "token_expiration_minutes": 180
     }
 }
