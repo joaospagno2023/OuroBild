@@ -6,7 +6,9 @@ import {
 
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AppLayout from "./layouts/AppLayout";
+
 import AdministrationPage from "./pages/AdministrationPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import HistoryPage from "./pages/HistoryPage";
 import LoginPage from "./pages/LoginPage";
@@ -23,6 +25,11 @@ function App() {
       />
 
       <Route element={<ProtectedRoute />}>
+        <Route
+          path="/change-password"
+          element={<ChangePasswordPage />}
+        />
+
         <Route element={<AppLayout />}>
           <Route
             path="/"

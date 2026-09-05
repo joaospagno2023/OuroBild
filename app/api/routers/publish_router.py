@@ -12,6 +12,10 @@ from fastapi import (
     Request,
 )
 
+from app.api.dependencies.authorization_dependencies import (
+    require_permission,
+)
+
 from app.api.dependencies.current_user import (
     get_current_user,
 )
@@ -30,13 +34,26 @@ router = APIRouter(
 )
 
 
-@router.post("")
+@router.post(
+    "",
+    dependencies=[
+        Depends(
+            require_permission(
+                "build.execute",
+            ),
+        ),
+    ],
+)
 def execute_publish(
     publish_request: PublishRequest,
     request: Request,
 ):
     """
     Executa um Publish.
+
+    Requer a permissão:
+
+        build.execute
     """
 
     bootstrap = request.app.state.bootstrap

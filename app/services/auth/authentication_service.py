@@ -39,10 +39,6 @@ class AuthenticationService:
         password_service: PasswordService,
         jwt_service: JwtService,
     ) -> None:
-        """
-        Inicializa o serviço de autenticação.
-        """
-
         if user_repository is None:
             raise ValueError(
                 "UserRepository não foi informado."
@@ -77,22 +73,10 @@ class AuthenticationService:
     ) -> TokenResponse:
         """
         Autentica um usuário e cria o JWT.
-
-        Args:
-            username: Nome do usuário.
-            password: Senha.
-
-        Returns:
-            Token JWT.
-
-        Raises:
-            HTTPException:
-                Quando a autenticação falha.
         """
 
         credentials = (
-            self.__user_repository
-            .get_by_username(
+            self.__user_repository.get_by_username(
                 username,
             )
         )
@@ -121,8 +105,7 @@ class AuthenticationService:
             raise self.__invalid_credentials()
 
         access_token = (
-            self.__jwt_service
-            .create_access_token(
+            self.__jwt_service.create_access_token(
                 user_id=credentials.user.id,
                 username=credentials.user.username,
             )
@@ -132,8 +115,10 @@ class AuthenticationService:
             access_token=access_token,
             token_type="bearer",
             expires_in=(
-                self.__jwt_service
-                .expiration_seconds()
+                self.__jwt_service.expiration_seconds()
+            ),
+            must_change_password=(
+                credentials.user.must_change_password
             ),
         )
 

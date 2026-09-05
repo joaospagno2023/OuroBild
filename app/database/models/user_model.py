@@ -17,6 +17,7 @@ from sqlalchemy import (
     Integer,
     Unicode,
 )
+
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
@@ -75,6 +76,13 @@ class UserModel(
 
     is_active: Mapped[bool] = mapped_column(
         "IsActive",
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+
+    must_change_password: Mapped[bool] = mapped_column(
+        "MustChangePassword",
         Boolean,
         nullable=False,
         default=True,

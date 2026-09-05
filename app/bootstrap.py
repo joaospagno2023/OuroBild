@@ -248,6 +248,9 @@ from app.services.cleanup.build_artifact_cleanup_factory import (
 from app.api.routers.auth_router import (
     router as auth_router,
 )
+from app.api.routers.users_router import (
+    router as users_router,
+)
 
 from app.database.connection import (
     DatabaseConnection,
@@ -267,6 +270,17 @@ from app.core.security.jwt_service import (
 
 from app.services.auth.authentication_service import (
     AuthenticationService,
+)
+from app.services.auth.user_service import (
+    UserService,
+)
+
+from app.repositories.sql_permission_repository import (
+    SqlPermissionRepository,
+)
+
+from app.services.authorization.permission_service import (
+    PermissionService,
 )
 
 
@@ -744,6 +758,20 @@ class Bootstrap:
             jwt_service=self.jwt_service,
         )
 
+        self.user_service = UserService(
+            user_repository=self.user_repository,
+            password_service=self.password_service,
+        )
+
+        self.permission_repository = SqlPermissionRepository(
+            database_connection=self.database_connection,
+        )
+
+        self.permission_service = PermissionService(
+            permission_repository=self.permission_repository,
+        )
+
+
     def create_app(
         self,
     ) -> FastAPI:
@@ -770,6 +798,10 @@ class Bootstrap:
 
         app.include_router(
             auth_router,
+        )
+
+        app.include_router(
+            users_router,
         )
         #
         # Tratamento global de exceÃ§Ãµes

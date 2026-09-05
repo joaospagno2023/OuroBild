@@ -11,6 +11,14 @@ from abc import (
     abstractmethod,
 )
 
+from app.models.auth.create_user_request import (
+    CreateUserRequest,
+)
+
+from app.models.auth.update_user_request import (
+    UpdateUserRequest,
+)
+
 from app.models.auth.user import (
     User,
 )
@@ -19,6 +27,9 @@ from app.models.auth.user_credentials import (
     UserCredentials,
 )
 
+from app.models.auth.update_user_status_request import (
+    UpdateUserStatusRequest,
+)
 
 class UserRepository(
     ABC,
@@ -34,12 +45,6 @@ class UserRepository(
     ) -> UserCredentials | None:
         """
         Localiza um usuário pelas credenciais.
-
-        Args:
-            username: Nome do usuário.
-
-        Returns:
-            Credenciais do usuário ou None.
         """
 
         raise NotImplementedError
@@ -51,12 +56,64 @@ class UserRepository(
     ) -> User | None:
         """
         Localiza um usuário pelo identificador.
+        """
 
-        Args:
-            user_id: Identificador do usuário.
+        raise NotImplementedError
 
-        Returns:
-            Usuário encontrado ou None.
+    @abstractmethod
+    def get_all(
+        self,
+    ) -> list[User]:
+        """
+        Retorna todos os usuários.
+        """
+
+        raise NotImplementedError
+
+    @abstractmethod
+    def create(
+        self,
+        request: CreateUserRequest,
+        password_hash: str,
+    ) -> User:
+        """
+        Cria um usuário.
+        """
+
+        raise NotImplementedError
+
+    @abstractmethod
+    def update(
+        self,
+        user_id: int,
+        request: UpdateUserRequest,
+    ) -> User:
+        """
+        Atualiza os dados de um usuário.
+        """
+
+        raise NotImplementedError
+    
+    @abstractmethod
+    def update_status(
+        self,
+        user_id: int,
+        request: UpdateUserStatusRequest,
+    ) -> User:
+        """
+        Atualiza somente o status de um usuário.
+        """
+
+        raise NotImplementedError
+    @abstractmethod
+    def update_password(
+        self,
+        user_id: int,
+        password_hash: str,
+        must_change_password: bool,
+    ) -> User:
+        """
+        Atualiza a senha de um usuário.
         """
 
         raise NotImplementedError

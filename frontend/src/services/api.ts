@@ -97,6 +97,47 @@ export async function apiPost<
   return response.json() as Promise<TResponse>;
 }
 
+export async function apiPut<
+  TRequest,
+  TResponse,
+>(
+  endpoint: string,
+  body: TRequest,
+): Promise<TResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}${endpoint}`,
+    {
+      method: "PUT",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...getAuthorizationHeader(),
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (response.status === 401) {
+    handleUnauthorized();
+
+    throw new Error(
+      "Sessão expirada ou não autenticada.",
+    );
+  }
+
+  if (!response.ok) {
+    const message =
+      await response.text();
+
+    throw new Error(
+      message ||
+        `Erro HTTP ${response.status}: ${response.statusText}`,
+    );
+  }
+
+  return response.json() as Promise<TResponse>;
+}
+
 export async function apiPostForm<
   TResponse,
 >(
@@ -127,6 +168,46 @@ export async function apiPostForm<
       body: formData.toString(),
     },
   );
+
+  if (!response.ok) {
+    const message =
+      await response.text();
+
+    throw new Error(
+      message ||
+        `Erro HTTP ${response.status}: ${response.statusText}`,
+    );
+  }
+
+  return response.json() as Promise<TResponse>;
+}
+export async function apiPatch<
+  TRequest,
+  TResponse,
+>(
+  endpoint: string,
+  body: TRequest,
+): Promise<TResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}${endpoint}`,
+    {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...getAuthorizationHeader(),
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (response.status === 401) {
+    handleUnauthorized();
+
+    throw new Error(
+      "Sessão expirada ou não autenticada.",
+    );
+  }
 
   if (!response.ok) {
     const message =

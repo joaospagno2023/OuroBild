@@ -13,6 +13,10 @@ from fastapi import (
     Request,
 )
 
+from app.api.dependencies.authorization_dependencies import (
+    require_permission,
+)
+
 from app.api.dependencies.current_user import (
     get_current_user,
 )
@@ -35,7 +39,21 @@ router = APIRouter(
 )
 
 
-@router.post("")
+@router.post(
+    "",
+    dependencies=[
+        Depends(
+            require_permission(
+                "build.execute",
+            ),
+        ),
+        Depends(
+            require_permission(
+                "setup.execute",
+            ),
+        ),
+    ],
+)
 def execute_build(
     build_request: BuildRequest,
     request: Request,
@@ -48,6 +66,11 @@ def execute_build(
         3. Build
         4. Publish
         5. Setup
+
+    Requer as permissões:
+
+        - build.execute
+        - setup.execute
 
     O Setup não executa o Build novamente.
     """
@@ -112,11 +135,8 @@ def execute_build(
     #
 
     if not setup_result.success:
-
         result.success = False
-
         result.failed_step = "Setup"
-
         result.message = (
             setup_result.message
         )
@@ -130,7 +150,6 @@ def execute_build(
     #
 
     if setup_result.output_msi is not None:
-
         result.artifacts.append(
             setup_result.output_msi,
         )

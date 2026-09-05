@@ -11,16 +11,10 @@ import {
   getToken,
   removeToken,
   saveToken,
+  type AuthUser,
 } from "../services/authApi";
-import { apiGet } from "../services/api";
 
-export interface AuthUser {
-  id: number;
-  username: string;
-  display_name?: string | null;
-  email?: string | null;
-  is_active: boolean;
-}
+import { apiGet } from "../services/api";
 
 interface AuthContextValue {
   token: string | null;
@@ -28,37 +22,30 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   setAuthenticated: (token: string) => void;
+  updateUser: (user: AuthUser) => void;
   logout: () => void;
 }
 
-const AuthContext =
-  createContext<AuthContextValue | undefined>(
-    undefined,
-  );
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
+const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined,
+);
 
 export function AuthProvider({
   children,
-}: AuthProviderProps) {
-  const [token, setToken] =
-    useState<string | null>(
-      () => getToken(),
-    );
+}: {
+  children: ReactNode;
+}) {
+  const [token, setToken] = useState<string | null>(() => getToken());
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [user, setUser] =
-    useState<AuthUser | null>(null);
-
-  const [isLoading, setIsLoading] =
-    useState<boolean>(true);
-
-  function setAuthenticated(
-    accessToken: string,
-  ): void {
+  function setAuthenticated(accessToken: string): void {
     saveToken(accessToken);
     setToken(accessToken);
+  }
+
+  function updateUser(authenticatedUser: AuthUser): void {
+    setUser(authenticatedUser);
   }
 
   function logout(): void {
@@ -99,10 +86,9 @@ export function AuthProvider({
       }
 
       try {
-        const authenticatedUser =
-          await apiGet<AuthUser>(
-            "/auth/me",
-          );
+        const authenticatedUser = await apiGet<AuthUser>(
+          "/auth/me",
+        );
 
         if (cancelled) {
           return;
@@ -133,37 +119,28 @@ export function AuthProvider({
     };
   }, [token]);
 
-  const value =
-    useMemo<AuthContextValue>(
-      () => ({
-        token,
-        user,
-        isAuthenticated:
-          token !== null &&
-          user !== null,
-        isLoading,
-        setAuthenticated,
-        logout,
-      }),
-      [
-        token,
-        user,
-        isLoading,
-      ],
-    );
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      token,
+      user,
+      isAuthenticated: token !== null && user !== null,
+      isLoading,
+      setAuthenticated,
+      updateUser,
+      logout,
+    }),
+    [token, user, isLoading],
+  );
 
   return (
-    <AuthContext.Provider
-      value={value}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth(): AuthContextValue {
-  const context =
-    useContext(AuthContext);
+  const context = useContext(AuthContext);
 
   if (!context) {
     throw new Error(

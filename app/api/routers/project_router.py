@@ -12,10 +12,13 @@ from fastapi import (
     Request,
 )
 
+from app.api.dependencies.authorization_dependencies import (
+    require_permission,
+)
+
 from app.api.dependencies.current_user import (
     get_current_user,
 )
-
 
 from app.models.pipeline.pipeline_execution_request import (
     PipelineExecutionRequest,
@@ -46,6 +49,18 @@ def get_projects(
 
 @router.post(
     "/{project_id}/execute",
+    dependencies=[
+        Depends(
+            require_permission(
+                "build.execute",
+            ),
+        ),
+        Depends(
+            require_permission(
+                "setup.execute",
+            ),
+        ),
+    ],
 )
 def execute_pipeline(
     project_id: str,
@@ -54,6 +69,11 @@ def execute_pipeline(
 ):
     """
     Executa a Pipeline do projeto.
+
+    Requer as permissões:
+
+        - build.execute
+        - setup.execute
     """
 
     bootstrap = request.app.state.bootstrap

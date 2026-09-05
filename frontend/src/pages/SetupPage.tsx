@@ -12,6 +12,11 @@ import {
   useState,
 } from "react";
 
+import {
+  executeProject,
+} from "../services/projectsApi";
+
+
 type Project = {
   id: string;
   name: string;
@@ -19,17 +24,20 @@ type Project = {
   type: "client" | "server";
 };
 
+
 type ExecutionStatus =
   | "waiting"
   | "running"
   | "success"
   | "error";
 
+
 type ProjectExecution =
   Project & {
     status: ExecutionStatus;
     progress: number;
   };
+
 
 const projects: Project[] = [
   {
@@ -69,6 +77,7 @@ const projects: Project[] = [
   },
 ];
 
+
 const initialExecutions: ProjectExecution[] =
   projects.map((project) => ({
     ...project,
@@ -76,31 +85,37 @@ const initialExecutions: ProjectExecution[] =
     progress: 0,
   }));
 
+
 function SetupPage() {
   const [
     selectedProjects,
     setSelectedProjects,
   ] = useState<string[]>([]);
 
+
   const [
     environment,
     setEnvironment,
   ] = useState("Producao");
+
 
   const [
     version,
     setVersion,
   ] = useState("1.0.0");
 
+
   const [
     revision,
     setRevision,
   ] = useState("1");
 
+
   const [
     configuration,
     setConfiguration,
   ] = useState("Release");
+
 
   const [
     executions,
@@ -109,17 +124,21 @@ function SetupPage() {
     initialExecutions,
   );
 
+
   const [
     isGenerating,
     setIsGenerating,
   ] = useState(false);
 
+
   const allSelected =
     selectedProjects.length ===
     projects.length;
 
+
   const selectedCount =
     selectedProjects.length;
+
 
   const selectedProjectData =
     useMemo(
@@ -132,6 +151,7 @@ function SetupPage() {
         ),
       [selectedProjects],
     );
+
 
   function toggleProject(
     projectId: string,
@@ -157,6 +177,7 @@ function SetupPage() {
     );
   }
 
+
   function toggleAll() {
     if (allSelected) {
       setSelectedProjects([]);
@@ -170,7 +191,8 @@ function SetupPage() {
     );
   }
 
-  function generateSetups() {
+
+  async function generateSetups() {
     if (
       selectedCount === 0 ||
       isGenerating
@@ -205,23 +227,49 @@ function SetupPage() {
         ),
     );
 
-    let index = 0;
+    let parsedRevision: number | null = null;
 
-    const timer =
-      window.setInterval(() => {
-        if (
-          index >=
-          selectedIds.length
-        ) {
-          window.clearInterval(
-            timer,
-          );
+    if (revision.trim() !== "") {
+      const numericRevision =
+        Number(revision);
 
-          setIsGenerating(false);
+      if (
+        !Number.isInteger(
+          numericRevision,
+        ) ||
+        numericRevision < 0
+      ) {
+        setExecutions(
+          (current) =>
+            current.map(
+              (execution) =>
+                selectedIds.includes(
+                  execution.id,
+                )
+                  ? {
+                      ...execution,
+                      status: "error",
+                      progress: 0,
+                    }
+                  : execution,
+            ),
+        );
 
-          return;
-        }
+        setIsGenerating(false);
 
+        return;
+      }
+
+      parsedRevision =
+        numericRevision;
+    }
+
+    try {
+      for (
+        let index = 0;
+        index < selectedIds.length;
+        index += 1
+      ) {
         const projectId =
           selectedIds[index];
 
@@ -238,22 +286,74 @@ function SetupPage() {
 
                 return {
                   ...execution,
-                  status: "success",
-                  progress: 100,
+                  status: "running",
+                  progress: 10,
                 };
               },
             ),
         );
 
-        index += 1;
+        try {
+          await executeProject(
+            projectId,
+            {
+              environment_id:
+                environment,
+              version:
+                version.trim() ||
+                null,
+              revision:
+                parsedRevision,
+            },
+          );
+
+          setExecutions(
+            (current) =>
+              current.map(
+                (execution) => {
+                  if (
+                    execution.id !==
+                    projectId
+                  ) {
+                    return execution;
+                  }
+
+                  return {
+                    ...execution,
+                    status: "success",
+                    progress: 100,
+                  };
+                },
+              ),
+          );
+        } catch {
+          setExecutions(
+            (current) =>
+              current.map(
+                (execution) => {
+                  if (
+                    execution.id !==
+                    projectId
+                  ) {
+                    return execution;
+                  }
+
+                  return {
+                    ...execution,
+                    status: "error",
+                    progress: 0,
+                  };
+                },
+              ),
+          );
+        }
+
+        const nextProject =
+          selectedIds[index + 1];
 
         if (
-          index <
-          selectedIds.length
+          nextProject !== undefined
         ) {
-          const nextProject =
-            selectedIds[index];
-
           setExecutions(
             (current) =>
               current.map(
@@ -268,14 +368,18 @@ function SetupPage() {
                   return {
                     ...execution,
                     status: "running",
-                    progress: 50,
+                    progress: 10,
                   };
                 },
               ),
           );
         }
-      }, 900);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
   }
+
 
   return (
     <section>
@@ -311,6 +415,7 @@ function SetupPage() {
         </div>
       </div>
 
+
       <div className="setup-layout">
         <div className="content-card setup-project-card">
           <div className="card-header">
@@ -335,6 +440,7 @@ function SetupPage() {
                 : "Selecionar todos"}
             </button>
           </div>
+
 
           <div className="project-list">
             <button
@@ -374,6 +480,7 @@ function SetupPage() {
                 className="project-chevron"
               />
             </button>
+
 
             {projects.map(
               (project) => {
@@ -434,6 +541,7 @@ function SetupPage() {
           </div>
         </div>
 
+
         <div className="content-card setup-options-card">
           <div className="card-header">
             <div>
@@ -447,6 +555,7 @@ function SetupPage() {
               </p>
             </div>
           </div>
+
 
           <div className="form-grid">
             <label className="form-field">
@@ -462,7 +571,7 @@ function SetupPage() {
                   )
                 }
               >
-                <option value="Producao">
+                <option value="production">
                   Produção
                 </option>
 
@@ -475,6 +584,7 @@ function SetupPage() {
                 </option>
               </select>
             </label>
+
 
             <label className="form-field">
               <span>
@@ -499,6 +609,7 @@ function SetupPage() {
               </select>
             </label>
 
+
             <label className="form-field">
               <span>
                 Versão
@@ -511,9 +622,10 @@ function SetupPage() {
                     event.target.value,
                   )
                 }
-                placeholder="Ex.: 1.0.0"
+                placeholder="Ex.: 1.1.1"
               />
             </label>
+
 
             <label className="form-field">
               <span>
@@ -531,6 +643,7 @@ function SetupPage() {
               />
             </label>
           </div>
+
 
           <div className="setup-summary">
             <div>
@@ -564,6 +677,7 @@ function SetupPage() {
             </div>
           </div>
 
+
           <button
             className="primary-button setup-generate-button"
             type="button"
@@ -571,7 +685,9 @@ function SetupPage() {
               selectedCount === 0 ||
               isGenerating
             }
-            onClick={generateSetups}
+            onClick={
+              generateSetups
+            }
           >
             {isGenerating ? (
               <Loader2
@@ -590,6 +706,7 @@ function SetupPage() {
                     : "s"
                 }`}
           </button>
+
 
           {selectedProjectData.length >
             0 && (
@@ -617,6 +734,7 @@ function SetupPage() {
         </div>
       </div>
 
+
       <div className="content-card execution-card">
         <div className="card-header">
           <div>
@@ -630,6 +748,7 @@ function SetupPage() {
             </p>
           </div>
         </div>
+
 
         <div className="execution-list">
           {executions
@@ -665,6 +784,7 @@ function SetupPage() {
                   )}
                 </div>
 
+
                 <div className="execution-project">
                   <strong>
                     {execution.name}
@@ -689,6 +809,7 @@ function SetupPage() {
                   </span>
                 </div>
 
+
                 <div className="progress-area">
                   <div className="progress-track">
                     <div
@@ -705,6 +826,7 @@ function SetupPage() {
                 </div>
               </div>
             ))}
+
 
           {selectedCount === 0 && (
             <div className="empty-state compact">
@@ -727,8 +849,10 @@ function SetupPage() {
   );
 }
 
+
 function CheckCircle() {
   return <Check size={19} />;
 }
+
 
 export default SetupPage;

@@ -10,16 +10,21 @@ function ProtectedRoute() {
   const {
     isAuthenticated,
     isLoading,
+    user,
   } = useAuth();
 
-  const location =
-    useLocation();
+  const location = useLocation();
 
   if (isLoading) {
     return (
-      <div className="auth-loading">
-        <span>Carregando...</span>
-      </div>
+      <main className="login-page">
+        <section className="login-card">
+          <div className="login-header">
+            <h1>OuroBuild</h1>
+            <p>Validando sessão...</p>
+          </div>
+        </section>
+      </main>
     );
   }
 
@@ -28,9 +33,22 @@ function ProtectedRoute() {
       <Navigate
         to="/login"
         replace
-        state={{
-          from: location.pathname,
-        }}
+        state={{ from: location.pathname }}
+      />
+    );
+  }
+
+  const isChangingPassword =
+    location.pathname === "/change-password";
+
+  if (
+    user?.must_change_password &&
+    !isChangingPassword
+  ) {
+    return (
+      <Navigate
+        to="/change-password"
+        replace
       />
     );
   }
