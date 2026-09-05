@@ -6,7 +6,11 @@ import {
   Rocket,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+
+import {
+  useMemo,
+  useState,
+} from "react";
 
 type Project = {
   id: string;
@@ -21,10 +25,11 @@ type ExecutionStatus =
   | "success"
   | "error";
 
-type ProjectExecution = Project & {
-  status: ExecutionStatus;
-  progress: number;
-};
+type ProjectExecution =
+  Project & {
+    status: ExecutionStatus;
+    progress: number;
+  };
 
 const projects: Project[] = [
   {
@@ -72,53 +77,84 @@ const initialExecutions: ProjectExecution[] =
   }));
 
 function SetupPage() {
-  const [selectedProjects, setSelectedProjects] =
-    useState<string[]>([]);
+  const [
+    selectedProjects,
+    setSelectedProjects,
+  ] = useState<string[]>([]);
 
-  const [environment, setEnvironment] =
-    useState("Producao");
+  const [
+    environment,
+    setEnvironment,
+  ] = useState("Producao");
 
-  const [version, setVersion] =
-    useState("1.0.0");
+  const [
+    version,
+    setVersion,
+  ] = useState("1.0.0");
 
-  const [revision, setRevision] =
-    useState("1");
+  const [
+    revision,
+    setRevision,
+  ] = useState("1");
 
-  const [configuration, setConfiguration] =
-    useState("Release");
+  const [
+    configuration,
+    setConfiguration,
+  ] = useState("Release");
 
-  const [executions, setExecutions] =
-    useState<ProjectExecution[]>(
-      initialExecutions,
-    );
+  const [
+    executions,
+    setExecutions,
+  ] = useState<ProjectExecution[]>(
+    initialExecutions,
+  );
 
-  const [isGenerating, setIsGenerating] =
-    useState(false);
+  const [
+    isGenerating,
+    setIsGenerating,
+  ] = useState(false);
 
   const allSelected =
-    selectedProjects.length === projects.length;
+    selectedProjects.length ===
+    projects.length;
 
   const selectedCount =
     selectedProjects.length;
 
-  const selectedProjectData = useMemo(
-    () =>
-      projects.filter((project) =>
-        selectedProjects.includes(project.id),
-      ),
-    [selectedProjects],
-  );
+  const selectedProjectData =
+    useMemo(
+      () =>
+        projects.filter(
+          (project) =>
+            selectedProjects.includes(
+              project.id,
+            ),
+        ),
+      [selectedProjects],
+    );
 
-  function toggleProject(projectId: string) {
-    setSelectedProjects((current) => {
-      if (current.includes(projectId)) {
-        return current.filter(
-          (id) => id !== projectId,
-        );
-      }
+  function toggleProject(
+    projectId: string,
+  ) {
+    setSelectedProjects(
+      (current) => {
+        if (
+          current.includes(
+            projectId,
+          )
+        ) {
+          return current.filter(
+            (id) =>
+              id !== projectId,
+          );
+        }
 
-      return [...current, projectId];
-    });
+        return [
+          ...current,
+          projectId,
+        ];
+      },
+    );
   }
 
   function toggleAll() {
@@ -128,83 +164,117 @@ function SetupPage() {
     }
 
     setSelectedProjects(
-      projects.map((project) => project.id),
+      projects.map(
+        (project) => project.id,
+      ),
     );
   }
 
   function generateSetups() {
-    if (selectedCount === 0 || isGenerating) {
+    if (
+      selectedCount === 0 ||
+      isGenerating
+    ) {
       return;
     }
 
     setIsGenerating(true);
 
-    const selectedIds = [...selectedProjects];
+    const selectedIds = [
+      ...selectedProjects,
+    ];
 
-    setExecutions((current) =>
-      current.map((execution) => ({
-        ...execution,
-        status: selectedIds.includes(
-          execution.id,
-        )
-          ? "running"
-          : "waiting",
-        progress: selectedIds.includes(
-          execution.id,
-        )
-          ? 10
-          : 0,
-      })),
+    setExecutions(
+      (current) =>
+        current.map(
+          (execution) => ({
+            ...execution,
+            status:
+              selectedIds.includes(
+                execution.id,
+              )
+                ? "running"
+                : "waiting",
+            progress:
+              selectedIds.includes(
+                execution.id,
+              )
+                ? 10
+                : 0,
+          }),
+        ),
     );
 
     let index = 0;
 
-    const timer = window.setInterval(() => {
-      if (index >= selectedIds.length) {
-        window.clearInterval(timer);
-        setIsGenerating(false);
-        return;
-      }
+    const timer =
+      window.setInterval(() => {
+        if (
+          index >=
+          selectedIds.length
+        ) {
+          window.clearInterval(
+            timer,
+          );
 
-      const projectId = selectedIds[index];
+          setIsGenerating(false);
 
-      setExecutions((current) =>
-        current.map((execution) => {
-          if (execution.id !== projectId) {
-            return execution;
-          }
+          return;
+        }
 
-          return {
-            ...execution,
-            status: "success",
-            progress: 100,
-          };
-        }),
-      );
-
-      index += 1;
-
-      if (index < selectedIds.length) {
-        const nextProject =
+        const projectId =
           selectedIds[index];
 
-        setExecutions((current) =>
-          current.map((execution) => {
-            if (
-              execution.id !== nextProject
-            ) {
-              return execution;
-            }
+        setExecutions(
+          (current) =>
+            current.map(
+              (execution) => {
+                if (
+                  execution.id !==
+                  projectId
+                ) {
+                  return execution;
+                }
 
-            return {
-              ...execution,
-              status: "running",
-              progress: 50,
-            };
-          }),
+                return {
+                  ...execution,
+                  status: "success",
+                  progress: 100,
+                };
+              },
+            ),
         );
-      }
-    }, 900);
+
+        index += 1;
+
+        if (
+          index <
+          selectedIds.length
+        ) {
+          const nextProject =
+            selectedIds[index];
+
+          setExecutions(
+            (current) =>
+              current.map(
+                (execution) => {
+                  if (
+                    execution.id !==
+                    nextProject
+                  ) {
+                    return execution;
+                  }
+
+                  return {
+                    ...execution,
+                    status: "running",
+                    progress: 50,
+                  };
+                },
+              ),
+          );
+        }
+      }, 900);
   }
 
   return (
@@ -215,11 +285,14 @@ function SetupPage() {
             AUTOMAÇÃO
           </span>
 
-          <h1>Geração de Setup</h1>
+          <h1>
+            Geração de Setup
+          </h1>
 
           <p>
-            Selecione um ou vários projetos para
-            executar a geração.
+            Selecione um ou vários
+            projetos para executar a
+            geração.
           </p>
         </div>
 
@@ -231,7 +304,9 @@ function SetupPage() {
                   ? "projeto"
                   : "projetos"
               } selecionado${
-                selectedCount === 1 ? "" : "s"
+                selectedCount === 1
+                  ? ""
+                  : "s"
               }`}
         </div>
       </div>
@@ -240,10 +315,13 @@ function SetupPage() {
         <div className="content-card setup-project-card">
           <div className="card-header">
             <div>
-              <h2>Projetos</h2>
+              <h2>
+                Projetos
+              </h2>
+
               <p>
-                Escolha os projetos que participarão
-                desta geração.
+                Escolha os projetos que
+                participarão desta geração.
               </p>
             </div>
 
@@ -286,8 +364,8 @@ function SetupPage() {
                 </strong>
 
                 <span>
-                  Selecionar todos os projetos
-                  disponíveis
+                  Selecionar todos os
+                  projetos disponíveis
                 </span>
               </div>
 
@@ -297,74 +375,84 @@ function SetupPage() {
               />
             </button>
 
-            {projects.map((project) => {
-              const selected =
-                selectedProjects.includes(
-                  project.id,
-                );
+            {projects.map(
+              (project) => {
+                const selected =
+                  selectedProjects.includes(
+                    project.id,
+                  );
 
-              return (
-                <button
-                  key={project.id}
-                  type="button"
-                  className={`project-row ${
-                    selected
-                      ? "project-row-selected"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    toggleProject(
-                      project.id,
-                    )
-                  }
-                >
-                  <span
-                    className={`checkbox ${
+                return (
+                  <button
+                    key={project.id}
+                    type="button"
+                    className={`project-row ${
                       selected
-                        ? "checkbox-selected"
+                        ? "project-row-selected"
                         : ""
                     }`}
+                    onClick={() =>
+                      toggleProject(
+                        project.id,
+                      )
+                    }
                   >
-                    {selected && (
-                      <Check size={15} />
-                    )}
-                  </span>
-
-                  <div className="project-row-content">
-                    <strong>
-                      {project.name}
-                    </strong>
-
-                    <span>
-                      {project.description}
+                    <span
+                      className={`checkbox ${
+                        selected
+                          ? "checkbox-selected"
+                          : ""
+                      }`}
+                    >
+                      {selected && (
+                        <Check size={15} />
+                      )}
                     </span>
-                  </div>
 
-                  <span className="project-type">
-                    {project.type === "client"
-                      ? "CLIENT"
-                      : "SERVER"}
-                  </span>
-                </button>
-              );
-            })}
+                    <div className="project-row-content">
+                      <strong>
+                        {project.name}
+                      </strong>
+
+                      <span>
+                        {
+                          project.description
+                        }
+                      </span>
+                    </div>
+
+                    <span className="project-type">
+                      {project.type ===
+                      "client"
+                        ? "CLIENT"
+                        : "SERVER"}
+                    </span>
+                  </button>
+                );
+              },
+            )}
           </div>
         </div>
 
         <div className="content-card setup-options-card">
           <div className="card-header">
             <div>
-              <h2>Configuração</h2>
+              <h2>
+                Configuração
+              </h2>
+
               <p>
-                Parâmetros comuns para os projetos
-                selecionados.
+                Parâmetros comuns para os
+                projetos selecionados.
               </p>
             </div>
           </div>
 
           <div className="form-grid">
             <label className="form-field">
-              <span>Ambiente</span>
+              <span>
+                Ambiente
+              </span>
 
               <select
                 value={environment}
@@ -389,7 +477,9 @@ function SetupPage() {
             </label>
 
             <label className="form-field">
-              <span>Configuração</span>
+              <span>
+                Configuração
+              </span>
 
               <select
                 value={configuration}
@@ -410,7 +500,9 @@ function SetupPage() {
             </label>
 
             <label className="form-field">
-              <span>Versão</span>
+              <span>
+                Versão
+              </span>
 
               <input
                 value={version}
@@ -424,7 +516,9 @@ function SetupPage() {
             </label>
 
             <label className="form-field">
-              <span>Revisão</span>
+              <span>
+                Revisão
+              </span>
 
               <input
                 value={revision}
@@ -440,21 +534,30 @@ function SetupPage() {
 
           <div className="setup-summary">
             <div>
-              <span>Projetos</span>
+              <span>
+                Projetos
+              </span>
+
               <strong>
                 {selectedCount}
               </strong>
             </div>
 
             <div>
-              <span>Ambiente</span>
+              <span>
+                Ambiente
+              </span>
+
               <strong>
                 {environment}
               </strong>
             </div>
 
             <div>
-              <span>Versão</span>
+              <span>
+                Versão
+              </span>
+
               <strong>
                 {version}
               </strong>
@@ -488,7 +591,8 @@ function SetupPage() {
                 }`}
           </button>
 
-          {selectedProjectData.length > 0 && (
+          {selectedProjectData.length >
+            0 && (
             <div className="selected-preview">
               <span>
                 Projetos selecionados
@@ -516,10 +620,13 @@ function SetupPage() {
       <div className="content-card execution-card">
         <div className="card-header">
           <div>
-            <h2>Acompanhamento da geração</h2>
+            <h2>
+              Acompanhamento da geração
+            </h2>
+
             <p>
-              Cada projeto possui seu próprio status
-              de execução.
+              Cada projeto possui seu
+              próprio status de execução.
             </p>
           </div>
         </div>
@@ -608,8 +715,9 @@ function SetupPage() {
               </strong>
 
               <span>
-                Selecione um ou mais projetos acima
-                para acompanhar a geração.
+                Selecione um ou mais
+                projetos acima para
+                acompanhar a geração.
               </span>
             </div>
           )}

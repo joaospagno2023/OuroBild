@@ -24,13 +24,16 @@ class BuildArtifactCleanupService:
     """
     Executa a limpeza dos artefatos do Build.
 
-    Uma regra DIRECTORY/PRESERVE protege o diretório e
-    todos os seus descendentes contra as regras globais
-    de limpeza de arquivos e diretórios.
+    Regras DIRECTORY/PRESERVE protegem o diretório e todos
+    os seus descendentes.
 
-    Diretórios que possuírem arquivos preservados em seu
-    interior também não podem ser removidos, pois a remoção
-    recursiva do diretório apagaria esses arquivos.
+    Regras FILE/PRESERVE protegem somente o arquivo.
+
+    Regras DIRECTORY específicas do projeto possuem prioridade
+    sobre a regra global de diretórios.
+
+    A regra global DIRECTORY "*" somente remove um diretório
+    quando não existem arquivos preservados diretamente nele.
     """
 
     def __init__(
@@ -138,7 +141,6 @@ class BuildArtifactCleanupService:
                 workspace_path=workspace_path,
                 project_id=project_id,
             ):
-
                 result.files_preserved.append(
                     file_path
                 )
@@ -203,11 +205,14 @@ class BuildArtifactCleanupService:
         """
         Processa os diretórios.
 
-        Diretórios com regra REMOVE somente são removidos
-        quando não contêm arquivos preservados.
+        Regras DIRECTORY/PRESERVE protegem o diretório.
 
-        Diretórios com regra PRESERVE permanecem,
-        juntamente com todo o seu conteúdo.
+        Regras DIRECTORY/REMOVE específicas do projeto
+        removem o diretório mesmo que ele contenha arquivos
+        preservados.
+
+        A regra global DIRECTORY "*" respeita arquivos
+        preservados diretamente no diretório.
         """
 
         directories = [
@@ -249,7 +254,6 @@ class BuildArtifactCleanupService:
                 workspace_path=workspace_path,
                 project_id=project_id,
             ):
-
                 result.directories_preserved.append(
                     directory_path
                 )
@@ -258,19 +262,70 @@ class BuildArtifactCleanupService:
 
             #
             # ====================================================
-            # Diretório possui arquivo preservado.
+            # Regra específica do projeto.
             #
-            # Não podemos removê-lo com rmtree(), pois isso
-            # apagaria os arquivos que já foram preservados
-            # durante o processamento dos arquivos.
+            # Ela deve possuir prioridade absoluta sobre a
+            # proteção causada por arquivos preservados.
             # ====================================================
             #
 
-            if self.__contains_preserved_file(
+            project_rule = (
+                self.__find_project_rule(
+                    target=CleanupTarget.DIRECTORY,
+                    path=directory_path,
+                    project_id=project_id,
+                )
+            )
+
+            if project_rule is not None:
+
+                if (
+                    project_rule.action
+                    == CleanupAction.PRESERVE
+                ):
+                    result.directories_preserved.append(
+                        directory_path
+                    )
+
+                    continue
+
+                if (
+                    project_rule.action
+                    == CleanupAction.REMOVE
+                ):
+
+                    result.directories_removed.append(
+                        directory_path
+                    )
+
+                    if dry_run:
+                        continue
+
+                    self.__remove_directory(
+                        directory_path=directory_path,
+                        result=result,
+                    )
+
+                    continue
+
+            #
+            # ====================================================
+            # Arquivos preservados diretamente no diretório.
+            #
+            # Isto protege "bin", mas não protege:
+            #
+            #     bin\x86
+            #     bin\x64
+            #     bin\arm64
+            #
+            # quando essas pastas possuem regras específicas.
+            # ====================================================
+            #
+
+            if self.__contains_preserved_file_directly(
                 directory_path=directory_path,
                 preserved_files=result.files_preserved,
             ):
-
                 result.directories_preserved.append(
                     directory_path
                 )
@@ -279,14 +334,13 @@ class BuildArtifactCleanupService:
 
             #
             # ====================================================
-            # Procurar regra.
+            # Regra global.
             # ====================================================
             #
 
-            rule = self.__find_rule(
+            rule = self.__find_global_rule(
                 target=CleanupTarget.DIRECTORY,
                 path=directory_path,
-                project_id=project_id,
             )
 
             if rule is None:
@@ -325,18 +379,17 @@ class BuildArtifactCleanupService:
                     result=result,
                 )
 
-    def __contains_preserved_file(
+    def __contains_preserved_file_directly(
         self,
         directory_path: Path,
         preserved_files: list[Path],
     ) -> bool:
         """
-        Verifica se o diretório contém algum arquivo
-        que tenha sido preservado durante o processamento
-        dos arquivos.
+        Verifica se o diretório possui um arquivo preservado
+        diretamente dentro dele.
 
-        O arquivo pode estar diretamente no diretório ou
-        em qualquer subdiretório.
+        Arquivos preservados em subdiretórios não protegem
+        o diretório pai.
         """
 
         directory_path = (
@@ -346,17 +399,16 @@ class BuildArtifactCleanupService:
         for preserved_file in preserved_files:
 
             preserved_file = (
-                Path(preserved_file).resolve()
+                Path(
+                    preserved_file
+                ).resolve()
             )
 
-            try:
-                preserved_file.relative_to(
-                    directory_path
-                )
-            except ValueError:
-                continue
-
-            return True
+            if (
+                preserved_file.parent
+                == directory_path
+            ):
+                return True
 
         return False
 
@@ -372,19 +424,6 @@ class BuildArtifactCleanupService:
 
         O próprio diretório preservado também é considerado
         protegido.
-
-        Exemplo:
-
-            workspace/
-                XML/
-                    arquivo.xml
-
-        Se XML for PRESERVE:
-
-            XML                  -> protegido
-            XML/arquivo.xml      -> protegido
-            XML/Movimento        -> protegido
-            XML/Movimento/a.xml  -> protegido
         """
 
         try:
@@ -432,6 +471,66 @@ class BuildArtifactCleanupService:
 
         return False
 
+    def __find_project_rule(
+        self,
+        target: CleanupTarget,
+        path: Path,
+        project_id: str | None,
+    ) -> CleanupRule | None:
+        """
+        Localiza somente uma regra específica do projeto.
+        """
+
+        if project_id is None:
+            return None
+
+        for rule in self.__rules:
+
+            if rule.project_id != project_id:
+                continue
+
+            if rule.target != target:
+                continue
+
+            if not self.__matches_rule(
+                rule=rule,
+                path=path,
+            ):
+                continue
+
+            return rule
+
+        return None
+
+    def __find_global_rule(
+        self,
+        target: CleanupTarget,
+        path: Path,
+    ) -> CleanupRule | None:
+        """
+        Localiza somente uma regra global.
+        """
+
+        global_rule = None
+
+        for rule in self.__rules:
+
+            if rule.project_id is not None:
+                continue
+
+            if rule.target != target:
+                continue
+
+            if not self.__matches_rule(
+                rule=rule,
+                path=path,
+            ):
+                continue
+
+            global_rule = rule
+
+        return global_rule
+
     def __find_rule(
         self,
         target: CleanupTarget,
@@ -443,34 +542,25 @@ class BuildArtifactCleanupService:
 
         Prioridade:
 
-        1. Regra específica do projeto.
-        2. Regra global.
+            1. Regra específica do projeto.
+            2. Regra global.
         """
 
-        global_rule = None
-
-        for rule in self.__rules:
-
-            if rule.target != target:
-                continue
-
-            if not self.__matches_rule(
-                rule=rule,
+        project_rule = (
+            self.__find_project_rule(
+                target=target,
                 path=path,
-            ):
-                continue
+                project_id=project_id,
+            )
+        )
 
-            if (
-                rule.project_id is not None
-                and rule.project_id == project_id
-            ):
+        if project_rule is not None:
+            return project_rule
 
-                return rule
-
-            if rule.project_id is None:
-                global_rule = rule
-
-        return global_rule
+        return self.__find_global_rule(
+            target=target,
+            path=path,
+        )
 
     @staticmethod
     def __matches_rule(

@@ -28,5 +28,23 @@
 
     "storage": {
         "root_path": "C:/Custom/OuroBuild"
+    },
+     "database": {
+        "server": "SRV-DVP02",
+        "port": 1433,
+        "database": "OuroBuild",
+        "username": "ouro",
+        "password": "nc7895al63",
+        "driver": "ODBC Driver 18 for SQL Server",
+        "trusted_connection": false,
+        "encrypt": true,
+        "trust_server_certificate": true,
+        "connection_timeout": 30
+    },
+
+    "security": {
+        "jwt_secret": "2cef9cb810968552e9d5877e25beb16a65621c0c7a9b42e0f041c71903e9a0b0",
+        "jwt_algorithm": "HS256",
+        "token_expiration_minutes": 60
     }
 }

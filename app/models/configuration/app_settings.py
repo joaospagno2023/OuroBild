@@ -14,6 +14,14 @@ from app.models.configuration.build_tools_settings import (
     BuildToolsSettings,
 )
 
+from app.models.configuration.database_settings import (
+    DatabaseSettings,
+)
+
+from app.models.configuration.security_settings import (
+    SecuritySettings,
+)
+
 from app.models.configuration.setup_settings import (
     SetupSettings,
 )
@@ -63,6 +71,18 @@ class AppSettings(
     #
 
     setup: SetupSettings
+
+    #
+    # Banco de dados
+    #
+
+    database: DatabaseSettings | None = None
+
+    #
+    # Segurança
+    #
+
+    security: SecuritySettings | None = None
 
     #
     # Diretórios derivados

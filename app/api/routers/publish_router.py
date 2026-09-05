@@ -8,27 +8,25 @@ Descrição : Endpoints responsáveis pela execução de Publish.
 
 from fastapi import (
     APIRouter,
-    HTTPException,
+    Depends,
     Request,
+)
+
+from app.api.dependencies.current_user import (
+    get_current_user,
 )
 
 from app.models.publish.publish_request import (
     PublishRequest,
 )
 
-from app.services.publish_execution_lock import (
-    PublishExecutionLock,
-)
-
 
 router = APIRouter(
     prefix="/publishes",
     tags=["Publishes"],
-)
-
-
-publish_execution_lock = (
-    PublishExecutionLock()
+    dependencies=[
+        Depends(get_current_user),
+    ],
 )
 
 
@@ -38,53 +36,13 @@ def execute_publish(
     request: Request,
 ):
     """
-    Inicia um Publish.
-
-    Somente uma execução de Publish pode
-    ocorrer simultaneamente.
+    Executa um Publish.
     """
 
-    #
-    # Tenta adquirir o Lock.
-    #
+    bootstrap = request.app.state.bootstrap
 
-    if not publish_execution_lock.try_acquire():
-
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "status": "busy",
-                "message": (
-                    "Já existe uma publicação "
-                    "em execução. Aguarde a "
-                    "conclusão da publicação atual."
-                ),
-            },
+    return (
+        bootstrap.execute_publish_use_case.execute(
+            publish_request,
         )
-
-    try:
-
-        #
-        # Executa o Publish.
-        #
-
-        bootstrap = (
-            request.app.state.bootstrap
-        )
-
-        return (
-            bootstrap
-            .execute_publish_use_case
-            .execute(
-                publish_request,
-            )
-        )
-
-    finally:
-
-        #
-        # O Lock deve ser liberado sempre,
-        # inclusive quando ocorrer uma exceção.
-        #
-
-        publish_execution_lock.release()
+    )

@@ -263,7 +263,7 @@ class AdvancedInstallerService(
             set_version_result = (
                 self.__execute_set_version(
                     aip_path=workspace_aip_path,
-                    version=definition.version,
+                    version=request.version,
                 )
             )
 

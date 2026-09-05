@@ -11,6 +11,7 @@ import inspect
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Routers
 from app.api.routers.build_router import (
@@ -243,6 +244,31 @@ from app.services.setup.advanced_installer_aip_synchronizer import (
 from app.services.cleanup.build_artifact_cleanup_factory import (
     BuildArtifactCleanupFactory,
 )
+
+from app.api.routers.auth_router import (
+    router as auth_router,
+)
+
+from app.database.connection import (
+    DatabaseConnection,
+)
+
+from app.repositories.sql_user_repository import (
+    SqlUserRepository,
+)
+
+from app.core.security.password_service import (
+    PasswordService,
+)
+
+from app.core.security.jwt_service import (
+    JwtService,
+)
+
+from app.services.auth.authentication_service import (
+    AuthenticationService,
+)
+
 
 class Bootstrap:
     """
@@ -666,6 +692,10 @@ class Bootstrap:
             ExecutePipelineUseCase(
                 project_repository=self.project_repository,
                 pipeline_factory=self.pipeline_factory,
+                build_context_factory=self.build_context_factory,
+                publish_context_factory=self.publish_context_factory,
+                solution_locator=self.solution_locator_service,
+                pipeline_runner=self.pipeline_runner,
                 execute_setup_use_case=(
                     self.execute_setup_use_case
                 ),
@@ -694,6 +724,26 @@ class Bootstrap:
             )
         )
 
+        self.database_connection = DatabaseConnection(
+            settings=self.settings.database,
+        )
+
+        self.user_repository = SqlUserRepository(
+            database_connection=self.database_connection,
+        )
+
+        self.password_service = PasswordService()
+
+        self.jwt_service = JwtService(
+            settings=self.settings.security,
+        )
+
+        self.authentication_service = AuthenticationService(
+            user_repository=self.user_repository,
+            password_service=self.password_service,
+            jwt_service=self.jwt_service,
+        )
+
     def create_app(
         self,
     ) -> FastAPI:
@@ -706,7 +756,21 @@ class Bootstrap:
             description="Sistema interno de automaÃ§Ã£o de builds da OuroWeb",
             version=self.settings.version,
         )
+        
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+            ],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
+        app.include_router(
+            auth_router,
+        )
         #
         # Tratamento global de exceÃ§Ãµes
         #

@@ -232,7 +232,7 @@ def test_deve_aplicar_regras_de_limpeza_do_linkpagamento(
 
     assert not config_file.exists()
 
-    assert not config_dll.exists()
+    assert config_dll.exists()
 
     #
     # ============================================================

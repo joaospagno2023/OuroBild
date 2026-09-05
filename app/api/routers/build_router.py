@@ -1,4 +1,3 @@
-
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
@@ -8,12 +7,20 @@ Descrição : Endpoint responsável pela execução completa do Build.
 --------------------------------------------------------------------
 """
 
-from fastapi import APIRouter
-from fastapi import Request
+from fastapi import (
+    APIRouter,
+    Depends,
+    Request,
+)
+
+from app.api.dependencies.current_user import (
+    get_current_user,
+)
 
 from app.models.build.build_request import (
     BuildRequest,
 )
+
 from app.models.setup.setup_request import (
     SetupRequest,
 )
@@ -22,6 +29,9 @@ from app.models.setup.setup_request import (
 router = APIRouter(
     prefix="/builds",
     tags=["Builds"],
+    dependencies=[
+        Depends(get_current_user),
+    ],
 )
 
 

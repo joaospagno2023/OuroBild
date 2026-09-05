@@ -91,8 +91,7 @@ class CleanupRulesProvider:
             #
             # DLLs são necessárias em tempo de execução para
             # praticamente todo projeto .NET. Removê-las por
-            # padrão quebraria o Setup gerado. Declarada após
-            # a regra "*"/REMOVE para que prevaleça sobre ela.
+            # padrão quebraria o Setup gerado.
             # ----------------------------------------------------
             #
 
@@ -189,7 +188,7 @@ class CleanupRulesProvider:
 
         #
         # ========================================================
-        # WCF Movement
+        # WCF Movimento
         # ========================================================
         #
 
@@ -220,7 +219,7 @@ class CleanupRulesProvider:
                         description=(
                             "Preserva o arquivo da raiz do "
                             "Release necessário para o "
-                            "WCF Movement: "
+                            "WCF Movimento: "
                             f"{file_name}."
                         ),
                     )
@@ -240,9 +239,214 @@ class CleanupRulesProvider:
                     project_id=project_id,
                     description=(
                         "Preserva a pasta XML utilizada "
-                        "pelo WCF Movement."
+                        "pelo WCF Movimento."
                     ),
                 )
             )
+
+        #
+        # ========================================================
+        # WCF Cadastro
+        # ========================================================
+        #
+
+        if project_id == "wcfcadastro":
+
+            #
+            # ----------------------------------------------------
+            # Arquivos da raiz do Release
+            # ----------------------------------------------------
+            #
+
+            root_files = [
+                "connectionStrings.config",
+                "custom.configuration.server.config",
+                "Cadastro.svc",
+                "CadastroWS.asmx",
+                "packages.config",
+                "Web.config",
+            ]
+
+            for file_name in root_files:
+
+                rules.append(
+                    CleanupRule(
+                        target=CleanupTarget.FILE,
+                        pattern=file_name,
+                        action=CleanupAction.PRESERVE,
+                        project_id=project_id,
+                        description=(
+                            "Preserva o arquivo da raiz do "
+                            "Release necessário para o "
+                            "WCF Cadastro: "
+                            f"{file_name}."
+                        ),
+                    )
+                )
+
+            #
+            # ----------------------------------------------------
+            # Diretórios nativos que não fazem parte do Setup.
+            #
+            # Essas regras explícitas de REMOVE têm prioridade
+            # sobre a proteção causada pelas DLLs preservadas.
+            # ----------------------------------------------------
+            #
+
+            native_directories = [
+                "x86",
+                "x64",
+                "arm64",
+            ]
+
+            for directory_name in native_directories:
+
+                rules.append(
+                    CleanupRule(
+                        target=CleanupTarget.DIRECTORY,
+                        pattern=directory_name,
+                        action=CleanupAction.REMOVE,
+                        project_id=project_id,
+                        description=(
+                            "Remove o diretório nativo "
+                            f"{directory_name} do WCF Cadastro."
+                        ),
+                    )
+                )
+
+        #
+        # ========================================================
+        # WCF Financeiro
+        # ========================================================
+        #
+
+        if project_id == "wcffinanceiro":
+
+            #
+            # ----------------------------------------------------
+            # Arquivos da raiz do Release
+            # ----------------------------------------------------
+            #
+
+            root_files = [
+                "connectionStrings.config",
+                "custom.configuration.server.config",
+                "Financial.svc",
+                "packages.config",
+                "Web.config",
+            ]
+
+            for file_name in root_files:
+
+                rules.append(
+                    CleanupRule(
+                        target=CleanupTarget.FILE,
+                        pattern=file_name,
+                        action=CleanupAction.PRESERVE,
+                        project_id=project_id,
+                        description=(
+                            "Preserva o arquivo da raiz do "
+                            "Release necessário para o "
+                            "WCF Financeiro: "
+                            f"{file_name}."
+                        ),
+                    )
+                )
+
+            #
+            # ----------------------------------------------------
+            # Diretórios nativos que não fazem parte do Setup.
+            #
+            # Essas regras explícitas de REMOVE têm prioridade
+            # sobre a proteção causada pelas DLLs preservadas.
+            # ----------------------------------------------------
+            #
+
+            native_directories = [
+                "x86",
+                "x64",
+                "arm64",
+            ]
+
+            for directory_name in native_directories:
+
+                rules.append(
+                    CleanupRule(
+                        target=CleanupTarget.DIRECTORY,
+                        pattern=directory_name,
+                        action=CleanupAction.REMOVE,
+                        project_id=project_id,
+                        description=(
+                            "Remove o diretório nativo "
+                            f"{directory_name} do WCF Financeiro."
+                        ),
+                    )
+                )
+
+        #
+        # ========================================================
+        # Ouro Net
+        # ========================================================
+        #
+
+        if project_id == "ouronet":
+
+            #
+            # ----------------------------------------------------
+            # Arquivos da raiz do Release
+            # ----------------------------------------------------
+            #
+
+            root_files = [
+                "OuroNetApp.exe",
+                "OuroNetApp.exe.config",
+            ]
+
+            for file_name in root_files:
+
+                rules.append(
+                    CleanupRule(
+                        target=CleanupTarget.FILE,
+                        pattern=file_name,
+                        action=CleanupAction.PRESERVE,
+                        project_id=project_id,
+                        description=(
+                            "Preserva o arquivo da raiz do "
+                            "Release necessário para o "
+                            "ouronet: "
+                            f"{file_name}."
+                        ),
+                    )
+                )
+
+            #
+            # ----------------------------------------------------
+            # Diretórios nativos que não fazem parte do Setup.
+            #
+            # Essas regras explícitas de REMOVE têm prioridade
+            # sobre a proteção causada pelas DLLs preservadas.
+            # ----------------------------------------------------
+            #
+
+            native_directories = [
+                "x86",
+                "x64",
+                "arm64",
+            ]
+
+            for directory_name in native_directories:
+
+                rules.append(
+                    CleanupRule(
+                        target=CleanupTarget.DIRECTORY,
+                        pattern=directory_name,
+                        action=CleanupAction.PRESERVE,
+                        project_id=project_id,
+                        description=(
+                            "Remove o diretório nativo "
+                            f"{directory_name} do ouronet."
+                        ),
+                    )
+                )
 
         return rules
