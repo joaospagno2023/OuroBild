@@ -1,4 +1,3 @@
-
 """
 --------------------------------------------------------------------
 Projeto : OuroBuild
@@ -6,6 +5,8 @@ Arquivo : execute_pipeline_use_case.py
 Descrição : Responsável por executar uma Pipeline de Build.
 --------------------------------------------------------------------
 """
+
+from typing import Callable
 
 from app.abstractions.pipeline_factory import (
     PipelineFactory,
@@ -29,6 +30,10 @@ from app.factories.publish_context_factory import (
 
 from app.models.build.build_request import (
     BuildRequest,
+)
+
+from app.models.execution.pipeline_execution_state import (
+    PipelineExecutionPhase,
 )
 
 from app.models.pipeline.pipeline_context import (
@@ -127,6 +132,16 @@ class ExecutePipelineUseCase:
         environment_id: str | None = None,
         version: str | None = None,
         revision: int | None = None,
+        progress_callback: Callable[
+            [
+                str,
+                int,
+                int,
+                int,
+                PipelineExecutionPhase,
+            ],
+            None,
+        ] | None = None,
     ) -> PipelineResult:
         """
         Executa a Pipeline e, quando solicitado,
@@ -263,12 +278,89 @@ class ExecutePipelineUseCase:
         )
 
         #
+        # Define o total de etapas da execução.
+        #
+        # Quando o Setup fizer parte da execução, ele é tratado como
+        # uma etapa adicional do fluxo. O total permanece fixo durante
+        # toda a execução; apenas o índice e o percentual avançam.
+        #
+        pipeline_total_steps = len(
+            pipeline.steps,
+        )
+
+        setup_enabled = (
+            self.__execute_setup_use_case is not None
+            and environment_id is not None
+        )
+
+        setup_total_steps = (
+            self.__execute_setup_use_case.get_progress_total_steps(
+                SetupRequest(
+                    project_id=project_id,
+                    environment_id=environment_id or "",
+                    version=version,
+                    revision=revision,
+                    run_build=False,
+                )
+            )
+            if setup_enabled
+            else 0
+        )
+
+        execution_total_steps = (
+            pipeline_total_steps + setup_total_steps
+            if setup_enabled
+            else pipeline_total_steps
+        )
+
+        def pipeline_progress_callback(
+            current_step: str,
+            current_step_index: int,
+            total_steps: int,
+            progress_percent: int,
+            phase: PipelineExecutionPhase,
+        ) -> None:
+            if progress_callback is None:
+                return
+
+            if execution_total_steps <= 0:
+                progress_callback(
+                    current_step,
+                    current_step_index,
+                    execution_total_steps,
+                    0,
+                    phase,
+                )
+                return
+
+            overall_progress = int(
+                (
+                    current_step_index
+                    / execution_total_steps
+                )
+                * 100
+            )
+
+            progress_callback(
+                current_step,
+                current_step_index,
+                execution_total_steps,
+                min(overall_progress, 100),
+                phase,
+            )
+
+        #
         # Executa a Pipeline.
         #
 
         result = self.__pipeline_runner.execute(
             pipeline=pipeline,
             context=context,
+            progress_callback=(
+                pipeline_progress_callback
+                if progress_callback is not None
+                else None
+            ),
         )
 
         #
@@ -295,18 +387,76 @@ class ExecutePipelineUseCase:
         )
 
         #
+        # Informa que a execução entrou na fase de Setup.
+        #
+        # O total de etapas permanece fixo durante toda a execução.
+        # O Setup informa suas etapas internas e este caso de uso
+        # converte os índices locais para o índice global da execução.
+        #
+
+        def setup_progress_callback(
+            current_step: str,
+            current_step_index: int,
+            total_steps: int,
+            progress_percent: int,
+            phase: PipelineExecutionPhase,
+        ) -> None:
+            if progress_callback is None:
+                return
+
+            global_step_index = (
+                pipeline_total_steps
+                + current_step_index
+            )
+
+            if execution_total_steps <= 0:
+                overall_progress = 0
+            elif current_step_index >= total_steps:
+                overall_progress = int(
+                    (global_step_index / execution_total_steps)
+                    * 100
+                )
+            else:
+                overall_progress = int(
+                    ((global_step_index - 1) / execution_total_steps)
+                    * 100
+                )
+
+            progress_callback(
+                current_step,
+                global_step_index,
+                execution_total_steps,
+                min(overall_progress, 100),
+                phase,
+            )
+
+        #
         # Executa o Setup.
         #
 
         setup_result = (
             self.__execute_setup_use_case.execute(
                 setup_request,
+                progress_callback=(
+                    setup_progress_callback
+                    if progress_callback is not None
+                    else None
+                ),
             )
         )
 
         result.steps.extend(
             setup_result.steps,
         )
+
+        if progress_callback is not None and setup_result.success:
+            progress_callback(
+                "Setup",
+                execution_total_steps,
+                execution_total_steps,
+                100,
+                PipelineExecutionPhase.SETUP,
+            )
 
         #
         # Propaga falha do Setup.

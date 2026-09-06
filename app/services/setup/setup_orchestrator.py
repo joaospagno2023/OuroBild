@@ -8,9 +8,15 @@ Descrição : Orquestra o processo de geração do Setup através
 """
 
 from pathlib import Path
+from typing import Callable
+
 
 from app.models.configuration.app_settings import (
     AppSettings,
+)
+
+from app.models.execution.pipeline_execution_state import (
+    PipelineExecutionPhase,
 )
 
 from app.models.setup.setup_engine import (
@@ -76,6 +82,8 @@ class DefaultSetupOrchestrator:
     do Advanced Installer.
     """
 
+    PROGRESS_TOTAL_STEPS = 6
+
     def __init__(
         self,
         workspace_resolver: WorkspaceResolver,
@@ -134,9 +142,61 @@ class DefaultSetupOrchestrator:
 
         self.__settings = settings
 
+    @classmethod
+    def get_progress_total_steps(
+        cls,
+        request: SetupRequest,
+    ) -> int:
+        """
+        Retorna a quantidade de etapas de progresso do Setup.
+        """
+
+        if request.run_build:
+            return cls.PROGRESS_TOTAL_STEPS + 1
+
+        return cls.PROGRESS_TOTAL_STEPS
+
+    @staticmethod
+    def __notify_progress(
+        progress_callback: Callable[
+            [
+                str,
+                int,
+                int,
+                int,
+                PipelineExecutionPhase,
+            ],
+            None,
+        ] | None,
+        step_name: str,
+        step_index: int,
+        total_steps: int,
+        progress_percent: int,
+    ) -> None:
+        if progress_callback is None:
+            return
+
+        progress_callback(
+            step_name,
+            step_index,
+            total_steps,
+            progress_percent,
+            PipelineExecutionPhase.SETUP,
+        )
+
     def execute(
         self,
         request: SetupRequest,
+        progress_callback: Callable[
+            [
+                str,
+                int,
+                int,
+                int,
+                PipelineExecutionPhase,
+            ],
+            None,
+        ] | None = None,
     ) -> SetupResult:
         """
         Executa a geração do Setup.
@@ -149,11 +209,27 @@ class DefaultSetupOrchestrator:
 
         try:
 
+            total_steps = self.get_progress_total_steps(
+                request,
+            )
+
+            current_step_index = 1
+
             #
             # ========================================================
             # Workspace
             # ========================================================
             #
+
+            self.__notify_progress(
+                progress_callback,
+                "Resolver Workspace",
+                current_step_index,
+                total_steps,
+                int(
+                    ((current_step_index - 1) / total_steps) * 100
+                ),
+            )
 
             workspace = (
                 self.__workspace_resolver.resolve(
@@ -173,11 +249,23 @@ class DefaultSetupOrchestrator:
                     f"{request.project_id}"
                 )
 
+            current_step_index += 1
+
             #
             # ========================================================
             # Engine
             # ========================================================
             #
+
+            self.__notify_progress(
+                progress_callback,
+                "Validar Engine",
+                current_step_index,
+                total_steps,
+                int(
+                    ((current_step_index - 1) / total_steps) * 100
+                ),
+            )
 
             engine = (
                 self.__get_engine()
@@ -190,6 +278,8 @@ class DefaultSetupOrchestrator:
                     f"de Setup. Engine configurado: {engine}"
                 )
 
+            current_step_index += 1
+
             #
             # ========================================================
             # Build do projeto
@@ -200,6 +290,15 @@ class DefaultSetupOrchestrator:
                 request.run_build
                 and self.__execute_build_use_case is not None
             ):
+                self.__notify_progress(
+                    progress_callback,
+                    "Build",
+                    current_step_index,
+                    total_steps,
+                    int(
+                        ((current_step_index - 1) / total_steps) * 100
+                    ),
+                )
 
                 build_request = BuildRequest(
                     project_id=request.project_id,
@@ -240,11 +339,25 @@ class DefaultSetupOrchestrator:
                         ),
                     )
 
+                current_step_index += 1
+
+            # Quando o Build não faz parte da execução,
+            # a próxima etapa ocupa a posição atual.
             #
             # ========================================================
             # Caminhos
             # ========================================================
             #
+
+            self.__notify_progress(
+                progress_callback,
+                "Resolver caminhos",
+                current_step_index,
+                total_steps,
+                int(
+                    ((current_step_index - 1) / total_steps) * 100
+                ),
+            )
 
             paths = (
                 self.__setup_path_resolver.resolve(
@@ -284,11 +397,23 @@ class DefaultSetupOrchestrator:
                     "os caminhos do Setup."
                 )
 
+            current_step_index += 1
+
             #
             # ========================================================
             # Definição do Advanced Installer
             # ========================================================
             #
+
+            self.__notify_progress(
+                progress_callback,
+                "Carregar definição do Advanced Installer",
+                current_step_index,
+                total_steps,
+                int(
+                    ((current_step_index - 1) / total_steps) * 100
+                ),
+            )
 
             definition = (
                 self.__advanced_installer_definition_loader.load(
@@ -316,11 +441,23 @@ class DefaultSetupOrchestrator:
                     "não retornou uma definição de Setup."
                 )
 
+            current_step_index += 1
+
             #
             # ========================================================
             # Installer
             # ========================================================
             #
+
+            self.__notify_progress(
+                progress_callback,
+                "Criar Installer",
+                current_step_index,
+                total_steps,
+                int(
+                    ((current_step_index - 1) / total_steps) * 100
+                ),
+            )
 
             installer = (
                 self.__setup_factory.create(
@@ -334,16 +471,36 @@ class DefaultSetupOrchestrator:
                     "um InstallerService."
                 )
 
+            current_step_index += 1
+
             #
             # ========================================================
             # Execução
             # ========================================================
             #
 
+            self.__notify_progress(
+                progress_callback,
+                "Executar Setup",
+                current_step_index,
+                total_steps,
+                int(
+                    ((current_step_index - 1) / total_steps) * 100
+                ),
+            )
+
             setup_result = installer.install(
                 request=request,
                 definition=definition,
                 paths=paths,
+            )
+
+            self.__notify_progress(
+                progress_callback,
+                "Executar Setup",
+                current_step_index,
+                total_steps,
+                100,
             )
 
             setup_message = (

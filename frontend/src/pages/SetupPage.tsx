@@ -14,6 +14,8 @@ import {
 
 import {
   executeProject,
+  getExecution,
+  type PipelineExecutionResponse,
 } from "../services/projectsApi";
 
 
@@ -27,6 +29,7 @@ type Project = {
 
 type ExecutionStatus =
   | "waiting"
+  | "pending"
   | "running"
   | "success"
   | "error";
@@ -36,6 +39,13 @@ type ProjectExecution =
   Project & {
     status: ExecutionStatus;
     progress: number;
+    executionId: string | null;
+    phase: "pipeline" | "setup" | null;
+    currentStep: string | null;
+    currentStepIndex: number;
+    totalSteps: number;
+    message: string;
+    failedStep: string | null;
   };
 
 
@@ -83,6 +93,13 @@ const initialExecutions: ProjectExecution[] =
     ...project,
     status: "waiting",
     progress: 0,
+    executionId: null,
+    phase: null,
+    currentStep: null,
+    currentStepIndex: 0,
+    totalSteps: 0,
+    message: "Aguardando execução",
+    failedStep: null,
   }));
 
 
@@ -96,7 +113,7 @@ function SetupPage() {
   const [
     environment,
     setEnvironment,
-  ] = useState("Producao");
+  ] = useState("production");
 
 
   const [
@@ -192,6 +209,64 @@ function SetupPage() {
   }
 
 
+  async function pollExecution(
+    projectId: string,
+    executionId: string,
+  ): Promise<void> {
+    const pollIntervalMs = 1000;
+
+    while (true) {
+      const execution = await getExecution(executionId);
+
+      updateExecution(projectId, execution);
+
+      if (
+        execution.status === "completed" ||
+        execution.status === "failed"
+      ) {
+        return;
+      }
+
+      await new Promise((resolve) =>
+        window.setTimeout(resolve, pollIntervalMs),
+      );
+    }
+  }
+
+  function updateExecution(
+    projectId: string,
+    execution: PipelineExecutionResponse,
+  ) {
+    setExecutions((current) =>
+      current.map((item) =>
+        item.id === projectId
+          ? {
+              ...item,
+              status:
+                execution.status === "pending"
+                  ? "pending"
+                  : execution.status === "running"
+                    ? "running"
+                    : execution.status === "completed"
+                      ? "success"
+                      : "error",
+              progress: Math.round(
+                execution.progress_percent,
+              ),
+              executionId: execution.execution_id,
+              phase: execution.phase,
+              currentStep: execution.current_step,
+              currentStepIndex:
+                execution.current_step_index,
+              totalSteps: execution.total_steps,
+              message: execution.message,
+              failedStep: execution.failed_step,
+            }
+          : item,
+      ),
+    );
+  }
+
   async function generateSetups() {
     if (
       selectedCount === 0 ||
@@ -206,25 +281,23 @@ function SetupPage() {
       ...selectedProjects,
     ];
 
-    setExecutions(
-      (current) =>
-        current.map(
-          (execution) => ({
-            ...execution,
-            status:
-              selectedIds.includes(
-                execution.id,
-              )
-                ? "running"
-                : "waiting",
-            progress:
-              selectedIds.includes(
-                execution.id,
-              )
-                ? 10
-                : 0,
-          }),
-        ),
+    setExecutions((current) =>
+      current.map((execution) =>
+        selectedIds.includes(execution.id)
+          ? {
+              ...execution,
+              status: "pending",
+              progress: 0,
+              executionId: null,
+              phase: null,
+              currentStep: null,
+              currentStepIndex: 0,
+              totalSteps: 0,
+              message: "Aguardando execução",
+              failedStep: null,
+            }
+          : execution,
+      ),
     );
 
     let parsedRevision: number | null = null;
@@ -234,25 +307,20 @@ function SetupPage() {
         Number(revision);
 
       if (
-        !Number.isInteger(
-          numericRevision,
-        ) ||
+        !Number.isInteger(numericRevision) ||
         numericRevision < 0
       ) {
-        setExecutions(
-          (current) =>
-            current.map(
-              (execution) =>
-                selectedIds.includes(
-                  execution.id,
-                )
-                  ? {
-                      ...execution,
-                      status: "error",
-                      progress: 0,
-                    }
-                  : execution,
-            ),
+        setExecutions((current) =>
+          current.map((execution) =>
+            selectedIds.includes(execution.id)
+              ? {
+                  ...execution,
+                  status: "error",
+                  progress: 0,
+                  message: "Revisão inválida.",
+                }
+              : execution,
+          ),
         );
 
         setIsGenerating(false);
@@ -260,8 +328,7 @@ function SetupPage() {
         return;
       }
 
-      parsedRevision =
-        numericRevision;
+      parsedRevision = numericRevision;
     }
 
     try {
@@ -273,105 +340,78 @@ function SetupPage() {
         const projectId =
           selectedIds[index];
 
-        setExecutions(
-          (current) =>
-            current.map(
-              (execution) => {
-                if (
-                  execution.id !==
-                  projectId
-                ) {
-                  return execution;
-                }
-
-                return {
+        setExecutions((current) =>
+          current.map((execution) =>
+            execution.id === projectId
+              ? {
                   ...execution,
-                  status: "running",
-                  progress: 10,
-                };
-              },
-            ),
+                  status: "pending",
+                  progress: 0,
+                  message: "Iniciando execução...",
+                }
+              : execution,
+          ),
         );
 
         try {
-          await executeProject(
+          const initialExecution =
+            await executeProject(
+              projectId,
+              {
+                environment_id:
+                  environment,
+                version:
+                  version.trim() ||
+                  null,
+                revision:
+                  parsedRevision,
+              },
+            );
+
+          updateExecution(
             projectId,
-            {
-              environment_id:
-                environment,
-              version:
-                version.trim() ||
-                null,
-              revision:
-                parsedRevision,
-            },
+            initialExecution,
           );
 
-          setExecutions(
-            (current) =>
-              current.map(
-                (execution) => {
-                  if (
-                    execution.id !==
-                    projectId
-                  ) {
-                    return execution;
-                  }
-
-                  return {
-                    ...execution,
-                    status: "success",
-                    progress: 100,
-                  };
-                },
-              ),
+          await pollExecution(
+            projectId,
+            initialExecution.execution_id,
           );
-        } catch {
-          setExecutions(
-            (current) =>
-              current.map(
-                (execution) => {
-                  if (
-                    execution.id !==
-                    projectId
-                  ) {
-                    return execution;
-                  }
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Erro durante a execução.";
 
-                  return {
+          setExecutions((current) =>
+            current.map((execution) =>
+              execution.id === projectId
+                ? {
                     ...execution,
                     status: "error",
                     progress: 0,
-                  };
-                },
-              ),
+                    message,
+                  }
+                : execution,
+            ),
           );
         }
 
         const nextProject =
           selectedIds[index + 1];
 
-        if (
-          nextProject !== undefined
-        ) {
-          setExecutions(
-            (current) =>
-              current.map(
-                (execution) => {
-                  if (
-                    execution.id !==
-                    nextProject
-                  ) {
-                    return execution;
-                  }
-
-                  return {
+        if (nextProject !== undefined) {
+          setExecutions((current) =>
+            current.map((execution) =>
+              execution.id === nextProject
+                ? {
                     ...execution,
-                    status: "running",
-                    progress: 10,
-                  };
-                },
-              ),
+                    status: "pending",
+                    progress: 0,
+                    message: "Aguardando execução",
+                  }
+                : execution,
+            ),
           );
         }
       }
@@ -778,8 +818,9 @@ function SetupPage() {
                     <X />
                   )}
 
-                  {execution.status ===
-                    "waiting" && (
+                  {(execution.status ===
+                    "waiting" ||
+                    execution.status === "pending") && (
                     <Circle />
                   )}
                 </div>
@@ -796,16 +837,24 @@ function SetupPage() {
                       "Aguardando execução"}
 
                     {execution.status ===
+                      "pending" &&
+                      "Aguardando início..."}
+
+                    {execution.status ===
                       "running" &&
-                      "Executando..."}
+                      (execution.currentStep ||
+                        execution.message ||
+                        "Executando...")}
 
                     {execution.status ===
                       "success" &&
-                      "Setup gerado com sucesso"}
+                      (execution.message ||
+                        "Setup gerado com sucesso")}
 
                     {execution.status ===
                       "error" &&
-                      "Erro durante a geração"}
+                      (execution.message ||
+                        "Erro durante a geração")}
                   </span>
                 </div>
 
@@ -824,6 +873,30 @@ function SetupPage() {
                     {execution.progress}%
                   </span>
                 </div>
+
+                {(execution.status === "running" ||
+                  execution.status === "pending" ||
+                  execution.status === "error") && (
+                  <div className="execution-details">
+                    {execution.totalSteps > 0 && (
+                      <span>
+                        Etapa {execution.currentStepIndex} de {execution.totalSteps}
+                      </span>
+                    )}
+
+                    {execution.phase && (
+                      <span>
+                        Fase: {execution.phase === "pipeline" ? "Pipeline" : "Setup"}
+                      </span>
+                    )}
+
+                    {execution.failedStep && (
+                      <span>
+                        Falha: {execution.failedStep}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
 

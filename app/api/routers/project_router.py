@@ -41,7 +41,12 @@ from app.models.project.update_project_request import (
 from app.models.project.update_project_status_request import (
     UpdateProjectStatusRequest,
 )
-
+from app.services.pipeline.pipeline_execution_service import (
+    get_pipeline_execution_service,
+)
+from app.models.execution.pipeline_execution_response import (
+    PipelineExecutionResponse,
+)
 
 router = APIRouter(
     prefix="/projects",
@@ -204,6 +209,8 @@ def update_project_status(
 
 @router.post(
     "/{project_id}/execute",
+    response_model=PipelineExecutionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
     dependencies=[
         Depends(
             require_permission(
@@ -217,6 +224,36 @@ def update_project_status(
         ),
     ],
 )
+def execute_pipeline(
+    project_id: str,
+    request: Request,
+    execution: PipelineExecutionRequest,
+) -> PipelineExecutionResponse:
+    """
+    Inicia uma execução assíncrona da Pipeline.
+
+    Requer as permissões:
+
+        - build.execute
+        - setup.execute
+    """
+
+    bootstrap = request.app.state.bootstrap
+
+    execution_service = (
+        get_pipeline_execution_service()
+    )
+
+    return execution_service.start(
+        execute_pipeline_use_case=(
+            bootstrap.execute_pipeline_use_case
+        ),
+        project_id=project_id,
+        environment_id=execution.environment_id,
+        version=execution.version,
+        revision=execution.revision,
+    )
+
 def execute_pipeline(
     project_id: str,
     request: Request,

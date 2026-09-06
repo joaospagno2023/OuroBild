@@ -107,18 +107,22 @@ export interface ExecuteProjectRequest {
   revision?: number | null;
 }
 
-export interface PipelineStepResult {
-  name: string;
-  success: boolean;
-  message?: string | null;
-}
-
 export interface ExecuteProjectResponse {
-  success: boolean;
+  execution_id: string;
+  project_id: string;
+  status: "pending" | "running" | "completed" | "failed";
+  phase: "pipeline" | "setup" | null;
+  current_step: string | null;
+  current_step_index: number;
+  total_steps: number;
+  progress_percent: number;
   message: string;
+  created_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  elapsed_seconds?: number | null;
+  success?: boolean | null;
   failed_step?: string | null;
-  artifacts: string[];
-  steps: PipelineStepResult[];
 }
 
 export async function getProjects(): Promise<Project[]> {
@@ -171,15 +175,39 @@ export async function updateProjectStatus(
   );
 }
 
+export interface PipelineExecutionResponse {
+  execution_id: string;
+  project_id: string;
+  status: "pending" | "running" | "completed" | "failed";
+  phase: "pipeline" | "setup" | null;
+  current_step: string | null;
+  current_step_index: number;
+  total_steps: number;
+  progress_percent: number;
+  message: string;
+  created_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  elapsed_seconds: number | null;
+  success: boolean | null;
+  failed_step: string | null;
+}
 export async function executeProject(
   projectId: string,
   request: ExecuteProjectRequest,
-): Promise<ExecuteProjectResponse> {
+): Promise<PipelineExecutionResponse> {
   return apiPost<
     ExecuteProjectRequest,
-    ExecuteProjectResponse
+    PipelineExecutionResponse
   >(
     `/projects/${projectId}/execute`,
     request,
+  );
+}
+export async function getExecution(
+  executionId: string,
+): Promise<PipelineExecutionResponse> {
+  return apiGet<PipelineExecutionResponse>(
+    `/executions/${executionId}`,
   );
 }

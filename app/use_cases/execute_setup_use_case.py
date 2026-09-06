@@ -6,8 +6,14 @@ Descrição : Caso de uso responsável pela geração de Setup.
 --------------------------------------------------------------------
 """
 
+from typing import Callable
+
 from app.abstractions.execute_setup_use_case import (
     ExecuteSetupUseCase,
+)
+
+from app.models.execution.pipeline_execution_state import (
+    PipelineExecutionPhase,
 )
 
 from app.models.setup.setup_request import (
@@ -54,9 +60,33 @@ class DefaultExecuteSetupUseCase(
             setup_orchestrator
         )
 
+    def get_progress_total_steps(
+        self,
+        request: SetupRequest,
+    ) -> int:
+        """
+        Retorna a quantidade de etapas de progresso do Setup.
+        """
+
+        return (
+            self.__setup_orchestrator.get_progress_total_steps(
+                request,
+            )
+        )
+
     def execute(
         self,
         request: SetupRequest,
+        progress_callback: Callable[
+            [
+                str,
+                int,
+                int,
+                int,
+                PipelineExecutionPhase,
+            ],
+            None,
+        ] | None = None,
     ) -> SetupResult:
         """
         Executa a geração do Setup.

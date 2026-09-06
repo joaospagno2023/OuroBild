@@ -29,6 +29,10 @@ from app.api.routers.configuration_router import (
     router as configuration_router,
 )
 
+from app.api.routers.execution_router import (
+    router as execution_router,
+)
+
 # Core
 from app.core.configuration.configuration_loader import (
     ConfigurationLoader,
@@ -897,5 +901,8 @@ class Bootstrap:
 
         app.include_router(
             configuration_router,
+        )
+        app.include_router(
+            execution_router,
         )
         return app

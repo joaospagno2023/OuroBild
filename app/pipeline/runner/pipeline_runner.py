@@ -8,6 +8,7 @@ Descrição: Responsável por executar todas as etapas da Pipeline.
 
 from datetime import datetime
 from pathlib import Path
+from typing import Callable
 import inspect
 
 from app.abstractions.pipeline_execution_repository import (
@@ -37,6 +38,9 @@ from app.pipeline.runner.step_executor import (
 from app.utils.pipeline_logger import (
     PipelineLogger,
 )
+from app.models.execution.pipeline_execution_state import (
+    PipelineExecutionPhase,
+)
 
 
 class PipelineRunner:
@@ -57,6 +61,16 @@ class PipelineRunner:
         self,
         pipeline: Pipeline,
         context: PipelineContext,
+        progress_callback: Callable[
+        [
+            str,
+            int,
+            int,
+            int,
+            PipelineExecutionPhase,
+        ],
+        None,
+    ] | None = None,
     ) -> PipelineResult:
 
         result = PipelineResult(
@@ -96,7 +110,29 @@ class PipelineRunner:
 
         try:
 
-            for step in pipeline.steps:
+            total_steps = len(
+                pipeline.steps,
+            )
+
+            for step_index, step in enumerate(
+                pipeline.steps,
+                start=1,
+            ):
+
+                if progress_callback is not None:
+                    progress_callback(
+                        step.name,
+                        step_index,
+                        total_steps,
+                        int(
+                            (
+                                (step_index - 1)
+                                / total_steps
+                            )
+                            * 100
+                        ),
+                        PipelineExecutionPhase.PIPELINE,
+                    )
 
                 PipelineLogger.info(
                     "",
@@ -127,6 +163,21 @@ class PipelineRunner:
                         context=context,
                     )
                 )
+
+                if progress_callback is not None:
+                    progress_callback(
+                        step_result.name,
+                        step_index,
+                        total_steps,
+                        int(
+                            (
+                                step_index
+                                / total_steps
+                            )
+                            * 100
+                        ),
+                        PipelineExecutionPhase.PIPELINE,
+                    )
 
                 PipelineLogger.info(
                     "",
