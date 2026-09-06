@@ -5,7 +5,6 @@ import {
   ClipboardList,
   FileText,
   Settings,
-  Users,
   Rocket,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";

@@ -19,7 +19,10 @@ class ConfigurationLoader:
     Responsável por carregar os arquivos de configuração.
     """
 
-    def __init__(self, config_path: Path):
+    def __init__(
+        self,
+        config_path: Path,
+    ):
         """
         Inicializa o carregador de configurações.
 
@@ -29,7 +32,19 @@ class ConfigurationLoader:
 
         self._config_path = config_path
 
-    def load_settings(self) -> AppSettings:
+    @property
+    def config_path(
+        self,
+    ) -> Path:
+        """
+        Retorna o caminho da pasta de configuração.
+        """
+
+        return self._config_path
+
+    def load_settings(
+        self,
+    ) -> AppSettings:
         """
         Carrega o arquivo settings.json.
 
@@ -37,7 +52,10 @@ class ConfigurationLoader:
             AppSettings
         """
 
-        file_path = self._config_path / "settings.json"
+        file_path = (
+            self._config_path
+            / "settings.json"
+        )
 
         with file_path.open(
             mode="r",
@@ -46,4 +64,6 @@ class ConfigurationLoader:
 
             data = json.load(file)
 
-        return AppSettings.model_validate(data)
+        return AppSettings.model_validate(
+            data,
+        )

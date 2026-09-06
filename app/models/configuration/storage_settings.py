@@ -9,6 +9,7 @@ Descrição : Configurações de armazenamento da aplicação.
 from pathlib import Path
 
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from pydantic import Field
 
 
@@ -19,8 +20,13 @@ class StorageSettings(
     Configurações de armazenamento.
     """
 
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
     workspace_path: Path = Field(
         default=Path.cwd(),
+        alias="root_path",
     )
 
     @property

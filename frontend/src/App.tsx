@@ -17,6 +17,7 @@ import SetupPage from "./pages/SetupPage";
 import UsersPage from "./pages/UsersPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import EnvironmentsPage from "./pages/EnvironmentsPage";
+import ConfigurationPage from "./pages/ConfigurationPage";
 
 function App() {
   return (
@@ -80,6 +81,10 @@ function App() {
             element={
               <AdministrationPage />
             }
+          />
+          <Route
+            path="/configuration"
+            element={<ConfigurationPage />}
           />
         </Route>
       </Route>

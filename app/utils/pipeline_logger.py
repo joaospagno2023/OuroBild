@@ -1,27 +1,26 @@
 """
-Logger utilizado para depuração da Pipeline.
+--------------------------------------------------------------------
+Projeto : OuroBuild
+Arquivo : pipeline_logger.py
+Descrição : Logger utilizado pela Pipeline.
+--------------------------------------------------------------------
 """
 
 import inspect
-import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+
+from app.models.configuration.logging_settings import (
+    LoggingSettings,
+)
 
 
 class PipelineLogger:
     """
     Logger da Pipeline.
 
-    Configurações:
-        enabled:
-            Ativa ou desativa o logger.
-
-        path:
-            Diretório onde os arquivos de log serão gravados.
-
-        level:
-            Nível mínimo do log.
+    As configurações são fornecidas pelo Bootstrap através de
+    LoggingSettings.
 
     Exemplo:
 
@@ -29,22 +28,14 @@ class PipelineLogger:
             "Pipeline iniciada"
         )
 
-    Será gerado:
+    Será gerado um arquivo como:
 
         Pipeline_debug.txt
     """
 
-    SETTINGS_FILE = Path(
-        r"C:\Custom\ourobuild\settings.json"
-    )
+    DEFAULT_SETTINGS = LoggingSettings()
 
-    DEFAULT_ENABLED = True
-
-    DEFAULT_LOG_PATH = Path(
-        r"C:\Custom\ourobuild\app\logs"
-    )
-
-    DEFAULT_LEVEL = "INFO"
+    _settings = DEFAULT_SETTINGS
 
     LEVELS = {
         "DEBUG": 10,
@@ -54,64 +45,20 @@ class PipelineLogger:
     }
 
     @classmethod
-    def _load_settings(
+    def configure(
         cls,
-    ) -> dict[str, Any]:
+        settings: LoggingSettings,
+    ) -> None:
         """
-        Carrega as configurações do settings.json.
-        """
-
-        if not cls.SETTINGS_FILE.exists():
-            return {}
-
-        try:
-
-            with open(
-                cls.SETTINGS_FILE,
-                "r",
-                encoding="utf-8",
-            ) as file:
-
-                settings = json.load(
-                    file
-                )
-
-            if not isinstance(
-                settings,
-                dict,
-            ):
-                return {}
-
-            return settings
-
-        except (
-            OSError,
-            json.JSONDecodeError,
-        ):
-            return {}
-
-    @classmethod
-    def _get_logging_settings(
-        cls,
-    ) -> dict[str, Any]:
-        """
-        Retorna as configurações do logger.
+        Configura o logger com as definições da aplicação.
         """
 
-        settings = cls._load_settings()
+        if settings is None:
+            raise ValueError(
+                "As configurações do logger são obrigatórias."
+            )
 
-        logging_settings = settings.get(
-            "logging",
-            {},
-        )
-
-        if not isinstance(
-            logging_settings,
-            dict,
-        ):
-            return {}
-
-        return logging_settings
+        cls._settings = settings
 
     @classmethod
     def _is_enabled(
@@ -121,16 +68,7 @@ class PipelineLogger:
         Verifica se o logger está habilitado.
         """
 
-        logging_settings = (
-            cls._get_logging_settings()
-        )
-
-        return bool(
-            logging_settings.get(
-                "enabled",
-                cls.DEFAULT_ENABLED,
-            )
-        )
+        return cls._settings.enabled
 
     @classmethod
     def _get_log_level(
@@ -140,19 +78,14 @@ class PipelineLogger:
         Retorna o nível configurado para o logger.
         """
 
-        logging_settings = (
-            cls._get_logging_settings()
+        level = (
+            cls._settings.level
+            .strip()
+            .upper()
         )
 
-        level = str(
-            logging_settings.get(
-                "level",
-                cls.DEFAULT_LEVEL,
-            )
-        ).upper()
-
         if level not in cls.LEVELS:
-            return cls.DEFAULT_LEVEL
+            return "INFO"
 
         return level
 
@@ -164,20 +97,7 @@ class PipelineLogger:
         Retorna o diretório dos arquivos de log.
         """
 
-        logging_settings = (
-            cls._get_logging_settings()
-        )
-
-        path = logging_settings.get(
-            "path"
-        )
-
-        if not path:
-            return cls.DEFAULT_LOG_PATH
-
-        return Path(
-            path
-        )
+        return cls._settings.path
 
     @classmethod
     def _get_calling_class_name(
@@ -190,20 +110,17 @@ class PipelineLogger:
         frame = inspect.currentframe()
 
         try:
-
             if frame is None:
                 return "Pipeline"
 
             frame = frame.f_back
 
             while frame is not None:
-
                 local_self = frame.f_locals.get(
                     "self"
                 )
 
                 if local_self is not None:
-
                     return (
                         local_self
                         .__class__
@@ -223,7 +140,6 @@ class PipelineLogger:
                 frame = frame.f_back
 
         finally:
-
             del frame
 
         return "Pipeline"
@@ -239,14 +155,12 @@ class PipelineLogger:
         frame = inspect.currentframe()
 
         try:
-
             if frame is None:
                 return "unknown"
 
             frame = frame.f_back
 
             while frame is not None:
-
                 local_self = frame.f_locals.get(
                     "self"
                 )
@@ -262,13 +176,11 @@ class PipelineLogger:
                         type,
                     )
                 ):
-
                     return frame.f_code.co_name
 
                 frame = frame.f_back
 
         finally:
-
             del frame
 
         return "unknown"
@@ -279,11 +191,6 @@ class PipelineLogger:
     ) -> Path:
         """
         Monta o caminho do arquivo de log.
-
-        Exemplo:
-
-            C:\\Custom\\ourobuild\\app\\logs\\
-            Pipeline_debug.txt
         """
 
         class_name = (
@@ -364,12 +271,10 @@ class PipelineLogger:
             f"{message}"
         )
 
-        with open(
-            log_file,
-            "a",
+        with log_file.open(
+            mode="a",
             encoding="utf-8",
         ) as log:
-
             log.write(
                 log_message
             )

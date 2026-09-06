@@ -17042,3 +17042,7 @@ Tempo Decorrido 00:00:15.33
 2026-09-05 00:01:45 | INFO    | PipelineLogger.write | Publish..........: <class 'NoneType'>
 2026-09-05 00:01:45 | INFO    | PipelineLogger.write | Steps............: 3
 2026-09-05 00:01:45 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-05 21:56:04 | INFO    | PipelineLogger.write | Teste de migração do logger
+2026-09-05 23:09:15 | INFO    | PipelineLogger.write | Teste de migração do logger
+2026-09-05 23:10:08 | INFO    | PipelineLogger.write | Teste de migração do logger
+2026-09-05 23:12:21 | INFO    | PipelineLogger.write | Teste final da configuração do PipelineLogger

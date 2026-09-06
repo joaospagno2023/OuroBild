@@ -25,6 +25,10 @@ from app.api.routers.environment_router import (
     router as environment_router,
 )
 
+from app.api.routers.configuration_router import (
+    router as configuration_router,
+)
+
 # Core
 from app.core.configuration.configuration_loader import (
     ConfigurationLoader,
@@ -295,6 +299,10 @@ from app.services.environment_service import (
     EnvironmentService,
 )
 
+from app.services.configuration.configuration_service import (
+    ConfigurationService,
+)
+
 
 
 class Bootstrap:
@@ -318,6 +326,12 @@ class Bootstrap:
 
         self.settings = (
             self.configuration_loader.load_settings()
+        )
+
+        self.configuration_service = (
+            ConfigurationService(
+                configuration_loader=self.configuration_loader,
+            )
         )
         
         self.database_connection = DatabaseConnection(
@@ -872,10 +886,16 @@ class Bootstrap:
         app.include_router(
             build_router,
         )
+        
         app.include_router(
             publish_router,
         )
+
         app.include_router(
             analyze_router,
+        )
+
+        app.include_router(
+            configuration_router,
         )
         return app

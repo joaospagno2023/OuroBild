@@ -18,6 +18,10 @@ from app.models.configuration.database_settings import (
     DatabaseSettings,
 )
 
+from app.models.configuration.logging_settings import (
+    LoggingSettings,
+)
+
 from app.models.configuration.security_settings import (
     SecuritySettings,
 )
@@ -71,6 +75,12 @@ class AppSettings(
     #
 
     setup: SetupSettings
+
+    #
+    # Logging
+    #
+
+    logging: LoggingSettings
 
     #
     # Banco de dados

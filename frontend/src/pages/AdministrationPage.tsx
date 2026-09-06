@@ -105,7 +105,7 @@ function AdministrationPage() {
           <button
             className="secondary-button"
             type="button"
-            onClick={() => navigate("/settings")}
+           onClick={() => navigate("/configuration")}
           >
             Configurar
           </button>
