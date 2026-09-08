@@ -3,7 +3,6 @@ import {
   BarChart3,
   Boxes,
   ClipboardList,
-  FileText,
   Settings,
   Rocket,
 } from "lucide-react";
@@ -30,11 +29,6 @@ const menuItems: MenuItem[] = [
     label: "Histórico",
     path: "/history",
     icon: <ClipboardList size={19} />,
-  },
-  {
-    label: "Logs",
-    path: "/logs",
-    icon: <FileText size={19} />,
   },
   {
     label: "Administração",

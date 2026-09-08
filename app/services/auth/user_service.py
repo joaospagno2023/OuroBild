@@ -25,6 +25,10 @@ from app.models.auth.reset_password_response import (
     ResetPasswordResponse,
 )
 
+from app.models.auth.update_profile_request import (
+    UpdateProfileRequest,
+)
+
 from app.models.auth.update_user_request import (
     UpdateUserRequest,
 )
@@ -195,6 +199,50 @@ class UserService:
         return self.__user_repository.update(
             user_id=user_id,
             request=normalized_request,
+        )
+
+    def update_profile(
+        self,
+        user: User,
+        request: UpdateProfileRequest,
+    ) -> User:
+        """
+        Atualiza somente o perfil do usuário autenticado.
+        """
+
+        if user is None:
+            raise ValueError(
+                "Usuário não foi informado."
+            )
+
+        if request is None:
+            raise ValueError(
+                "UpdateProfileRequest não foi informado."
+            )
+
+        display_name = (
+            request.display_name.strip()
+        )
+
+        if not display_name:
+            raise ValueError(
+                "DisplayName não foi informado."
+            )
+
+        update_request = (
+            UpdateUserRequest(
+                display_name=display_name,
+                email=user.email,
+                is_active=user.is_active,
+                must_change_password=(
+                    user.must_change_password
+                ),
+            )
+        )
+
+        return self.__user_repository.update(
+            user_id=user.id,
+            request=update_request,
         )
 
     def update_status(

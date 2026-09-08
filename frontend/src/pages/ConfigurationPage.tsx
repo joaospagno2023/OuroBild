@@ -21,11 +21,9 @@ import type {
   Configuration,
 } from "../services/configurationApi";
 
-
 type ConfigurationPageMode =
   | "loading"
   | "ready";
-
 
 function ConfigurationPage() {
   const [
@@ -48,11 +46,9 @@ function ConfigurationPage() {
   ] = useState(false);
 
   const [
-    browsingField,
-    setBrowsingField,
-  ] = useState<string | null>(
-    null,
-  );
+    isBrowsing,
+    setIsBrowsing,
+  ] = useState(false);
 
   const [
     message,
@@ -64,11 +60,9 @@ function ConfigurationPage() {
     setError,
   ] = useState("");
 
-
   useEffect(() => {
     void loadConfiguration();
   }, []);
-
 
   async function loadConfiguration() {
     setMode("loading");
@@ -88,7 +82,6 @@ function ConfigurationPage() {
       setMode("ready");
     }
   }
-
 
   function updateField<
     T extends keyof Configuration,
@@ -110,7 +103,6 @@ function ConfigurationPage() {
     );
   }
 
-
   function updateStorageRootPath(
     value: string,
   ) {
@@ -130,7 +122,6 @@ function ConfigurationPage() {
       },
     );
   }
-
 
   function updateBuildTool(
     field: keyof Configuration["build_tools"],
@@ -152,7 +143,6 @@ function ConfigurationPage() {
       },
     );
   }
-
 
   function updateSetup(
     field: keyof Configuration["setup"],
@@ -177,7 +167,6 @@ function ConfigurationPage() {
     );
   }
 
-
   function updateLogging(
     field: keyof Configuration["logging"],
     value:
@@ -201,16 +190,18 @@ function ConfigurationPage() {
     );
   }
 
-
-  async function handleBrowse(
-    fieldKey: string,
-    currentPath: string,
+  async function selectPath(
     type: "folder" | "file",
-    onChange: (
+    currentPath: string,
+    onSelected: (
       value: string,
     ) => void,
   ) {
-    setBrowsingField(fieldKey);
+    if (isBrowsing) {
+      return;
+    }
+
+    setIsBrowsing(true);
     setError("");
     setMessage("");
 
@@ -225,19 +216,18 @@ function ConfigurationPage() {
             );
 
       if (result.path) {
-        onChange(result.path);
+        onSelected(result.path);
       }
     } catch {
       setError(
         type === "folder"
-          ? "Não foi possível abrir o seletor de pastas."
-          : "Não foi possível abrir o seletor de arquivos.",
+          ? "Não foi possível abrir o seletor de pasta."
+          : "Não foi possível abrir o seletor de arquivo.",
       );
     } finally {
-      setBrowsingField(null);
+      setIsBrowsing(false);
     }
   }
-
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
@@ -272,9 +262,7 @@ function ConfigurationPage() {
     }
   }
 
-
   function renderPathField(
-    fieldKey: string,
     label: string,
     value: string,
     onChange: (
@@ -282,9 +270,6 @@ function ConfigurationPage() {
     ) => void,
     type: "folder" | "file",
   ) {
-    const isBrowsing =
-      browsingField === fieldKey;
-
     return (
       <div className="form-field">
         <label>
@@ -300,8 +285,11 @@ function ConfigurationPage() {
         >
           <input
             value={value}
-            readOnly
-            title={value}
+            onChange={(event) =>
+              onChange(
+                event.target.value,
+              )
+            }
             style={{
               flex: 1,
             }}
@@ -316,14 +304,12 @@ function ConfigurationPage() {
                 : "Buscar arquivo"
             }
             disabled={
-              isSaving ||
-              browsingField !== null
+              isSaving || isBrowsing
             }
             onClick={() =>
-              void handleBrowse(
-                fieldKey,
-                value,
+              void selectPath(
                 type,
+                value,
                 onChange,
               )
             }
@@ -342,7 +328,6 @@ function ConfigurationPage() {
       </div>
     );
   }
-
 
   if (
     mode === "loading"
@@ -368,7 +353,6 @@ function ConfigurationPage() {
       </section>
     );
   }
-
 
   if (!configuration) {
     return (
@@ -402,7 +386,6 @@ function ConfigurationPage() {
       </section>
     );
   }
-
 
   return (
     <section>
@@ -545,7 +528,6 @@ function ConfigurationPage() {
 
           <div className="form-grid">
             {renderPathField(
-              "base_path",
               "Base",
               configuration.base_path,
               (value) =>
@@ -557,7 +539,6 @@ function ConfigurationPage() {
             )}
 
             {renderPathField(
-              "installer_path",
               "Installer",
               configuration.installer_path,
               (value) =>
@@ -569,7 +550,6 @@ function ConfigurationPage() {
             )}
 
             {renderPathField(
-              "publish_path",
               "Publish",
               configuration.publish_path,
               (value) =>
@@ -581,7 +561,6 @@ function ConfigurationPage() {
             )}
 
             {renderPathField(
-              "storage.root_path",
               "Armazenamento",
               configuration.storage.root_path,
               updateStorageRootPath,
@@ -606,7 +585,6 @@ function ConfigurationPage() {
 
           <div className="form-grid">
             {renderPathField(
-              "build_tools.msbuild_path",
               "MSBuild",
               configuration.build_tools
                 .msbuild_path,
@@ -619,7 +597,6 @@ function ConfigurationPage() {
             )}
 
             {renderPathField(
-              "build_tools.advanced_installer_path",
               "Advanced Installer",
               configuration.build_tools
                 .advanced_installer_path,
@@ -632,7 +609,6 @@ function ConfigurationPage() {
             )}
 
             {renderPathField(
-              "build_tools.robocopy_path",
               "Robocopy",
               configuration.build_tools
                 .robocopy_path,
@@ -688,7 +664,6 @@ function ConfigurationPage() {
             </div>
 
             {renderPathField(
-              "setup.output_root",
               "Output",
               configuration.setup.output_root,
               (value) =>
@@ -700,7 +675,6 @@ function ConfigurationPage() {
             )}
 
             {renderPathField(
-              "setup.aip_root",
               "AIP",
               configuration.setup.aip_root,
               (value) =>
@@ -788,7 +762,6 @@ function ConfigurationPage() {
             </div>
 
             {renderPathField(
-              "logging.path",
               "Diretório dos logs",
               configuration.logging.path,
               (value) =>
@@ -843,8 +816,7 @@ function ConfigurationPage() {
               window.history.back()
             }
             disabled={
-              isSaving ||
-              browsingField !== null
+              isSaving || isBrowsing
             }
           >
             <ChevronLeft
@@ -858,8 +830,7 @@ function ConfigurationPage() {
             className="primary-button"
             type="submit"
             disabled={
-              isSaving ||
-              browsingField !== null
+              isSaving || isBrowsing
             }
           >
             <Save
@@ -875,6 +846,5 @@ function ConfigurationPage() {
     </section>
   );
 }
-
 
 export default ConfigurationPage;

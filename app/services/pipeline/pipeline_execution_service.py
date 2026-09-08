@@ -23,6 +23,9 @@ from app.models.execution.pipeline_execution_state import (
 from app.use_cases.execute_pipeline_use_case import (
     ExecutePipelineUseCase,
 )
+from app.utils.pipeline_logger import (
+    PipelineLogger,
+)
 
 
 PipelineProgressCallback = Callable[
@@ -137,6 +140,10 @@ class PipelineExecutionService:
         Executa uma Pipeline em background.
         """
 
+        PipelineLogger.set_execution_id(
+            execution_id,
+        )
+
         started_at = datetime.now()
 
         self.__update_state(
@@ -154,11 +161,12 @@ class PipelineExecutionService:
         try:
             result = (
                 execute_pipeline_use_case.execute(
-                    project_id=project_id,
-                    environment_id=environment_id,
-                    version=version,
-                    revision=revision,
-                    progress_callback=callback,
+                project_id=project_id,
+                environment_id=environment_id,
+                version=version,
+                revision=revision,
+                progress_callback=callback,
+                execution_id=execution_id,
                 )
             )
 
@@ -195,6 +203,9 @@ class PipelineExecutionService:
                 elapsed_seconds=elapsed_seconds,
                 success=False,
             )
+
+        finally:
+            PipelineLogger.clear_execution_id()
 
     def __create_progress_callback(
         self,

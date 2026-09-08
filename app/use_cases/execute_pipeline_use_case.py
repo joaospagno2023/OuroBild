@@ -16,6 +16,10 @@ from app.abstractions.project_repository import (
     ProjectRepository,
 )
 
+from app.abstractions.pipeline_execution_repository import (
+    PipelineExecutionRepository,
+)
+
 from app.factories.build_context_factory import (
     BuildContextFactory,
 )
@@ -91,6 +95,9 @@ class ExecutePipelineUseCase:
         execute_setup_use_case: (
             DefaultExecuteSetupUseCase | None
         ) = None,
+        pipeline_execution_repository: (
+            PipelineExecutionRepository | None
+        ) = None,
     ) -> None:
         """
         Inicializa o caso de uso.
@@ -120,6 +127,10 @@ class ExecutePipelineUseCase:
             execute_setup_use_case
         )
 
+        self.__pipeline_execution_repository = (
+            pipeline_execution_repository
+        )
+
         self.__builder_factory = (
             BuildEnvironmentBuilderFactory(
                 solution_locator=solution_locator,
@@ -142,6 +153,7 @@ class ExecutePipelineUseCase:
             ],
             None,
         ] | None = None,
+        execution_id: str | None = None,
     ) -> PipelineResult:
         """
         Executa a Pipeline e, quando solicitado,
@@ -356,12 +368,27 @@ class ExecutePipelineUseCase:
         result = self.__pipeline_runner.execute(
             pipeline=pipeline,
             context=context,
+            execution_id=execution_id or "",
+            project_id=project_id,
             progress_callback=(
                 pipeline_progress_callback
                 if progress_callback is not None
                 else None
             ),
         )
+
+        #
+        # Registra a versão solicitada nesta execução.
+        # A versão pertence à execução completa e deve ser preservada
+        # mesmo quando o Setup não for executado.
+        #
+
+        result.version = version
+
+        if self.__pipeline_execution_repository is not None:
+            self.__pipeline_execution_repository.save(
+                result,
+            )
 
         #
         # Se o Build/Publish falhar, não gera Setup.
@@ -449,6 +476,11 @@ class ExecutePipelineUseCase:
             setup_result.steps,
         )
 
+        if self.__pipeline_execution_repository is not None:
+            self.__pipeline_execution_repository.save(
+                result,
+            )
+
         if progress_callback is not None and setup_result.success:
             progress_callback(
                 "Setup",
@@ -471,6 +503,11 @@ class ExecutePipelineUseCase:
             result.message = (
                 setup_result.message
             )
+
+            if self.__pipeline_execution_repository is not None:
+                self.__pipeline_execution_repository.save(
+                    result,
+                )
 
             return result
 

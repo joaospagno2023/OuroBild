@@ -2,10 +2,11 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : bootstrap.py
-DescriÃ§Ã£o : ResponsÃ¡vel por inicializar a aplicaÃ§Ã£o e criar as
-             dependÃªncias da aplicaÃ§Ã£o.
+Descrição : Responsável por inicializar a aplicação e criar as
+             dependências da aplicação.
 --------------------------------------------------------------------
 """
+
 import inspect
 
 from pathlib import Path
@@ -17,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers.build_router import (
     router as build_router,
 )
+
 from app.api.routers.project_router import (
     router as project_router,
 )
@@ -33,6 +35,10 @@ from app.api.routers.execution_router import (
     router as execution_router,
 )
 
+from app.api.routers.history_router import (
+    router as history_router,
+)
+
 # Core
 from app.core.configuration.configuration_loader import (
     ConfigurationLoader,
@@ -42,6 +48,7 @@ from app.core.configuration.configuration_loader import (
 from app.factories.build_context_factory import (
     BuildContextFactory,
 )
+
 from app.factories.default_pipeline_factory import (
     DefaultPipelineFactory,
 )
@@ -61,9 +68,11 @@ from app.services.default_process_service import (
 from app.use_cases.execute_build_use_case import (
     ExecuteBuildUseCase,
 )
+
 from app.use_cases.execute_pipeline_use_case import (
     ExecutePipelineUseCase,
 )
+
 from app.use_cases.get_projects_use_case import (
     GetProjectsUseCase,
 )
@@ -91,6 +100,7 @@ from app.core.configuration.toolchain_loader import (
 from app.services.msbuild_locator import (
     MSBuildLocator,
 )
+
 from app.api.routers.analyze_router import (
     router as analyze_router,
 )
@@ -133,6 +143,7 @@ from app.workspace.workspace_resolver import (
 from app.repositories.json_project_metadata_repository import (
     JsonProjectMetadataRepository,
 )
+
 from app.services.hash_service import (
     HashService,
 )
@@ -144,12 +155,15 @@ from app.services.project_metadata_service import (
 from app.services.workspace.solution_locator_service import (
     SolutionLocatorService,
 )
+
 from app.pipeline.runner.pipeline_runner import (
     PipelineRunner,
 )
-from app.repositories.json_pipeline_execution_repository import (
-    JsonPipelineExecutionRepository,
+
+from app.repositories.sql_pipeline_execution_repository import (
+    SqlPipelineExecutionRepository,
 )
+
 from app.services.setup.windows_visual_studio_locator import (
     WindowsVisualStudioLocator,
 )
@@ -177,6 +191,7 @@ from app.services.setup.visual_studio_setup_definition_loader import (
 from app.services.setup.setup_orchestrator import (
     DefaultSetupOrchestrator,
 )
+
 from app.use_cases.execute_setup_use_case import (
     DefaultExecuteSetupUseCase,
 )
@@ -224,9 +239,11 @@ from app.services.setup.vdproj_file_modifier import (
 from app.services.setup.vdproj_setup_file_loader import (
     VdprojSetupFileLoader,
 )
+
 from app.services.setup.temporary_solution_service import (
     TemporarySolutionService,
 )
+
 from app.services.setup.disable_out_of_proc_build_service import (
     DisableOutOfProcBuildService,
 )
@@ -238,18 +255,23 @@ from app.services.setup.advanced_installer_service import (
 from app.services.setup.advanced_installer_workspace_service import (
     AdvancedInstallerWorkspaceService,
 )
+
 from app.services.setup.advanced_installer_aip_file_parser import (
     AdvancedInstallerAipFileParser,
 )
+
 from app.services.setup.advanced_installer_aip_file_comparator import (
     AdvancedInstallerAipFileComparator,
 )
+
 from app.services.setup.advanced_installer_aip_modifier import (
     AdvancedInstallerAipModifier,
 )
+
 from app.services.setup.advanced_installer_aip_synchronizer import (
     AdvancedInstallerAipSynchronizer,
 )
+
 from app.services.cleanup.build_artifact_cleanup_factory import (
     BuildArtifactCleanupFactory,
 )
@@ -257,12 +279,17 @@ from app.services.cleanup.build_artifact_cleanup_factory import (
 from app.api.routers.auth_router import (
     router as auth_router,
 )
+
 from app.api.routers.users_router import (
     router as users_router,
 )
 
 from app.database.connection import (
     DatabaseConnection,
+)
+
+from app.repositories.sql_application_configuration_repository import (
+    SqlApplicationConfigurationRepository,
 )
 
 from app.repositories.sql_user_repository import (
@@ -280,6 +307,7 @@ from app.core.security.jwt_service import (
 from app.services.auth.authentication_service import (
     AuthenticationService,
 )
+
 from app.services.auth.user_service import (
     UserService,
 )
@@ -299,6 +327,7 @@ from app.repositories.sql_project_repository import (
 from app.services.project_service import (
     ProjectService,
 )
+
 from app.services.environment_service import (
     EnvironmentService,
 )
@@ -307,11 +336,22 @@ from app.services.configuration.configuration_service import (
     ConfigurationService,
 )
 
+from app.services.history.pipeline_history_service import (
+    PipelineHistoryService,
+)
+
+from app.repositories.sql_pipeline_execution_log_repository import (
+    SqlPipelineExecutionLogRepository,
+)
+
+from app.utils.pipeline_logger import (
+    PipelineLogger,
+)
 
 
 class Bootstrap:
     """
-    ResponsÃ¡vel por criar e inicializar a aplicaÃ§Ã£o.
+    Responsável por criar e inicializar a aplicação.
     """
 
     def __init__(
@@ -321,11 +361,29 @@ class Bootstrap:
         configuration_path = Path("config")
 
         #
-        # ConfiguraÃ§Ãµes
+        # Configurações
         #
 
         self.configuration_loader = ConfigurationLoader(
             config_path=configuration_path,
+        )
+
+        database_settings = (
+            self.configuration_loader.load_database_settings()
+        )
+
+        self.database_connection = DatabaseConnection(
+            settings=database_settings,
+        )
+
+        self.application_configuration_repository = (
+            SqlApplicationConfigurationRepository(
+                database_connection=self.database_connection,
+            )
+        )
+
+        self.configuration_loader.set_configuration_repository(
+            self.application_configuration_repository,
         )
 
         self.settings = (
@@ -335,11 +393,21 @@ class Bootstrap:
         self.configuration_service = (
             ConfigurationService(
                 configuration_loader=self.configuration_loader,
+                configuration_repository=(
+                    self.application_configuration_repository
+                ),
             )
         )
-        
-        self.database_connection = DatabaseConnection(
-            settings=self.settings.database,
+
+        self.pipeline_execution_log_repository = (
+            SqlPipelineExecutionLogRepository(
+                database_connection=self.database_connection,
+            )
+        )
+
+        PipelineLogger.configure(
+            settings=self.settings.logging,
+            repository=self.pipeline_execution_log_repository,
         )
 
         #
@@ -357,13 +425,15 @@ class Bootstrap:
                 toolchain=self.toolchain,
             )
         )
+
         #
-        # RepositÃ³rios
+        # Repositórios
         #
 
         self.project_repository = SqlProjectRepository(
             database_connection=self.database_connection,
         )
+
         self.environment_repository = (
             SqlEnvironmentRepository(
                 database_connection=self.database_connection,
@@ -373,7 +443,7 @@ class Bootstrap:
         self.environment_service = EnvironmentService(
             environment_repository=self.environment_repository,
         )
-        
+
         self.project_metadata_repository = (
             JsonProjectMetadataRepository(
                 metadata_path=Path("metadata"),
@@ -395,6 +465,7 @@ class Bootstrap:
                 metadata_path=Path("metadata"),
             )
         )
+
         #
         # Workspace
         #
@@ -424,13 +495,23 @@ class Bootstrap:
                 hash_service=self.hash_service,
             )
         )
+
         #
-        # RepositÃ³rio de execuÃ§Ãµes
+        # Repositório de execuções
         #
 
         self.pipeline_execution_repository = (
-            JsonPipelineExecutionRepository(
-                settings=self.settings,
+            SqlPipelineExecutionRepository(
+                database_connection=self.database_connection,
+            )
+        )
+
+        self.pipeline_history_service = (
+            PipelineHistoryService(
+                execution_repository=(
+                    self.pipeline_execution_repository
+                ),
+                project_repository=self.project_repository,
             )
         )
 
@@ -469,12 +550,14 @@ class Bootstrap:
                 environment_repository=self.environment_repository,
             )
         )
+
         self.publish_context_factory = (
             PublishContextFactory(
                 project_repository=self.project_repository,
                 environment_repository=self.environment_repository,
             )
         )
+
         self.analysis_context_factory = (
             AnalysisContextFactory()
         )
@@ -482,6 +565,7 @@ class Bootstrap:
         #
         # Analysis
         #
+
         self.project_reader = (
             ProjectReader()
         )
@@ -544,7 +628,9 @@ class Bootstrap:
             )
         )
 
-        self.cleanup_factory = BuildArtifactCleanupFactory()
+        self.cleanup_factory = (
+            BuildArtifactCleanupFactory()
+        )
 
         self.advanced_installer_workspace_service = (
             AdvancedInstallerWorkspaceService(
@@ -599,6 +685,7 @@ class Bootstrap:
                 ),
             )
         )
+
         print(
             "DEBUG excluirpastawork =",
             self.settings.setup.excluirpastawork,
@@ -620,7 +707,7 @@ class Bootstrap:
         )
 
         #
-        # PreparaÃ§Ã£o do projeto Visual Studio Setup
+        # Preparação do projeto Visual Studio Setup
         #
 
         self.vdproj_block_parser = (
@@ -688,6 +775,7 @@ class Bootstrap:
         self.temporary_solution_service = (
             TemporarySolutionService()
         )
+
         self.setup_project_preparer = (
             SetupProjectPreparer(
                 workspace_service=(
@@ -767,8 +855,12 @@ class Bootstrap:
                 execute_setup_use_case=(
                     self.execute_setup_use_case
                 ),
+                pipeline_execution_repository=(
+                    self.pipeline_execution_repository
+                ),
             )
         )
+
         self.execute_publish_use_case = (
             ExecutePublishUseCase(
                 build_context_factory=self.build_context_factory,
@@ -779,6 +871,7 @@ class Bootstrap:
                 project_repository=self.project_repository,
             )
         )
+
         self.execute_analyze_use_case = (
             ExecuteAnalyzeUseCase(
                 project_metadata_service=self.project_metadata_service,
@@ -821,20 +914,21 @@ class Bootstrap:
             permission_repository=self.permission_repository,
         )
 
-
     def create_app(
         self,
     ) -> FastAPI:
         """
-        Cria e configura a aplicaÃ§Ã£o.
+        Cria e configura a aplicação.
         """
 
         app = FastAPI(
             title="OuroBuild",
-            description="Sistema interno de automaÃ§Ã£o de builds da OuroWeb",
+            description=(
+                "Sistema interno de automação de builds da OuroWeb"
+            ),
             version=self.settings.version,
         )
-        
+
         app.add_middleware(
             CORSMiddleware,
             allow_origins=[
@@ -858,9 +952,8 @@ class Bootstrap:
             environment_router,
         )
 
-
         #
-        # Tratamento global de exceÃ§Ãµes
+        # Tratamento global de exceções
         #
 
         register_exception_handlers(
@@ -890,7 +983,7 @@ class Bootstrap:
         app.include_router(
             build_router,
         )
-        
+
         app.include_router(
             publish_router,
         )
@@ -902,7 +995,13 @@ class Bootstrap:
         app.include_router(
             configuration_router,
         )
+
         app.include_router(
             execution_router,
         )
+
+        app.include_router(
+            history_router,
+        )
+
         return app

@@ -71,10 +71,18 @@ class PipelineRunner:
         ],
         None,
     ] | None = None,
+        execution_id: str = "",
+        project_id: str = "",
     ) -> PipelineResult:
 
         result = PipelineResult(
+            execution_id=execution_id,
+            project_id=project_id,
             started_at=datetime.now(),
+        )
+
+        self.__repository.save(
+            result,
         )
 
         PipelineLogger.info(

@@ -9,31 +9,45 @@ import AppLayout from "./layouts/AppLayout";
 
 import AdministrationPage from "./pages/AdministrationPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
+import ConfigurationPage from "./pages/ConfigurationPage";
 import DashboardPage from "./pages/DashboardPage";
+import EnvironmentsPage from "./pages/EnvironmentsPage";
 import HistoryPage from "./pages/HistoryPage";
 import LoginPage from "./pages/LoginPage";
 import LogsPage from "./pages/LogsPage";
+import ProfilePage from "./pages/ProfilePage";
+import ProjectsPage from "./pages/ProjectsPage";
 import SetupPage from "./pages/SetupPage";
 import UsersPage from "./pages/UsersPage";
-import ProjectsPage from "./pages/ProjectsPage";
-import EnvironmentsPage from "./pages/EnvironmentsPage";
-import ConfigurationPage from "./pages/ConfigurationPage";
+
 
 function App() {
   return (
     <Routes>
       <Route
         path="/login"
-        element={<LoginPage />}
+        element={
+          <LoginPage />
+        }
       />
 
-      <Route element={<ProtectedRoute />}>
+      <Route
+        element={
+          <ProtectedRoute />
+        }
+      >
         <Route
           path="/change-password"
-          element={<ChangePasswordPage />}
+          element={
+            <ChangePasswordPage />
+          }
         />
 
-        <Route element={<AppLayout />}>
+        <Route
+          element={
+            <AppLayout />
+          }
+        >
           <Route
             path="/"
             element={
@@ -46,45 +60,72 @@ function App() {
 
           <Route
             path="/dashboard"
-            element={<DashboardPage />}
+            element={
+              <DashboardPage />
+            }
           />
 
           <Route
             path="/setups"
-            element={<SetupPage />}
+            element={
+              <SetupPage />
+            }
           />
 
           <Route
             path="/history"
-            element={<HistoryPage />}
+            element={
+              <HistoryPage />
+            }
           />
 
           <Route
             path="/logs"
-            element={<LogsPage />}
+            element={
+              <LogsPage />
+            }
           />
 
           <Route
             path="/users"
-            element={<UsersPage />}
+            element={
+              <UsersPage />
+            }
           />
+
           <Route
             path="/projects"
-            element={<ProjectsPage />}
+            element={
+              <ProjectsPage />
+            }
           />
+
           <Route
             path="/environments"
-            element={<EnvironmentsPage />}
+            element={
+              <EnvironmentsPage />
+            }
           />
+
           <Route
             path="/administration"
             element={
               <AdministrationPage />
             }
           />
+
           <Route
             path="/configuration"
-            element={<ConfigurationPage />}
+            element={
+              <ConfigurationPage />
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProfilePage />
+            }
           />
         </Route>
       </Route>

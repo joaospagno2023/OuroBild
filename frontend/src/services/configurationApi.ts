@@ -44,7 +44,7 @@ export interface Configuration {
 }
 
 export interface PathSelectionResponse {
-  path: string | null;
+  path: string;
 }
 
 export async function getConfiguration(): Promise<Configuration> {

@@ -9,9 +9,11 @@ Descrição : Gerencia a conexão com o banco de dados SQL Server.
 from sqlalchemy import (
     create_engine,
 )
+
 from sqlalchemy.engine import (
     URL,
 )
+
 from sqlalchemy.orm import (
     Session,
     sessionmaker,
@@ -61,6 +63,15 @@ class DatabaseConnection:
         """
 
         return self.__engine
+
+    @property
+    def settings(self) -> DatabaseSettings:
+        """
+        Retorna as configurações utilizadas
+        para criar a conexão.
+        """
+
+        return self.__settings
 
     def create_session(
         self,

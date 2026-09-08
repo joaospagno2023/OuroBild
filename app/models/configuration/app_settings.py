@@ -86,13 +86,13 @@ class AppSettings(
     # Banco de dados
     #
 
-    database: DatabaseSettings | None = None
+    database: DatabaseSettings
 
     #
     # Segurança
     #
 
-    security: SecuritySettings | None = None
+    security: SecuritySettings
 
     #
     # Diretórios derivados
@@ -120,7 +120,7 @@ class AppSettings(
     def executions_path(
         self,
     ) -> Path:
-        return self.logs_path / "executions"
+        return self.storage.executions_path
 
     @property
     def reports_path(

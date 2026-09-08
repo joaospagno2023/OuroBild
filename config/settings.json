@@ -1,30 +1,5 @@
 {
-    "application_name": "OuroBuild 1.0",
-    "version": "1.0.0",
-    "log_level": "INFO",
-    "base_path": "C:\\Custom\\OuroWeb",
-    "installer_path": "C:\\Custom\\OuroWeb\\Installer",
-    "publish_path": "C:\\Custom\\OuroWeb\\Publish",
-    "build_tools": {
-        "msbuild_path": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Professional\\MSBuild\\Current\\Bin\\MSBuild.exe",
-        "advanced_installer_path": "C:\\Program Files (x86)\\Caphyon\\Advanced Installer 21.9\\bin\\x86\\AdvancedInstaller.com",
-        "robocopy_path": "C:\\Windows\\System32\\robocopy.exe"
-    },
-    "setup": {
-        "engine": "advanced_installer",
-        "output_root": "C:\\Setups",
-        "aip_root": "C:\\DvpLocal\\WorkSpaceTFS\\Transferencia de Arquivo\\TransferenciaDeArquivos\\Setups\\Installers\\Projects",
-        "excluirpastawork": false
-    },
-    "logging": {
-        "enabled": true,
-        "path": "C:\\Custom\\ourobuild\\app\\logs",
-        "level": "DEBUG"
-    },
-    "storage": {
-        "root_path": "C:\\Custom\\OuroBuild"
-    },
-    "database": {
+   "database": {
         "server": "SRV-DVP02",
         "port": 1433,
         "database": "OuroBuild",
@@ -35,10 +10,5 @@
         "encrypt": true,
         "trust_server_certificate": true,
         "connection_timeout": 30
-    },
-    "security": {
-        "jwt_secret": "2cef9cb810968552e9d5877e25beb16a65621c0c7a9b42e0f041c71903e9a0b0",
-        "jwt_algorithm": "HS256",
-        "token_expiration_minutes": 180
     }
 }

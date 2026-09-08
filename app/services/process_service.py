@@ -25,6 +25,10 @@ from app.models.process.process_status import (
     ProcessStatus,
 )
 
+from app.services.logging.pipeline_logger import (
+    PipelineLogger,
+)
+
 
 class DefaultProcessService(
     ProcessService,
@@ -38,7 +42,7 @@ class DefaultProcessService(
         command: Command,
     ) -> ProcessResult:
         """
-        Executa um processo externo.
+        Executa um processo externo e registra sua execução no log.
         """
 
         if command is None:
@@ -65,6 +69,22 @@ class DefaultProcessService(
                     in command.arguments
                 ],
             ],
+        )
+
+        PipelineLogger.info(
+            "PROCESS EXECUTION - INICIO"
+        )
+
+        PipelineLogger.info(
+            f"Executable.....: {executable}"
+        )
+
+        PipelineLogger.info(
+            f"Working Dir....: {working_directory}"
+        )
+
+        PipelineLogger.info(
+            f"Command........: {command_line}"
         )
 
         try:
@@ -97,6 +117,24 @@ class DefaultProcessService(
 
             exit_code = result.returncode
 
+            PipelineLogger.info(
+                f"Exit Code......: {exit_code}"
+            )
+
+            if stdout:
+                PipelineLogger.debug(
+                    f"STDOUT........: {stdout.rstrip()}"
+                )
+
+            if stderr:
+                PipelineLogger.warning(
+                    f"STDERR........: {stderr.rstrip()}"
+                )
+
+            PipelineLogger.info(
+                f"Process Status.: {status}"
+            )
+
         except Exception as ex:
 
             status = ProcessStatus.FAILED
@@ -107,11 +145,23 @@ class DefaultProcessService(
 
             exit_code = -1
 
+            PipelineLogger.error(
+                f"PROCESS EXECUTION - ERRO: {ex}"
+            )
+
         finished_at = datetime.now()
 
         duration = (
             finished_at - started_at
         ).total_seconds()
+
+        PipelineLogger.info(
+            f"Duration.......: {duration:.3f}s"
+        )
+
+        PipelineLogger.info(
+            "PROCESS EXECUTION - FINAL"
+        )
 
         return ProcessResult(
             status=status,

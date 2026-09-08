@@ -9,7 +9,6 @@ Descrição : Configurações de armazenamento da aplicação.
 from pathlib import Path
 
 from pydantic import BaseModel
-from pydantic import ConfigDict
 from pydantic import Field
 
 
@@ -20,14 +19,29 @@ class StorageSettings(
     Configurações de armazenamento.
     """
 
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-
     workspace_path: Path = Field(
         default=Path.cwd(),
-        alias="root_path",
     )
+
+    executions_path: Path | None = Field(
+        default=None,
+    )
+
+    def model_post_init(
+        self,
+        __context,
+    ) -> None:
+        """
+        Define o caminho padrão das execuções quando
+        ele não estiver configurado explicitamente.
+        """
+        if self.executions_path is None:
+            self.executions_path = (
+                self.workspace_path
+                / "data"
+                / "logs"
+                / "executions"
+            )
 
     @property
     def config_path(
@@ -46,12 +60,6 @@ class StorageSettings(
         self,
     ) -> Path:
         return self.data_path / "logs"
-
-    @property
-    def executions_path(
-        self,
-    ) -> Path:
-        return self.logs_path / "executions"
 
     @property
     def cache_path(

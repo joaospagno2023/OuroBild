@@ -8,13 +8,12 @@ Descrição : Responsável por ler e atualizar as configurações
 """
 
 import base64
-import json
 import os
 import subprocess
-import tempfile
-from pathlib import Path
-from typing import Any
 
+from app.abstractions.application_configuration_repository import (
+    ApplicationConfigurationRepository,
+)
 from app.core.configuration.configuration_loader import (
     ConfigurationLoader,
 )
@@ -37,9 +36,23 @@ class ConfigurationService:
     def __init__(
         self,
         configuration_loader: ConfigurationLoader,
+        configuration_repository: ApplicationConfigurationRepository,
     ) -> None:
+        if configuration_loader is None:
+            raise ValueError(
+                "ConfigurationLoader não foi informado."
+            )
+
+        if configuration_repository is None:
+            raise ValueError(
+                "ApplicationConfigurationRepository não foi informado."
+            )
+
         self._configuration_loader = (
             configuration_loader
+        )
+        self._configuration_repository = (
+            configuration_repository
         )
 
     def get_configuration(
@@ -65,93 +78,96 @@ class ConfigurationService:
         request: ConfigurationUpdateRequest,
     ) -> ConfigurationResponse:
         """
-        Atualiza as configurações editáveis no settings.json.
+        Atualiza as configurações editáveis no SQL Server.
 
-        As demais propriedades existentes no arquivo são preservadas.
+        As configurações de banco de dados e segurança existentes
+        são preservadas e não são expostas pela API.
         """
 
-        settings_path = self._get_settings_path()
-
-        data = self._read_raw_configuration(
-            settings_path=settings_path,
-        )
-
-        data["application_name"] = (
-            request.application_name.strip()
-        )
-
-        data["version"] = (
-            request.version.strip()
-        )
-
-        data["log_level"] = (
-            request.log_level.strip().upper()
-        )
-
-        data["base_path"] = (
-            request.base_path.strip()
-        )
-
-        data["installer_path"] = (
-            request.installer_path.strip()
-        )
-
-        data["publish_path"] = (
-            request.publish_path.strip()
-        )
-
-        data["storage"] = {
-            "root_path": str(
-                request.storage.workspace_path,
-            ),
-        }
-
-        data["build_tools"] = {
-            "msbuild_path": str(
-                request.build_tools.msbuild_path,
-            ),
-            "advanced_installer_path": str(
-                request.build_tools.advanced_installer_path,
-            ),
-            "robocopy_path": str(
-                request.build_tools.robocopy_path,
-            ),
-        }
-
-        data["setup"] = {
-            "engine": request.setup.engine.value,
-            "output_root": str(
-                request.setup.output_root,
-            ),
-            "aip_root": str(
-                request.setup.aip_root,
-            ),
-            "excluirpastawork": (
-                request.setup.excluirpastawork
-            ),
-        }
-
-        data["logging"] = {
-            "enabled": request.logging.enabled,
-            "path": str(
-                request.logging.path,
-            ),
-            "level": (
-                request.logging.level.upper()
-            ),
-        }
-
-        self._write_raw_configuration(
-            settings_path=settings_path,
-            data=data,
-        )
-
-        settings = (
+        current_settings = (
             self._configuration_loader.load_settings()
         )
 
+        updated_settings = (
+            current_settings.model_copy(
+                update={
+                    "application_name": (
+                        request.application_name.strip()
+                    ),
+                    "version": (
+                        request.version.strip()
+                    ),
+                    "log_level": (
+                        request.log_level.strip().upper()
+                    ),
+                    "base_path": request.base_path,
+                    "installer_path": request.installer_path,
+                    "publish_path": request.publish_path,
+                    "storage": (
+                        current_settings.storage.model_copy(
+                            update={
+                                "workspace_path": (
+                                    request.storage.workspace_path
+                                ),
+                            }
+                        )
+                    ),
+                    "build_tools": (
+                        current_settings.build_tools.model_copy(
+                            update={
+                                "msbuild_path": (
+                                    request.build_tools.msbuild_path
+                                ),
+                                "advanced_installer_path": (
+                                    request.build_tools.advanced_installer_path
+                                ),
+                                "robocopy_path": (
+                                    request.build_tools.robocopy_path
+                                ),
+                            }
+                        )
+                    ),
+                    "setup": (
+                        current_settings.setup.model_copy(
+                            update={
+                                "engine": request.setup.engine,
+                                "output_root": (
+                                    request.setup.output_root
+                                ),
+                                "aip_root": (
+                                    request.setup.aip_root
+                                ),
+                                "excluirpastawork": (
+                                    request.setup.excluirpastawork
+                                ),
+                            }
+                        )
+                    ),
+                    "logging": (
+                        current_settings.logging.model_copy(
+                            update={
+                                "enabled": (
+                                    request.logging.enabled
+                                ),
+                                "path": request.logging.path,
+                                "level": (
+                                    request.logging.level.upper()
+                                ),
+                            }
+                        )
+                    ),
+                }
+            )
+        )
+
+        saved_settings = (
+            self._configuration_repository.save(
+                updated_settings,
+            )
+        )
+
         return self._to_response(
-            settings=settings,
+            settings=saved_settings,
         )
 
     def browse_folder(
@@ -350,104 +366,6 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
             return None
 
         return selected_path
-
-    def _get_settings_path(
-        self,
-    ) -> Path:
-        """
-        Obtém o caminho físico do settings.json.
-        """
-
-        return (
-            self._configuration_loader.config_path
-            / "settings.json"
-        )
-
-    @staticmethod
-    def _read_raw_configuration(
-        settings_path: Path,
-    ) -> dict[str, Any]:
-        """
-        Carrega o JSON completo preservando propriedades que não
-        pertencem à configuração editável.
-        """
-
-        if not settings_path.exists():
-            raise FileNotFoundError(
-                "Arquivo de configuração não encontrado: "
-                f"{settings_path}"
-            )
-
-        with settings_path.open(
-            "r",
-            encoding="utf-8",
-        ) as file:
-            data = json.load(file)
-
-        if not isinstance(
-            data,
-            dict,
-        ):
-            raise ValueError(
-                "O arquivo settings.json deve conter "
-                "um objeto JSON."
-            )
-
-        return data
-
-    @staticmethod
-    def _write_raw_configuration(
-        settings_path: Path,
-        data: dict[str, Any],
-    ) -> None:
-        """
-        Grava a configuração de forma atômica.
-        """
-
-        settings_path.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        file_descriptor, temporary_name = (
-            tempfile.mkstemp(
-                prefix="settings_",
-                suffix=".json",
-                dir=settings_path.parent,
-                text=True,
-            )
-        )
-
-        temporary_path = Path(
-            temporary_name,
-        )
-
-        try:
-            with os.fdopen(
-                file_descriptor,
-                "w",
-                encoding="utf-8",
-            ) as file:
-                json.dump(
-                    data,
-                    file,
-                    ensure_ascii=False,
-                    indent=4,
-                )
-
-                file.write("\n")
-
-            os.replace(
-                temporary_path,
-                settings_path,
-            )
-
-        except Exception:
-            temporary_path.unlink(
-                missing_ok=True,
-            )
-
-            raise
 
     @staticmethod
     def _to_response(

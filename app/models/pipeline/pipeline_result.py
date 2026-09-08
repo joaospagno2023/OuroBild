@@ -35,9 +35,15 @@ class PipelineResult:
     # Identificação
     #
 
+    execution_id: str = ""
+
+    project_id: str = ""
+
     session_id: str = field(
         default_factory=lambda: uuid4().hex.upper()[:8],
     )
+
+    version: str | None = None
 
     #
     # Resultado geral
