@@ -197,6 +197,9 @@ class ExecutePipelineUseCase:
         # O BuildRequest não possui as opções
         # específicas de Publish.
         #
+        # A versão e a revisão pertencem à execução
+        # atual e precisam ser propagadas para o Publish.
+        #
 
         publish_request = PublishRequest(
             project_id=(
@@ -205,6 +208,8 @@ class ExecutePipelineUseCase:
             environment_id=(
                 build_context.environment.id
             ),
+            version=version,
+            revision=revision,
             publish_profile=(
                 build_context.project.publish_profile
             ),
@@ -296,6 +301,7 @@ class ExecutePipelineUseCase:
         # uma etapa adicional do fluxo. O total permanece fixo durante
         # toda a execução; apenas o índice e o percentual avançam.
         #
+
         pipeline_total_steps = len(
             pipeline.steps,
         )
@@ -438,14 +444,22 @@ class ExecutePipelineUseCase:
 
             if execution_total_steps <= 0:
                 overall_progress = 0
+
             elif current_step_index >= total_steps:
                 overall_progress = int(
-                    (global_step_index / execution_total_steps)
+                    (
+                        global_step_index
+                        / execution_total_steps
+                    )
                     * 100
                 )
+
             else:
                 overall_progress = int(
-                    ((global_step_index - 1) / execution_total_steps)
+                    (
+                        (global_step_index - 1)
+                        / execution_total_steps
+                    )
                     * 100
                 )
 
@@ -495,7 +509,6 @@ class ExecutePipelineUseCase:
         #
 
         if not setup_result.success:
-
             result.success = False
 
             result.failed_step = "Setup"
@@ -516,7 +529,6 @@ class ExecutePipelineUseCase:
         #
 
         if setup_result.output_msi:
-
             result.artifacts.append(
                 setup_result.output_msi,
             )

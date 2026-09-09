@@ -74,6 +74,14 @@ class PipelineExecutionService:
         em background.
         """
 
+        PipelineLogger.info(
+            "PIPELINE START | "
+            f"project_id={project_id} | "
+            f"environment_id={environment_id} | "
+            f"version={version!r} | "
+            f"revision={revision!r}"
+        )
+
         execution_id = (
             uuid4()
             .hex
@@ -144,6 +152,14 @@ class PipelineExecutionService:
             execution_id,
         )
 
+        PipelineLogger.info(
+            "PIPELINE EXECUTE | "
+            f"project_id={project_id} | "
+            f"environment_id={environment_id} | "
+            f"version={version!r} | "
+            f"revision={revision!r}"
+        )
+
         started_at = datetime.now()
 
         self.__update_state(
@@ -159,14 +175,22 @@ class PipelineExecutionService:
         )
 
         try:
+            PipelineLogger.info(
+                "PIPELINE USE CASE | "
+                f"project_id={project_id} | "
+                f"environment_id={environment_id} | "
+                f"version={version!r} | "
+                f"revision={revision!r}"
+            )
+
             result = (
                 execute_pipeline_use_case.execute(
-                project_id=project_id,
-                environment_id=environment_id,
-                version=version,
-                revision=revision,
-                progress_callback=callback,
-                execution_id=execution_id,
+                    project_id=project_id,
+                    environment_id=environment_id,
+                    version=version,
+                    revision=revision,
+                    progress_callback=callback,
+                    execution_id=execution_id,
                 )
             )
 
@@ -194,6 +218,15 @@ class PipelineExecutionService:
             elapsed_seconds = (
                 finished_at - started_at
             ).total_seconds()
+
+            PipelineLogger.error(
+                "PIPELINE EXECUTE ERROR | "
+                f"project_id={project_id} | "
+                f"environment_id={environment_id} | "
+                f"version={version!r} | "
+                f"revision={revision!r} | "
+                f"error={exc}"
+            )
 
             self.__update_state(
                 execution_id=execution_id,

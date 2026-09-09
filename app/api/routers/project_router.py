@@ -22,6 +22,10 @@ from app.api.dependencies.current_user import (
     get_current_user,
 )
 
+from app.models.execution.pipeline_execution_response import (
+    PipelineExecutionResponse,
+)
+
 from app.models.pipeline.pipeline_execution_request import (
     PipelineExecutionRequest,
 )
@@ -41,12 +45,15 @@ from app.models.project.update_project_request import (
 from app.models.project.update_project_status_request import (
     UpdateProjectStatusRequest,
 )
+
 from app.services.pipeline.pipeline_execution_service import (
     get_pipeline_execution_service,
 )
-from app.models.execution.pipeline_execution_response import (
-    PipelineExecutionResponse,
+
+from app.utils.pipeline_logger import (
+    PipelineLogger,
 )
+
 
 router = APIRouter(
     prefix="/projects",
@@ -238,6 +245,16 @@ def execute_pipeline(
         - setup.execute
     """
 
+    PipelineLogger.info(
+        (
+            "EXECUTE PROJECT REQUEST | "
+            f"project_id={project_id} | "
+            f"environment_id={execution.environment_id} | "
+            f"version={execution.version!r} | "
+            f"revision={execution.revision!r}"
+        )
+    )
+
     bootstrap = request.app.state.bootstrap
 
     execution_service = (
@@ -248,29 +265,6 @@ def execute_pipeline(
         execute_pipeline_use_case=(
             bootstrap.execute_pipeline_use_case
         ),
-        project_id=project_id,
-        environment_id=execution.environment_id,
-        version=execution.version,
-        revision=execution.revision,
-    )
-
-def execute_pipeline(
-    project_id: str,
-    request: Request,
-    execution: PipelineExecutionRequest,
-):
-    """
-    Executa a Pipeline do projeto.
-
-    Requer as permissões:
-
-        - build.execute
-        - setup.execute
-    """
-
-    bootstrap = request.app.state.bootstrap
-
-    return bootstrap.execute_pipeline_use_case.execute(
         project_id=project_id,
         environment_id=execution.environment_id,
         version=execution.version,

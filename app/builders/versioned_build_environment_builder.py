@@ -54,6 +54,13 @@ class VersionedBuildEnvironmentBuilder(
                 "BuildRequest não informado."
             )
 
+        print(
+            "DEBUG VERSIONED BUILDER | "
+            f"request={context.request!r} | "
+            f"version={getattr(context.request, 'version', None)!r} | "
+            f"revision={getattr(context.request, 'revision', None)!r}"
+        )
+
         if context.request.version is None:
             raise ValueError(
                 "Versão não informada."
@@ -122,10 +129,9 @@ class VersionedBuildEnvironmentBuilder(
         #
         # O publish_path configurado no projeto é relativo à
         # pasta do próprio projeto (source_root), não à raiz
-        # da versão (workspace). Usar "workspace" aqui fazia o
-        # publish_root pular o segmento "02-Source\01-Client\<projeto>",
-        # apontando para uma pasta genérica (workspace\bin\Release)
-        # que nunca é a mesma usada/esperada na etapa de Setup.
+        # da versão. Usar "workspace" aqui fazia o publish_root
+        # apontar para uma pasta genérica que não corresponde
+        # ao local esperado pela etapa de Setup.
         #
         context.paths.publish_root = (
             context.paths.source_root
