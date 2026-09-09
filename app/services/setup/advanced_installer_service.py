@@ -2,12 +2,16 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : advanced_installer_service.py
-Descrição : Gera o Setup utilizando o Advanced Installer.
+DescriÃ§Ã£o : Gera o Setup utilizando o Advanced Installer.
 --------------------------------------------------------------------
 """
 
 from pathlib import Path
 import re
+
+from app.utils.pipeline_logger import (
+    PipelineLogger,
+)
 
 from app.abstractions.installer_service import (
     InstallerService,
@@ -15,6 +19,10 @@ from app.abstractions.installer_service import (
 
 from app.abstractions.process_service import (
     ProcessService,
+)
+
+from app.core.configuration.configuration_loader import (
+    ConfigurationLoader,
 )
 
 from app.models.process.command import (
@@ -68,38 +76,38 @@ class AdvancedInstallerService(
     def __init__(
         self,
         process_service: ProcessService,
-        advanced_installer_path: Path,
+        configuration_loader: ConfigurationLoader,
         cleanup_factory: BuildArtifactCleanupFactory,
         workspace_service: AdvancedInstallerWorkspaceService,
         aip_synchronizer: AdvancedInstallerAipSynchronizer | None = None,
         excluirpastawork: bool = False,
     ) -> None:
         """
-        Inicializa o serviço.
+        Inicializa o serviÃ§o.
         """
 
         if process_service is None:
             raise ValueError(
                 "ProcessService "
-                "não foi informado."
+                "nÃ£o foi informado."
             )
 
-        if advanced_installer_path is None:
+        if configuration_loader is None:
             raise ValueError(
-                "Caminho do Advanced Installer "
-                "não foi informado."
+                "ConfigurationLoader "
+                "nÃ£o foi informado."
             )
 
         if cleanup_factory is None:
             raise ValueError(
                 "BuildArtifactCleanupFactory "
-                "não foi informado."
+                "nÃ£o foi informado."
             )
 
         if workspace_service is None:
             raise ValueError(
                 "AdvancedInstallerWorkspaceService "
-                "não foi informado."
+                "nÃ£o foi informado."
             )
 
         if not isinstance(
@@ -114,8 +122,8 @@ class AdvancedInstallerService(
             process_service
         )
 
-        self.__advanced_installer_path = Path(
-            advanced_installer_path,
+        self.__configuration_loader = (
+            configuration_loader
         )
 
         self.__cleanup_factory = (
@@ -123,8 +131,8 @@ class AdvancedInstallerService(
         )
 
         # Mantido por compatibilidade com o Bootstrap atual.
-        # O sincronizador não é mais utilizado neste fluxo; a atualização
-        # dos arquivos é feita pelo RefreshSync nativo do Advanced Installer.
+        # O sincronizador nÃ£o Ã© mais utilizado neste fluxo; a atualizaÃ§Ã£o
+        # dos arquivos Ã© feita pelo RefreshSync nativo do Advanced Installer.
         self.__aip_synchronizer = aip_synchronizer
 
         self.__workspace_service = (
@@ -144,25 +152,38 @@ class AdvancedInstallerService(
         """
         Gera o Setup utilizando o Advanced Installer.
 
-        O fluxo executado é:
+        O executÃ¡vel do Advanced Installer Ã© lido do SQL Server no
+        inÃcio de cada execuÃ§Ã£o. A configuraÃ§Ã£o alterada pelo usuÃ¡rio
+        passa a valer sem necessidade de reiniciar a API.
 
-            1. Criação do workspace temporário.
-            2. Cópia do AIP, Prerequisites e Release.
+        O fluxo executado Ã©:
+
+            1. CriaÃ§Ã£o do workspace temporÃ¡rio.
+            2. CÃ³pia do AIP, Prerequisites e Release.
             3. Cleanup dos artefatos dentro do workspace.
-            4. Atualização da pasta de origem da sincronização.
-            5. Atualização do nome e da pasta de saída do MSI.
-            6. Atualização da versão do produto.
+            4. AtualizaÃ§Ã£o da pasta de origem da sincronizaÃ§Ã£o.
+            5. AtualizaÃ§Ã£o do nome e da pasta de saÃda do MSI.
+            6. AtualizaÃ§Ã£o da versÃ£o do produto.
             7. RefreshSync nativo do Advanced Installer.
             8. Build do AIP de trabalho.
-            9. Validação do MSI gerado.
-            10. Remoção do workspace quando
+            9. ValidaÃ§Ã£o do MSI gerado.
+            10. RemoÃ§Ã£o do workspace quando
                 excluirpastawork estiver habilitado.
         """
+
+        current_settings = (
+            self.__configuration_loader.load_settings()
+        )
+
+        advanced_installer_path = Path(
+            current_settings.build_tools.advanced_installer_path,
+        )
 
         self.__validate(
             request=request,
             definition=definition,
             paths=paths,
+            advanced_installer_path=advanced_installer_path,
         )
 
         original_aip_path = Path(
@@ -172,6 +193,33 @@ class AdvancedInstallerService(
         prerequisites_path = (
             original_aip_path.parent
             / "Prerequisites"
+        )
+
+        PipelineLogger.info(
+            "SETUP DIAGNOSTICO - PUBLISH DE ORIGEM"
+        )
+        PipelineLogger.info(
+            f"Projeto...............: {request.project_id}"
+        )
+        PipelineLogger.info(
+            f"Ambiente..............: {request.environment_id}"
+        )
+        PipelineLogger.info(
+            f"Versao................: {request.version}"
+        )
+        PipelineLogger.info(
+            f"Revisao................: {request.revision}"
+        )
+        PipelineLogger.info(
+            f"PublishPath............: {paths.publish_path}"
+        )
+        PipelineLogger.info(
+            f"PublishPath existe.....: {Path(paths.publish_path).exists()}"
+        )
+
+        self.__log_directory_contents(
+            title="ORIGEM - ANTES DA COPIA",
+            directory=Path(paths.publish_path),
         )
 
         workspace = self.__workspace_service.prepare(
@@ -184,6 +232,24 @@ class AdvancedInstallerService(
         workspace_path = workspace.workspace_path
         workspace_aip_path = workspace.aip_path
         workspace_publish_path = workspace.publish_path
+
+        PipelineLogger.info(
+            "SETUP DIAGNOSTICO - WORKSPACE APOS COPIA"
+        )
+        PipelineLogger.info(
+            f"Workspace.............: {workspace_path}"
+        )
+        PipelineLogger.info(
+            f"Workspace Release.....: {workspace_publish_path}"
+        )
+        PipelineLogger.info(
+            f"Release existe........: {workspace_publish_path.exists()}"
+        )
+
+        self.__log_directory_contents(
+            title="WORKSPACE - APOS COPIA E ANTES DO CLEANUP",
+            directory=workspace_publish_path,
+        )
 
         try:
             #
@@ -205,12 +271,43 @@ class AdvancedInstallerService(
                 )
             )
 
+            PipelineLogger.info(
+                "SETUP DIAGNOSTICO - CLEANUP"
+            )
+            PipelineLogger.info(
+                f"Arquivos analisados.....: {cleanup_result.files_analyzed}"
+            )
+            PipelineLogger.info(
+                f"Arquivos removidos......: {len(cleanup_result.files_removed)}"
+            )
+            PipelineLogger.info(
+                f"Arquivos preservados....: {len(cleanup_result.files_preserved)}"
+            )
+            PipelineLogger.info(
+                f"Diretorios analisados...: {cleanup_result.directories_analyzed}"
+            )
+            PipelineLogger.info(
+                f"Diretorios removidos....: {len(cleanup_result.directories_removed)}"
+            )
+            PipelineLogger.info(
+                f"Diretorios preservados..: {len(cleanup_result.directories_preserved)}"
+            )
+
+            self.__log_cleanup_results(
+                cleanup_result=cleanup_result,
+            )
+
+            self.__log_directory_contents(
+                title="WORKSPACE - APOS CLEANUP",
+                directory=workspace_publish_path,
+            )
+
             if cleanup_result.errors:
                 return SetupResult(
                     success=False,
                     message=(
                         "Falha durante a limpeza "
-                        "dos artefatos da publicação: "
+                        "dos artefatos da publicaÃ§Ã£o: "
                         + "; ".join(
                             cleanup_result.errors
                         )
@@ -226,11 +323,21 @@ class AdvancedInstallerService(
                     publish_path=workspace_publish_path,
                 )
 
+                PipelineLogger.info(
+                    "SETUP DIAGNOSTICO - SOURCEPATH DO AIP ATUALIZADO"
+                )
+                PipelineLogger.info(
+                    f"AIP...................: {workspace_aip_path}"
+                )
+                PipelineLogger.info(
+                    f"SourcePath...........: {workspace_publish_path.resolve()}"
+                )
+
             except Exception as exc:
                 return SetupResult(
                     success=False,
                     message=(
-                        "Falha durante a configuração da "
+                        "Falha durante a configuraÃ§Ã£o da "
                         "pasta sincronizada do AIP: "
                         f"{exc}"
                     ),
@@ -247,6 +354,7 @@ class AdvancedInstallerService(
                 self.__execute_set_package_name(
                     aip_path=workspace_aip_path,
                     output_msi=package_name,
+                    advanced_installer_path=advanced_installer_path,
                 )
             )
 
@@ -264,6 +372,7 @@ class AdvancedInstallerService(
                 self.__execute_set_version(
                     aip_path=workspace_aip_path,
                     version=request.version,
+                    advanced_installer_path=advanced_installer_path,
                 )
             )
 
@@ -283,6 +392,7 @@ class AdvancedInstallerService(
             refresh_sync_result = (
                 self.__execute_refresh_sync(
                     aip_path=workspace_aip_path,
+                    advanced_installer_path=advanced_installer_path,
                 )
             )
 
@@ -299,6 +409,7 @@ class AdvancedInstallerService(
             build_result = (
                 self.__execute_build(
                     aip_path=workspace_aip_path,
+                    advanced_installer_path=advanced_installer_path,
                 )
             )
 
@@ -331,8 +442,8 @@ class AdvancedInstallerService(
                     success=False,
                     message=(
                         "O Advanced Installer finalizou "
-                        "a geração do Setup, porém o "
-                        "arquivo MSI não foi encontrado: "
+                        "a geraÃ§Ã£o do Setup, porÃ©m o "
+                        "arquivo MSI nÃ£o foi encontrado: "
                         f"{output_msi}"
                     ),
                     project_id=request.project_id,
@@ -360,6 +471,110 @@ class AdvancedInstallerService(
                     workspace_path=workspace_path,
                 )
 
+    @staticmethod
+    def __log_directory_contents(
+        title: str,
+        directory: Path,
+    ) -> None:
+        """Registra no log o conteúdo de um diretório para diagnóstico."""
+        directory = Path(directory)
+
+        PipelineLogger.info(
+            "=" * 80
+        )
+        PipelineLogger.info(
+            title
+        )
+        PipelineLogger.info(
+            f"Diretorio.............: {directory}"
+        )
+
+        if not directory.exists():
+            PipelineLogger.info(
+                "Diretorio existe......: False"
+            )
+            PipelineLogger.info(
+                "Arquivos..............: 0"
+            )
+            PipelineLogger.info(
+                "=" * 80
+            )
+            return
+
+        if not directory.is_dir():
+            PipelineLogger.info(
+                "Diretorio existe......: True"
+            )
+            PipelineLogger.info(
+                "Diretorio valido......: False"
+            )
+            PipelineLogger.info(
+                "=" * 80
+            )
+            return
+
+        files = sorted(
+            [
+                path
+                for path in directory.rglob("*")
+                if path.is_file()
+            ],
+            key=lambda path: str(path).lower(),
+        )
+
+        PipelineLogger.info(
+            "Diretorio existe......: True"
+        )
+        PipelineLogger.info(
+            f"Arquivos..............: {len(files)}"
+        )
+
+        for file_path in files:
+            try:
+                relative_path = file_path.relative_to(
+                    directory
+                )
+            except ValueError:
+                relative_path = file_path
+
+            PipelineLogger.info(
+                f"ARQUIVO...............: {relative_path}"
+            )
+
+        PipelineLogger.info(
+            "=" * 80
+        )
+
+    @staticmethod
+    def __log_cleanup_results(
+        cleanup_result,
+    ) -> None:
+        """Registra exatamente quais arquivos o Cleanup removeu ou preservou."""
+        for file_path in cleanup_result.files_removed:
+            PipelineLogger.info(
+                f"CLEANUP REMOVE..........: {file_path}"
+            )
+
+        for file_path in cleanup_result.files_preserved:
+            PipelineLogger.info(
+                f"CLEANUP PRESERVE........: {file_path}"
+            )
+
+        for directory_path in cleanup_result.directories_removed:
+            PipelineLogger.info(
+                f"CLEANUP DIR REMOVE......: {directory_path}"
+            )
+
+        for directory_path in cleanup_result.directories_preserved:
+            PipelineLogger.info(
+                f"CLEANUP DIR PRESERVE....: {directory_path}"
+            )
+
+        for error in cleanup_result.errors:
+            PipelineLogger.error(
+                f"CLEANUP ERROR............: {error}"
+            )
+
     def __update_synchronized_folder_source(
         self,
         aip_path: Path,
@@ -368,9 +583,9 @@ class AdvancedInstallerService(
         """
         Atualiza somente o SourcePath da pasta sincronizada do AIP.
 
-        O Advanced Installer continua responsável por criar, remover
+        O Advanced Installer continua responsÃ¡vel por criar, remover
         e atualizar todos os arquivos e componentes durante o
-        RefreshSync. O OuroBuild apenas aponta a sincronização para
+        RefreshSync. O OuroBuild apenas aponta a sincronizaÃ§Ã£o para
         a pasta Release do workspace atual.
         """
 
@@ -379,19 +594,19 @@ class AdvancedInstallerService(
 
         if not aip_path.exists():
             raise FileNotFoundError(
-                "Arquivo AIP não encontrado: "
+                "Arquivo AIP nÃ£o encontrado: "
                 f"{aip_path}"
             )
 
         if not publish_path.exists():
             raise FileNotFoundError(
-                "Pasta de publicação não encontrada: "
+                "Pasta de publicaÃ§Ã£o nÃ£o encontrada: "
                 f"{publish_path}"
             )
 
         if not publish_path.is_dir():
             raise ValueError(
-                "A pasta de publicação não é um diretório: "
+                "A pasta de publicaÃ§Ã£o nÃ£o Ã© um diretÃ³rio: "
                 f"{publish_path}"
             )
 
@@ -422,7 +637,7 @@ class AdvancedInstallerService(
 
         if match is None:
             raise ValueError(
-                "SynchronizedFolderComponent não encontrado no AIP."
+                "SynchronizedFolderComponent nÃ£o encontrado no AIP."
             )
 
         body = match.group("body")
@@ -440,7 +655,7 @@ class AdvancedInstallerService(
 
         if source_match is None:
             raise ValueError(
-                "A pasta sincronizada do AIP não possui SourcePath."
+                "A pasta sincronizada do AIP nÃ£o possui SourcePath."
             )
 
         source_path_text = (
@@ -473,13 +688,14 @@ class AdvancedInstallerService(
         self,
         aip_path: Path,
         output_msi: Path,
+        advanced_installer_path: Path,
     ):
         """
-        Define o nome e a pasta de saída do MSI no build padrão.
+        Define o nome e a pasta de saÃda do MSI no build padrÃ£o.
 
         O caminho completo informado ao /SetPackageName faz com que
-        o Advanced Installer atualize o nome do pacote e o diretório
-        pai de saída.
+        o Advanced Installer atualize o nome do pacote e o diretÃ³rio
+        pai de saÃda.
         """
 
         output_msi = Path(output_msi).resolve()
@@ -490,7 +706,7 @@ class AdvancedInstallerService(
         )
 
         command = Command(
-            executable=self.__advanced_installer_path,
+            executable=advanced_installer_path,
             working_directory=aip_path.parent,
             arguments=[
                 CommandArgument(
@@ -522,6 +738,7 @@ class AdvancedInstallerService(
         self,
         aip_path: Path,
         version: str,
+        advanced_installer_path: Path,
     ):
         """
         Atualiza a Product Version do AIP usando o comando nativo.
@@ -533,11 +750,11 @@ class AdvancedInstallerService(
 
         if not normalized_version:
             raise ValueError(
-                "A versão do Setup não foi informada."
+                "A versÃ£o do Setup nÃ£o foi informada."
             )
 
         command = Command(
-            executable=self.__advanced_installer_path,
+            executable=advanced_installer_path,
             working_directory=aip_path.parent,
             arguments=[
                 CommandArgument(
@@ -562,6 +779,7 @@ class AdvancedInstallerService(
     def __execute_refresh_sync(
         self,
         aip_path: Path,
+        advanced_installer_path: Path,
     ):
         """
         Executa o RefreshSync do Advanced Installer.
@@ -577,6 +795,7 @@ class AdvancedInstallerService(
         command = (
             self.__create_refresh_sync_command(
                 aip_path=aip_path,
+                advanced_installer_path=advanced_installer_path,
             )
         )
 
@@ -587,6 +806,7 @@ class AdvancedInstallerService(
     def __execute_build(
         self,
         aip_path: Path,
+        advanced_installer_path: Path,
     ):
         """
         Executa o Build do Advanced Installer.
@@ -601,6 +821,7 @@ class AdvancedInstallerService(
         command = (
             self.__create_build_command(
                 aip_path=aip_path,
+                advanced_installer_path=advanced_installer_path,
             )
         )
 
@@ -613,47 +834,48 @@ class AdvancedInstallerService(
         request: SetupRequest,
         definition: SetupDefinition,
         paths: SetupPaths,
+        advanced_installer_path: Path,
     ) -> None:
         """
-        Valida os dados necessários para geração.
+        Valida os dados necessÃ¡rios para geraÃ§Ã£o.
         """
 
         if request is None:
             raise ValueError(
-                "A solicitação de Setup "
-                "não foi informada."
+                "A solicitaÃ§Ã£o de Setup "
+                "nÃ£o foi informada."
             )
 
         if definition is None:
             raise ValueError(
-                "A definição do Setup "
-                "não foi informada."
+                "A definiÃ§Ã£o do Setup "
+                "nÃ£o foi informada."
             )
 
         if paths is None:
             raise ValueError(
                 "Os caminhos do Setup "
-                "não foram informados."
+                "nÃ£o foram informados."
             )
 
         if paths.publish_path is None:
             raise ValueError(
-                "O caminho de publicação "
-                "não foi informado."
+                "O caminho de publicaÃ§Ã£o "
+                "nÃ£o foi informado."
             )
 
-        if not self.__advanced_installer_path.exists():
+        if not advanced_installer_path.exists():
             raise FileNotFoundError(
                 "AdvancedInstaller.com "
-                "não encontrado: "
-                f"{self.__advanced_installer_path}"
+                "nÃ£o encontrado: "
+                f"{advanced_installer_path}"
             )
 
-        if not self.__advanced_installer_path.is_file():
+        if not advanced_installer_path.is_file():
             raise ValueError(
                 "O caminho do Advanced Installer "
-                "não é um arquivo: "
-                f"{self.__advanced_installer_path}"
+                "nÃ£o Ã© um arquivo: "
+                f"{advanced_installer_path}"
             )
 
         aip_path = Path(
@@ -663,20 +885,21 @@ class AdvancedInstallerService(
         if not aip_path.exists():
             raise FileNotFoundError(
                 "Arquivo AIP "
-                "não encontrado: "
+                "nÃ£o encontrado: "
                 f"{aip_path}"
             )
 
         if not aip_path.is_file():
             raise ValueError(
                 "O caminho do AIP "
-                "não é um arquivo: "
+                "nÃ£o Ã© um arquivo: "
                 f"{aip_path}"
             )
 
     def __create_refresh_sync_command(
         self,
         aip_path: Path,
+        advanced_installer_path: Path,
     ) -> Command:
         """
         Cria o comando de RefreshSync.
@@ -702,7 +925,7 @@ class AdvancedInstallerService(
 
         return Command(
             executable=(
-                self.__advanced_installer_path
+                advanced_installer_path
             ),
             working_directory=(
                 aip_path.parent
@@ -713,6 +936,7 @@ class AdvancedInstallerService(
     def __create_build_command(
         self,
         aip_path: Path,
+        advanced_installer_path: Path,
     ) -> Command:
         """
         Cria o comando de Build.
@@ -735,7 +959,7 @@ class AdvancedInstallerService(
 
         return Command(
             executable=(
-                self.__advanced_installer_path
+                advanced_installer_path
             ),
             working_directory=(
                 aip_path.parent
@@ -752,13 +976,13 @@ class AdvancedInstallerService(
     ) -> SetupResult:
         """
         Cria um SetupResult de falha para uma
-        operação do Advanced Installer.
+        operaÃ§Ã£o do Advanced Installer.
         """
 
         return SetupResult(
             success=False,
             message=(
-                "Falha durante a operação "
+                "Falha durante a operaÃ§Ã£o "
                 f"{operation} do Advanced Installer. "
                 f"ExitCode: "
                 f"{process_result.exit_code}. "
@@ -771,4 +995,3 @@ class AdvancedInstallerService(
                 + process_result.duration
             ),
         )
-

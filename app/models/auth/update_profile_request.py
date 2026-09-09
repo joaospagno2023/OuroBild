@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : update_profile_request.py
-Descrição : Dados para atualização do perfil do usuário autenticado.
+Descrição : Modelo para atualização do perfil do usuário autenticado.
 --------------------------------------------------------------------
 """
 
@@ -14,8 +14,7 @@ from pydantic import (
 class UpdateProfileRequest(
     BaseModel,
 ):
-    """
-    Define os dados que o próprio usuário pode alterar no perfil.
-    """
+    """Dados editáveis pelo próprio usuário."""
 
     display_name: str
+    email: str | None = None

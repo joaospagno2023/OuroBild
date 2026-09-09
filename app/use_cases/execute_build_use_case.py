@@ -6,6 +6,9 @@ Descrição : Responsável por iniciar uma execução de Build.
 --------------------------------------------------------------------
 """
 
+from pathlib import Path
+from uuid import uuid4
+
 from app.abstractions.pipeline_factory import (
     PipelineFactory,
 )
@@ -35,6 +38,9 @@ from app.pipeline.runner.pipeline_runner import (
 )
 from app.services.workspace.solution_locator_service import (
     SolutionLocatorService,
+)
+from app.utils.pipeline_logger import (
+    PipelineLogger,
 )
 
 
@@ -77,13 +83,64 @@ class ExecuteBuildUseCase:
     def execute(
         self,
         request: BuildRequest,
+        execution_id: str | None = None,
     ) -> PipelineResult:
         """
         Executa uma Pipeline de Build.
+
+        Quando a execução já pertence a uma Pipeline externa,
+        o execution_id existente é preservado.
+
+        Quando o Build é executado isoladamente, como ocorre
+        durante uma geração direta de Setup, um novo execution_id
+        é criado para garantir a rastreabilidade e a persistência
+        correta do resultado.
         """
 
+        if request is None:
+            raise ValueError(
+                "BuildRequest não foi informado."
+            )
+
+        current_execution_id = (
+            execution_id
+            or uuid4().hex.upper()
+        )
+
         #
-        # Cria o BuildContext
+        # ============================================================
+        # Diagnóstico - início
+        # ============================================================
+        #
+
+        PipelineLogger.info(
+            "BUILD DIAGNOSTICO - INICIO"
+        )
+
+        PipelineLogger.info(
+            f"Projeto...............: {request.project_id}"
+        )
+
+        PipelineLogger.info(
+            f"Ambiente..............: {request.environment_id}"
+        )
+
+        PipelineLogger.info(
+            f"Versao................: {request.version}"
+        )
+
+        PipelineLogger.info(
+            f"Revisao................: {request.revision}"
+        )
+
+        PipelineLogger.info(
+            f"ExecutionId............: {current_execution_id}"
+        )
+
+        #
+        # ============================================================
+        # BuildContext
+        # ============================================================
         #
 
         build_context = (
@@ -93,7 +150,9 @@ class ExecuteBuildUseCase:
         )
 
         #
-        # Resolve os caminhos do Build
+        # ============================================================
+        # Resolve Build
+        # ============================================================
         #
 
         build_builder = (
@@ -107,14 +166,99 @@ class ExecuteBuildUseCase:
         )
 
         #
-        # Cria o PublishRequest
+        # ============================================================
+        # Diagnóstico - caminhos do Build
+        # ============================================================
         #
-        # O BuildRequest não possui as opções específicas
-        # de Publish. Portanto, usamos os dados do projeto
-        # para preencher as opções configuradas para Publish.
+
+        PipelineLogger.info(
+            "BUILD DIAGNOSTICO - CAMINHOS RESOLVIDOS"
+        )
+
+        PipelineLogger.info(
+            f"Resolver..............: "
+            f"{build_context.environment.resolver}"
+        )
+
+        PipelineLogger.info(
+            f"WorkspaceRoot.........: "
+            f"{build_context.paths.workspace_root}"
+        )
+
+        PipelineLogger.info(
+            f"ProjectFile...........: "
+            f"{build_context.paths.project_file}"
+        )
+
+        PipelineLogger.info(
+            f"SourceRoot............: "
+            f"{build_context.paths.source_root}"
+        )
+
+        PipelineLogger.info(
+            f"PublishRoot...........: "
+            f"{build_context.paths.publish_root}"
+        )
+
+        self.__log_directory_contents(
+            title=(
+                "BUILD - PUBLISH ROOT APOS BUILD"
+            ),
+            directory=Path(
+                build_context.paths.publish_root,
+            ),
+        )
+
         #
-        # Os demais campos utilizam os valores padrão
-        # definidos em PublishRequest.
+        # ============================================================
+        # Diretório de saída do Publish
+        # ============================================================
+        #
+
+        output_directory = None
+
+        if (
+            build_context.environment.resolver
+            == "versioned"
+        ):
+            output_directory = str(
+                build_context.paths.publish_root
+            )
+
+        #
+        # ============================================================
+        # Diagnóstico - PublishRequest
+        # ============================================================
+        #
+
+        PipelineLogger.info(
+            "PUBLISH DIAGNOSTICO - REQUEST"
+        )
+
+        PipelineLogger.info(
+            f"Resolver..............: "
+            f"{build_context.environment.resolver}"
+        )
+
+        PipelineLogger.info(
+            f"OutputDirectory.......: "
+            f"{output_directory}"
+        )
+
+        PipelineLogger.info(
+            f"Version...............: "
+            f"{request.version}"
+        )
+
+        PipelineLogger.info(
+            f"Revision..............: "
+            f"{request.revision}"
+        )
+
+        #
+        # ============================================================
+        # PublishRequest
+        # ============================================================
         #
 
         publish_request = PublishRequest(
@@ -124,13 +268,18 @@ class ExecuteBuildUseCase:
             environment_id=(
                 build_context.environment.id
             ),
+            version=request.version,
+            revision=request.revision,
+            output_directory=output_directory,
             publish_profile=(
                 build_context.project.publish_profile
             ),
         )
 
         #
-        # Cria o PublishContext
+        # ============================================================
+        # PublishContext
+        # ============================================================
         #
 
         publish_context = (
@@ -140,7 +289,9 @@ class ExecuteBuildUseCase:
         )
 
         #
-        # Resolve os caminhos do Publish
+        # ============================================================
+        # Resolve caminhos do Publish
+        # ============================================================
         #
 
         publish_builder = (
@@ -149,12 +300,89 @@ class ExecuteBuildUseCase:
             )
         )
 
+        #
+        # ============================================================
+        # Diagnóstico - antes do Publish
+        # ============================================================
+        #
+
+        PipelineLogger.info(
+            "PUBLISH DIAGNOSTICO - ANTES DO PUBLISH"
+        )
+
+        PipelineLogger.info(
+            f"ProjectFile...........: "
+            f"{publish_context.paths.project_file}"
+        )
+
+        PipelineLogger.info(
+            f"Request.OutputDir.....: "
+            f"{publish_context.request.output_directory}"
+        )
+
+        PipelineLogger.info(
+            f"Build.PublishRoot.....: "
+            f"{build_context.paths.publish_root}"
+        )
+
+        #
+        # ============================================================
+        # Executa Publish
+        # ============================================================
+        #
+
         publish_builder.build(
             publish_context,
         )
 
         #
-        # Cria o PipelineContext
+        # ============================================================
+        # Diagnóstico - após Publish
+        # ============================================================
+        #
+
+        PipelineLogger.info(
+            "PUBLISH DIAGNOSTICO - APOS PUBLISH"
+        )
+
+        PipelineLogger.info(
+            f"Request.OutputDir.....: "
+            f"{publish_context.request.output_directory}"
+        )
+
+        PipelineLogger.info(
+            f"Build.PublishRoot.....: "
+            f"{build_context.paths.publish_root}"
+        )
+
+        #
+        # ============================================================
+        # Verificação do diretório final
+        # ============================================================
+        #
+
+        publish_output_directory = (
+            publish_context.request.output_directory
+        )
+
+        if publish_output_directory:
+            publish_output_path = Path(
+                publish_output_directory
+            )
+        else:
+            publish_output_path = Path(
+                build_context.paths.publish_root
+            )
+
+        self.__log_directory_contents(
+            title="PUBLISH - RESULTADO FINAL",
+            directory=publish_output_path,
+        )
+
+        #
+        # ============================================================
+        # PipelineContext
+        # ============================================================
         #
 
         pipeline_context = PipelineContext()
@@ -179,10 +407,6 @@ class ExecuteBuildUseCase:
             build_context.paths
         )
 
-        #
-        # Compatibilidade com as Steps atuais
-        #
-
         pipeline_context.variables["build_context"] = (
             build_context
         )
@@ -191,16 +415,14 @@ class ExecuteBuildUseCase:
             publish_context
         )
 
-        #
-        # Evolução da Engine
-        #
-
         pipeline_context.variables["execution_context"] = (
             build_context
         )
 
         #
-        # Cria a Pipeline
+        # ============================================================
+        # Pipeline
+        # ============================================================
         #
 
         pipeline = self.__pipeline_factory.create(
@@ -208,10 +430,108 @@ class ExecuteBuildUseCase:
         )
 
         #
-        # Executa
+        # ============================================================
+        # Execução
+        # ============================================================
         #
 
         return self.__pipeline_runner.execute(
             pipeline=pipeline,
             context=pipeline_context,
+            execution_id=current_execution_id,
+            project_id=(
+                build_context.project.id
+            ),
+        )
+
+    @staticmethod
+    def __log_directory_contents(
+        title: str,
+        directory: Path,
+    ) -> None:
+        """
+        Registra no log o conteúdo de um diretório para diagnóstico.
+        """
+
+        directory = Path(directory)
+
+        PipelineLogger.info(
+            "=" * 80
+        )
+
+        PipelineLogger.info(
+            title
+        )
+
+        PipelineLogger.info(
+            f"Diretorio.............: {directory}"
+        )
+
+        if not directory.exists():
+            PipelineLogger.info(
+                "Diretorio existe......: False"
+            )
+
+            PipelineLogger.info(
+                "Arquivos..............: 0"
+            )
+
+            PipelineLogger.info(
+                "=" * 80
+            )
+
+            return
+
+        if not directory.is_dir():
+            PipelineLogger.info(
+                "Diretorio existe......: True"
+            )
+
+            PipelineLogger.info(
+                "Diretorio valido......: False"
+            )
+
+            PipelineLogger.info(
+                "=" * 80
+            )
+
+            return
+
+        files = sorted(
+            [
+                path
+                for path in directory.rglob("*")
+                if path.is_file()
+            ],
+            key=lambda path: str(
+                path
+            ).lower(),
+        )
+
+        PipelineLogger.info(
+            "Diretorio existe......: True"
+        )
+
+        PipelineLogger.info(
+            f"Arquivos..............: "
+            f"{len(files)}"
+        )
+
+        for file_path in files:
+            try:
+                relative_path = (
+                    file_path.relative_to(
+                        directory
+                    )
+                )
+            except ValueError:
+                relative_path = file_path
+
+            PipelineLogger.info(
+                f"ARQUIVO...............: "
+                f"{relative_path}"
+            )
+
+        PipelineLogger.info(
+            "=" * 80
         )

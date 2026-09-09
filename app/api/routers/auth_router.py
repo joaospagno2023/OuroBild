@@ -81,36 +81,6 @@ def get_me(
     return current_user
 
 
-@router.put(
-    "/profile",
-    response_model=User,
-)
-def update_profile(
-    request: Request,
-    profile_request: UpdateProfileRequest,
-    current_user: User = Depends(
-        get_current_user,
-    ),
-) -> User:
-    """
-    Atualiza o perfil do usuário autenticado.
-    """
-
-    bootstrap = request.app.state.bootstrap
-
-    try:
-        return bootstrap.user_service.update_profile(
-            user=current_user,
-            request=profile_request,
-        )
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
-
-
 @router.post(
     "/change-password",
     response_model=User,
@@ -137,6 +107,36 @@ def change_password(
             new_password=(
                 password_request.new_password
             ),
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+@router.put(
+    "/profile",
+    response_model=User,
+)
+def update_profile(
+    request: Request,
+    profile_request: UpdateProfileRequest,
+    current_user: User = Depends(
+        get_current_user,
+    ),
+) -> User:
+    """
+    Atualiza somente o perfil do usuário autenticado.
+    """
+
+    bootstrap = request.app.state.bootstrap
+
+    try:
+        return bootstrap.user_service.update_profile(
+            user=current_user,
+            display_name=profile_request.display_name,
+            email=profile_request.email,
         )
 
     except ValueError as exc:

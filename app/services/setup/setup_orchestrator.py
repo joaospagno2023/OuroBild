@@ -2,25 +2,15 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : setup_orchestrator.py
-DescriÃ§Ã£o : Orquestra o processo de geraÃ§Ã£o do Setup atravÃ©s
-            exclusivamente do Advanced Installer.
+Descrição : Orquestra o processo de geração do Setup através
+             exclusivamente do Advanced Installer.
 --------------------------------------------------------------------
 """
 
 from pathlib import Path
-from typing import Callable
-
 
 from app.models.configuration.app_settings import (
     AppSettings,
-)
-
-from app.models.execution.pipeline_execution_state import (
-    PipelineExecutionPhase,
-)
-
-from app.utils.pipeline_logger import (
-    PipelineLogger,
 )
 
 from app.models.setup.setup_engine import (
@@ -67,10 +57,14 @@ from app.workspace.workspace_resolver import (
     WorkspaceResolver,
 )
 
+from app.utils.pipeline_logger import (
+    PipelineLogger,
+)
+
 
 class DefaultSetupOrchestrator:
     """
-    Orquestra a geraÃ§Ã£o de Setup atravÃ©s do Advanced Installer.
+    Orquestra a geração de Setup através do Advanced Installer.
 
     Fluxo:
 
@@ -78,15 +72,13 @@ class DefaultSetupOrchestrator:
         2. Valida o Engine.
         3. Executa o Build completo do projeto, quando configurado.
         4. Resolve os caminhos do Setup.
-        5. Carrega a definiÃ§Ã£o do Advanced Installer.
-        6. ObtÃ©m o InstallerService atravÃ©s da Factory.
-        7. Executa a geraÃ§Ã£o do Setup.
+        5. Carrega a definição do Advanced Installer.
+        6. Obtém o InstallerService através da Factory.
+        7. Executa a geração do Setup.
 
-    O Orchestrator nÃ£o possui conhecimento dos detalhes internos
+    O Orchestrator não possui conhecimento dos detalhes internos
     do Advanced Installer.
     """
-
-    PROGRESS_TOTAL_STEPS = 6
 
     def __init__(
         self,
@@ -105,23 +97,23 @@ class DefaultSetupOrchestrator:
 
         if workspace_resolver is None:
             raise ValueError(
-                "WorkspaceResolver nÃ£o foi informado."
+                "WorkspaceResolver não foi informado."
             )
 
         if setup_path_resolver is None:
             raise ValueError(
-                "SetupPathResolver nÃ£o foi informado."
+                "SetupPathResolver não foi informado."
             )
 
         if advanced_installer_definition_loader is None:
             raise ValueError(
                 "AdvancedInstallerSetupDefinitionLoader "
-                "nÃ£o foi informado."
+                "não foi informado."
             )
 
         if setup_factory is None:
             raise ValueError(
-                "SetupFactory nÃ£o foi informado."
+                "SetupFactory não foi informado."
             )
 
         self.__workspace_resolver = (
@@ -146,120 +138,51 @@ class DefaultSetupOrchestrator:
 
         self.__settings = settings
 
-    @classmethod
-    def get_progress_total_steps(
-        cls,
-        request: SetupRequest,
-    ) -> int:
-        """
-        Retorna a quantidade de etapas de progresso do Setup.
-        """
-
-        if request.run_build:
-            return cls.PROGRESS_TOTAL_STEPS + 1
-
-        return cls.PROGRESS_TOTAL_STEPS
-
-    @staticmethod
-    def __notify_progress(
-        progress_callback: Callable[
-            [
-                str,
-                int,
-                int,
-                int,
-                PipelineExecutionPhase,
-            ],
-            None,
-        ] | None,
-        step_name: str,
-        step_index: int,
-        total_steps: int,
-        progress_percent: int,
-    ) -> None:
-        if progress_callback is None:
-            return
-
-        progress_callback(
-            step_name,
-            step_index,
-            total_steps,
-            progress_percent,
-            PipelineExecutionPhase.SETUP,
-        )
-
     def execute(
         self,
         request: SetupRequest,
-        progress_callback: Callable[
-            [
-                str,
-                int,
-                int,
-                int,
-                PipelineExecutionPhase,
-            ],
-            None,
-        ] | None = None,
     ) -> SetupResult:
         """
-        Executa a geraÃ§Ã£o do Setup.
+        Executa a geração do Setup.
         """
 
         if request is None:
             raise ValueError(
-                "SetupRequest nÃ£o foi informado."
+                "SetupRequest não foi informado."
             )
+
+        #
+        # ============================================================
+        # Diagnóstico - request recebido
+        # ============================================================
+        #
+
+        PipelineLogger.info(
+            "SETUP ORCHESTRATOR DIAGNOSTICO - REQUEST"
+        )
+
+        PipelineLogger.info(
+            f"request.project_id......: {request.project_id!r}"
+        )
+
+        PipelineLogger.info(
+            f"request.environment_id..: {request.environment_id!r}"
+        )
+
+        PipelineLogger.info(
+            f"request.version.........: {request.version!r}"
+        )
+
+        PipelineLogger.info(
+            f"request.revision........: {request.revision!r}"
+        )
 
         try:
-
-            total_steps = self.get_progress_total_steps(
-                request,
-            )
-
-            PipelineLogger.info(
-                "SETUP - INICIO"
-            )
-            PipelineLogger.info(
-                f"Projeto........: {request.project_id}"
-            )
-            PipelineLogger.info(
-                f"Ambiente.......: {request.environment_id}"
-            )
-            PipelineLogger.info(
-                f"Versao.........: {request.version}"
-            )
-            PipelineLogger.info(
-                f"Revisao........: {request.revision}"
-            )
-            PipelineLogger.info(
-                f"Build incluido.: {request.run_build}"
-            )
-            PipelineLogger.info(
-                f"Total de etapas: {total_steps}"
-            )
-
-            current_step_index = 1
-
             #
             # ========================================================
             # Workspace
             # ========================================================
             #
-
-            self.__notify_progress(
-                progress_callback,
-                "Resolver Workspace",
-                current_step_index,
-                total_steps,
-                int(
-                    ((current_step_index - 1) / total_steps) * 100
-                ),
-            )
-
-            PipelineLogger.info(
-                "SETUP - RESOLVENDO WORKSPACE"
-            )
 
             workspace = (
                 self.__workspace_resolver.resolve(
@@ -269,22 +192,21 @@ class DefaultSetupOrchestrator:
                     environment_id=(
                         request.environment_id
                     ),
+                    version=(
+                        request.version
+                    ),
+                    revision=(
+                        request.revision
+                    ),
                 )
             )
 
             if workspace is None:
                 raise ValueError(
-                    "Workspace nÃ£o foi encontrado "
+                    "Workspace não foi encontrado "
                     "para o projeto: "
                     f"{request.project_id}"
                 )
-
-            PipelineLogger.info(
-                f"SETUP - WORKSPACE RESOLVIDO: "
-                f"{self.__get_workspace_root(workspace)}"
-            )
-
-            current_step_index += 1
 
             #
             # ========================================================
@@ -292,36 +214,16 @@ class DefaultSetupOrchestrator:
             # ========================================================
             #
 
-            self.__notify_progress(
-                progress_callback,
-                "Validar Engine",
-                current_step_index,
-                total_steps,
-                int(
-                    ((current_step_index - 1) / total_steps) * 100
-                ),
-            )
-
-            PipelineLogger.info(
-                "SETUP - VALIDANDO ENGINE"
-            )
-
             engine = (
                 self.__get_engine()
-            )
-
-            PipelineLogger.info(
-                f"SETUP - ENGINE: {engine}"
             )
 
             if engine != SetupEngine.ADVANCED_INSTALLER:
                 raise ValueError(
                     "O OuroBuild utiliza exclusivamente "
-                    "o Advanced Installer para geraÃ§Ã£o "
+                    "o Advanced Installer para geração "
                     f"de Setup. Engine configurado: {engine}"
                 )
-
-            current_step_index += 1
 
             #
             # ========================================================
@@ -333,15 +235,6 @@ class DefaultSetupOrchestrator:
                 request.run_build
                 and self.__execute_build_use_case is not None
             ):
-                self.__notify_progress(
-                    progress_callback,
-                    "Build",
-                    current_step_index,
-                    total_steps,
-                    int(
-                        ((current_step_index - 1) / total_steps) * 100
-                    ),
-                )
 
                 build_request = BuildRequest(
                     project_id=request.project_id,
@@ -350,23 +243,13 @@ class DefaultSetupOrchestrator:
                     revision=request.revision,
                 )
 
-                PipelineLogger.info(
-                    "SETUP - BUILD DO PROJETO - INICIO"
-                )
-
                 build_result = (
                     self.__execute_build_use_case.execute(
                         build_request,
                     )
                 )
 
-                PipelineLogger.info(
-                    f"SETUP - BUILD DO PROJETO - "
-                    f"STATUS: {build_result.success}"
-                )
-
                 if not build_result.success:
-
                     failed_step = (
                         build_result.failed_step
                         or "Build"
@@ -377,11 +260,6 @@ class DefaultSetupOrchestrator:
                         f"Etapa: {failed_step}. "
                         f"{build_result.message}"
                     ).strip()
-
-                    PipelineLogger.error(
-                        f"SETUP - BUILD DO PROJETO - FALHA: "
-                        f"{message}"
-                    )
 
                     return SetupResult(
                         success=False,
@@ -396,29 +274,11 @@ class DefaultSetupOrchestrator:
                         ),
                     )
 
-                current_step_index += 1
-
-            # Quando o Build nÃ£o faz parte da execuÃ§Ã£o,
-            # a prÃ³xima etapa ocupa a posiÃ§Ã£o atual.
             #
             # ========================================================
             # Caminhos
             # ========================================================
             #
-
-            self.__notify_progress(
-                progress_callback,
-                "Resolver caminhos",
-                current_step_index,
-                total_steps,
-                int(
-                    ((current_step_index - 1) / total_steps) * 100
-                ),
-            )
-
-            PipelineLogger.info(
-                "SETUP - RESOLVENDO CAMINHOS"
-            )
 
             paths = (
                 self.__setup_path_resolver.resolve(
@@ -454,38 +314,15 @@ class DefaultSetupOrchestrator:
 
             if paths is None:
                 raise ValueError(
-                    "SetupPathResolver nÃ£o retornou "
+                    "SetupPathResolver não retornou "
                     "os caminhos do Setup."
                 )
 
-            PipelineLogger.info(
-                f"SETUP - AIP: {paths.aip_path}"
-            )
-            PipelineLogger.info(
-                f"SETUP - OUTPUT MSI: {paths.output_msi}"
-            )
-
-            current_step_index += 1
-
             #
             # ========================================================
-            # DefiniÃ§Ã£o do Advanced Installer
+            # Definição do Advanced Installer
             # ========================================================
             #
-
-            self.__notify_progress(
-                progress_callback,
-                "Carregar definiÃ§Ã£o do Advanced Installer",
-                current_step_index,
-                total_steps,
-                int(
-                    ((current_step_index - 1) / total_steps) * 100
-                ),
-            )
-
-            PipelineLogger.info(
-                "SETUP - CARREGANDO DEFINICAO ADVANCED INSTALLER"
-            )
 
             definition = (
                 self.__advanced_installer_definition_loader.load(
@@ -510,34 +347,14 @@ class DefaultSetupOrchestrator:
             if definition is None:
                 raise ValueError(
                     "AdvancedInstallerSetupDefinitionLoader "
-                    "nÃ£o retornou uma definiÃ§Ã£o de Setup."
+                    "não retornou uma definição de Setup."
                 )
-
-            PipelineLogger.info(
-                "SETUP - DEFINICAO CARREGADA"
-            )
-
-            current_step_index += 1
 
             #
             # ========================================================
             # Installer
             # ========================================================
             #
-
-            self.__notify_progress(
-                progress_callback,
-                "Criar Installer",
-                current_step_index,
-                total_steps,
-                int(
-                    ((current_step_index - 1) / total_steps) * 100
-                ),
-            )
-
-            PipelineLogger.info(
-                "SETUP - CRIANDO INSTALLER"
-            )
 
             installer = (
                 self.__setup_factory.create(
@@ -547,36 +364,15 @@ class DefaultSetupOrchestrator:
 
             if installer is None:
                 raise ValueError(
-                    "SetupFactory nÃ£o retornou "
+                    "SetupFactory não retornou "
                     "um InstallerService."
                 )
 
-            PipelineLogger.info(
-                f"SETUP - INSTALLER: "
-                f"{installer.__class__.__name__}"
-            )
-
-            current_step_index += 1
-
             #
             # ========================================================
-            # ExecuÃ§Ã£o
+            # Execução
             # ========================================================
             #
-
-            self.__notify_progress(
-                progress_callback,
-                "Executar Setup",
-                current_step_index,
-                total_steps,
-                int(
-                    ((current_step_index - 1) / total_steps) * 100
-                ),
-            )
-
-            PipelineLogger.info(
-                "SETUP - EXECUCAO DO ADVANCED INSTALLER - INICIO"
-            )
 
             setup_result = installer.install(
                 request=request,
@@ -584,34 +380,11 @@ class DefaultSetupOrchestrator:
                 paths=paths,
             )
 
-            PipelineLogger.info(
-                f"SETUP - EXECUCAO DO ADVANCED INSTALLER - "
-                f"STATUS: {setup_result.success}"
-            )
-
-            self.__notify_progress(
-                progress_callback,
-                "Executar Setup",
-                current_step_index,
-                total_steps,
-                100,
-            )
-
             setup_message = (
                 setup_result.message
                 if not setup_result.success
                 else "Setup gerado com sucesso."
             )
-
-            PipelineLogger.info(
-                f"SETUP - RESULTADO: {setup_message}"
-            )
-
-            if setup_result.output_msi:
-                PipelineLogger.info(
-                    f"SETUP - MSI GERADO: "
-                    f"{setup_result.output_msi}"
-                )
 
             setup_result.steps.append(
                 StepResult(
@@ -633,21 +406,13 @@ class DefaultSetupOrchestrator:
                 )
             )
 
-            PipelineLogger.info(
-                "SETUP - FINAL"
-            )
-
             return setup_result
 
         except Exception as exception:
 
             message = (
-                "Erro durante a geraÃ§Ã£o do Setup: "
+                "Erro durante a geração do Setup: "
                 f"{exception}"
-            )
-
-            PipelineLogger.error(
-                f"SETUP - FALHA: {message}"
             )
 
             return SetupResult(
@@ -670,10 +435,10 @@ class DefaultSetupOrchestrator:
         self,
     ) -> SetupEngine:
         """
-        ObtÃ©m o engine configurado.
+        Obtém o engine configurado.
 
-        Quando AppSettings nÃ£o foi fornecido, utiliza
-        Advanced Installer como padrÃ£o.
+        Quando AppSettings não foi fornecido, utiliza
+        Advanced Installer como padrão.
         """
 
         if self.__settings is None:
@@ -698,10 +463,10 @@ class DefaultSetupOrchestrator:
         workspace,
     ) -> Path:
         """
-        ObtÃ©m a raiz fÃsica do projeto.
+        Obtém a raiz física do projeto.
 
         A raiz deve ser derivada do arquivo de projeto
-        jÃ¡ resolvido pelo WorkspaceResolver.
+        já resolvido pelo WorkspaceResolver.
         """
 
         return Path(
@@ -713,7 +478,7 @@ class DefaultSetupOrchestrator:
         workspace,
     ) -> Path:
         """
-        ObtÃ©m a raiz fÃsica do ambiente.
+        Obtém a raiz física do ambiente.
 
         A raiz deve ser a mesma utilizada pelo
         WorkspaceResolver para resolver o projeto.
@@ -727,7 +492,7 @@ class DefaultSetupOrchestrator:
         self,
     ) -> Path:
         """
-        ObtÃ©m a raiz de saÃda dos instaladores.
+        Obtém a raiz de saída dos instaladores.
         """
 
         if self.__settings is not None:
@@ -742,7 +507,7 @@ class DefaultSetupOrchestrator:
         project,
     ) -> Path:
         """
-        ObtÃ©m a raiz dos arquivos AIP.
+        Obtém a raiz dos arquivos AIP.
         """
 
         if self.__settings is not None:

@@ -289,6 +289,67 @@ class SqlUserRepository(
 
             return user
 
+    def update_profile(
+        self,
+        user_id: int,
+        display_name: str,
+        email: str | None,
+    ) -> User:
+        """
+        Atualiza somente os dados de perfil permitidos ao usuário.
+        """
+
+        if user_id <= 0:
+            raise ValueError(
+                "UserId deve ser maior que zero."
+            )
+
+        if not display_name or not display_name.strip():
+            raise ValueError(
+                "DisplayName não foi informado."
+            )
+
+        normalized_email = (
+            email.strip()
+            if email and email.strip()
+            else None
+        )
+
+        with self.__database_connection.create_session() as session:
+            statement = (
+                select(UserModel)
+                .where(
+                    UserModel.id == user_id,
+                )
+            )
+
+            user_model = (
+                session.scalars(
+                    statement,
+                )
+                .first()
+            )
+
+            if user_model is None:
+                raise ValueError(
+                    "Usuário não encontrado."
+                )
+
+            user_model.display_name = (
+                display_name.strip()
+            )
+            user_model.email = normalized_email
+
+            session.flush()
+
+            user = self.__to_user(
+                user_model,
+            )
+
+            session.commit()
+
+            return user
+
     def update_status(
         self,
         user_id: int,

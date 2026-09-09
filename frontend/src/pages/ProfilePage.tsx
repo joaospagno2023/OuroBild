@@ -1,78 +1,50 @@
-import {
-  type FormEvent,
-  useState,
-} from "react";
-
+import { type FormEvent, useState } from "react";
 import {
   CheckCircle2,
   Eye,
   EyeOff,
   KeyRound,
+  Mail,
   Save,
   UserRound,
 } from "lucide-react";
-
-import {
-  useAuth,
-} from "../auth/AuthContext";
-
+import { useAuth } from "../auth/AuthContext";
 import {
   changePassword,
   updateProfile,
 } from "../services/authApi";
 
-
 function ProfilePage() {
-  const {
-    user,
-    updateUser,
-  } = useAuth();
+  const { user, updateUser } = useAuth();
 
-  const [displayName, setDisplayName] =
-    useState(
-      user?.display_name ??
-        user?.username ??
-        "",
-    );
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
-  const [currentPassword, setCurrentPassword] =
-    useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [newPassword, setNewPassword] =
-    useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const [showCurrentPassword, setShowCurrentPassword] =
-    useState(false);
-
-  const [showNewPassword, setShowNewPassword] =
-    useState(false);
-
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
-
-  const [isSavingProfile, setIsSavingProfile] =
-    useState(false);
-
-  const [isChangingPassword, setIsChangingPassword] =
-    useState(false);
-
-  const [profileMessage, setProfileMessage] =
-    useState<string | null>(null);
-
-  const [profileError, setProfileError] =
-    useState<string | null>(null);
-
-  const [passwordMessage, setPasswordMessage] =
-    useState<string | null>(null);
-
-  const [passwordError, setPasswordError] =
-    useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   if (!user) {
     return null;
+  }
+
+  if (!profileLoaded) {
+    setDisplayName(user.display_name ?? user.username);
+    setEmail(user.email ?? "");
+    setProfileLoaded(true);
   }
 
   async function handleProfileSubmit(
@@ -83,42 +55,42 @@ function ProfilePage() {
     setProfileMessage(null);
     setProfileError(null);
 
-    const normalizedDisplayName =
-      displayName.trim();
+    const normalizedDisplayName = displayName.trim();
+    const normalizedEmail = email.trim();
 
     if (!normalizedDisplayName) {
-      setProfileError(
-        "Informe o nome de exibição.",
-      );
+      setProfileError("Informe o nome.");
       return;
     }
 
-    if (isSavingProfile) {
+    if (
+      normalizedEmail &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      setProfileError("Informe um e-mail válido.");
       return;
     }
 
     setIsSavingProfile(true);
 
     try {
-      const updatedUser =
-        await updateProfile({
-          display_name:
-            normalizedDisplayName,
-        });
+      const updatedUser = await updateProfile({
+        display_name: normalizedDisplayName,
+        email: normalizedEmail || null,
+      });
 
       updateUser(updatedUser);
-
       setDisplayName(
         updatedUser.display_name ??
           updatedUser.username,
       );
-
+      setEmail(updatedUser.email ?? "");
       setProfileMessage(
-        "Nome atualizado com sucesso.",
+        "Dados do perfil atualizados com sucesso.",
       );
     } catch {
       setProfileError(
-        "Não foi possível atualizar o nome.",
+        "Não foi possível atualizar os dados do perfil.",
       );
     } finally {
       setIsSavingProfile(false);
@@ -134,29 +106,18 @@ function ProfilePage() {
     setPasswordError(null);
 
     if (!currentPassword) {
-      setPasswordError(
-        "Informe a senha atual.",
-      );
+      setPasswordError("Informe a senha atual.");
       return;
     }
 
     if (!newPassword) {
-      setPasswordError(
-        "Informe a nova senha.",
-      );
+      setPasswordError("Informe a nova senha.");
       return;
     }
 
     if (newPassword.length < 6) {
       setPasswordError(
         "A nova senha deve possuir pelo menos 6 caracteres.",
-      );
-      return;
-    }
-
-    if (!confirmPassword) {
-      setPasswordError(
-        "Confirme a nova senha.",
       );
       return;
     }
@@ -175,30 +136,19 @@ function ProfilePage() {
       return;
     }
 
-    if (isChangingPassword) {
-      return;
-    }
-
     setIsChangingPassword(true);
 
     try {
-      const updatedUser =
-        await changePassword({
-          current_password:
-            currentPassword,
-          new_password:
-            newPassword,
-        });
+      const updatedUser = await changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
 
       updateUser(updatedUser);
-
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-
-      setPasswordMessage(
-        "Senha alterada com sucesso.",
-      );
+      setPasswordMessage("Senha alterada com sucesso.");
     } catch {
       setPasswordError(
         "Não foi possível alterar a senha. Verifique a senha atual e tente novamente.",
@@ -212,17 +162,9 @@ function ProfilePage() {
     <section>
       <div className="page-heading">
         <div>
-          <span className="page-eyebrow">
-            MINHA CONTA
-          </span>
-
-          <h1>
-            Meu perfil
-          </h1>
-
-          <p>
-            Gerencie seus dados de acesso ao OuroBuild.
-          </p>
+          <span className="page-eyebrow">MINHA CONTA</span>
+          <h1>Meu perfil</h1>
+          <p>Gerencie seus dados de acesso ao OuroBuild.</p>
         </div>
       </div>
 
@@ -230,7 +172,7 @@ function ProfilePage() {
         style={{
           display: "grid",
           gridTemplateColumns:
-            "minmax(0, 1fr) minmax(0, 1fr)",
+            "repeat(2, minmax(0, 1fr))",
           gap: "18px",
           alignItems: "start",
         }}
@@ -238,91 +180,76 @@ function ProfilePage() {
         <section className="content-card">
           <div className="card-header">
             <div>
-              <h2>
-                Dados do perfil
-              </h2>
-
-              <p>
-                Altere o nome apresentado no sistema.
-              </p>
+              <h2>Dados do perfil</h2>
+              <p>Atualize seu nome e seu e-mail.</p>
             </div>
-
             <UserRound size={20} />
           </div>
 
-          <form
-            onSubmit={handleProfileSubmit}
-          >
+          <form onSubmit={handleProfileSubmit}>
             <div className="form-grid">
               <div
                 className="form-field"
-                style={{
-                  gridColumn:
-                    "1 / -1",
-                }}
+                style={{ gridColumn: "1 / -1" }}
               >
-                <label htmlFor="display-name">
+                <label htmlFor="profile-display-name">
                   Nome
                 </label>
-
                 <input
-                  id="display-name"
-                  name="display-name"
+                  id="profile-display-name"
                   type="text"
-                  autoComplete="name"
                   value={displayName}
-                  onChange={(
-                    event,
-                  ) => {
-                    setDisplayName(
-                      event.target.value,
-                    );
-                    setProfileMessage(
-                      null,
-                    );
-                    setProfileError(
-                      null,
-                    );
+                  onChange={(event) => {
+                    setDisplayName(event.target.value);
+                    setProfileError(null);
+                    setProfileMessage(null);
                   }}
-                  disabled={
-                    isSavingProfile
-                  }
+                  disabled={isSavingProfile}
                   maxLength={200}
                   required
                 />
               </div>
 
               <div className="form-field">
-                <label htmlFor="username">
+                <label htmlFor="profile-username">
                   Usuário
                 </label>
-
                 <input
-                  id="username"
+                  id="profile-username"
                   type="text"
-                  value={
-                    user.username
-                  }
+                  value={user.username}
                   disabled
                   readOnly
                 />
               </div>
 
               <div className="form-field">
-                <label htmlFor="email">
-                  E-mail
-                </label>
-
-                <input
-                  id="email"
-                  type="email"
-                  value={
-                    user.email ??
-                    ""
-                  }
-                  disabled
-                  readOnly
-                />
+                <label htmlFor="profile-email">E-mail</label>
+                <div style={{ position: "relative" }}>
+                  <Mail
+                    size={16}
+                    style={{
+                      position: "absolute",
+                      left: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "#94a3b8",
+                    }}
+                  />
+                  <input
+                    id="profile-email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      setProfileError(null);
+                      setProfileMessage(null);
+                    }}
+                    disabled={isSavingProfile}
+                    placeholder="seu@email.com"
+                    style={{ paddingLeft: "36px" }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -330,10 +257,7 @@ function ProfilePage() {
               <div
                 className="error-message"
                 role="alert"
-                aria-live="polite"
-                style={{
-                  marginTop: "16px",
-                }}
+                style={{ marginTop: "16px" }}
               >
                 {profileError}
               </div>
@@ -342,56 +266,37 @@ function ProfilePage() {
             {profileMessage && (
               <div
                 role="status"
-                aria-live="polite"
                 style={{
-                  display:
-                    "flex",
-                  alignItems:
-                    "center",
+                  display: "flex",
+                  alignItems: "center",
                   gap: "8px",
-                  marginTop:
-                    "16px",
-                  padding:
-                    "10px 12px",
-                  border:
-                    "1px solid #bbf7d0",
-                  borderRadius:
-                    "8px",
-                  background:
-                    "#f0fdf4",
-                  color:
-                    "#166534",
-                  fontSize:
-                    "12px",
+                  marginTop: "16px",
+                  padding: "10px 12px",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "8px",
+                  background: "#f0fdf4",
+                  color: "#166534",
+                  fontSize: "12px",
                 }}
               >
-                <CheckCircle2
-                  size={16}
-                />
-
+                <CheckCircle2 size={16} />
                 {profileMessage}
               </div>
             )}
 
             <div
               style={{
-                display:
-                  "flex",
-                justifyContent:
-                  "flex-end",
-                marginTop:
-                  "20px",
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: "20px",
               }}
             >
               <button
                 type="submit"
                 className="primary-button"
-                disabled={
-                  isSavingProfile
-                }
+                disabled={isSavingProfile}
               >
                 <Save size={15} />
-
                 {isSavingProfile
                   ? "Salvando..."
                   : "Salvar alterações"}
@@ -403,386 +308,129 @@ function ProfilePage() {
         <section className="content-card">
           <div className="card-header">
             <div>
-              <h2>
-                Alterar senha
-              </h2>
-
-              <p>
-                Defina uma nova senha para sua conta.
-              </p>
+              <h2>Alterar senha</h2>
+              <p>Troque a senha de acesso da sua conta.</p>
             </div>
-
             <KeyRound size={20} />
           </div>
 
-          <form
-            onSubmit={
-              handlePasswordSubmit
-            }
-          >
-            <div
-              className="form-field"
-            >
-              <label htmlFor="current-password">
+          <form onSubmit={handlePasswordSubmit}>
+            <div className="form-field">
+              <label htmlFor="profile-current-password">
                 Senha atual
               </label>
-
-              <div
-                style={{
-                  position:
-                    "relative",
-                }}
-              >
+              <div style={{ position: "relative" }}>
                 <input
-                  id="current-password"
-                  name="current-password"
-                  type={
-                    showCurrentPassword
-                      ? "text"
-                      : "password"
-                  }
+                  id="profile-current-password"
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(event) => {
+                    setCurrentPassword(event.target.value);
+                    setPasswordError(null);
+                    setPasswordMessage(null);
+                  }}
+                  disabled={isChangingPassword}
                   autoComplete="current-password"
-                  value={
-                    currentPassword
-                  }
-                  onChange={(
-                    event,
-                  ) => {
-                    setCurrentPassword(
-                      event.target.value,
-                    );
-
-                    setPasswordError(
-                      null,
-                    );
-                    setPasswordMessage(
-                      null,
-                    );
-                  }}
-                  disabled={
-                    isChangingPassword
-                  }
                   required
-                  style={{
-                    paddingRight:
-                      "44px",
-                  }}
+                  style={{ paddingRight: "44px" }}
                 />
-
                 <button
                   type="button"
                   onClick={() =>
-                    setShowCurrentPassword(
-                      (
-                        value,
-                      ) =>
-                        !value,
-                    )
+                    setShowCurrentPassword((value) => !value)
                   }
-                  disabled={
-                    isChangingPassword
-                  }
+                  disabled={isChangingPassword}
                   aria-label={
                     showCurrentPassword
                       ? "Ocultar senha atual"
                       : "Mostrar senha atual"
                   }
-                  title={
-                    showCurrentPassword
-                      ? "Ocultar senha atual"
-                      : "Mostrar senha atual"
-                  }
-                  style={{
-                    position:
-                      "absolute",
-                    top:
-                      "50%",
-                    right:
-                      "8px",
-                    transform:
-                      "translateY(-50%)",
-                    width:
-                      "32px",
-                    height:
-                      "32px",
-                    display:
-                      "flex",
-                    alignItems:
-                      "center",
-                    justifyContent:
-                      "center",
-                    padding:
-                      0,
-                    border:
-                      0,
-                    borderRadius:
-                      "6px",
-                    background:
-                      "transparent",
-                    color:
-                      "#64748b",
-                    cursor:
-                      isChangingPassword
-                        ? "not-allowed"
-                        : "pointer",
-                  }}
+                  style={passwordEyeButtonStyle}
                 >
                   {showCurrentPassword ? (
-                    <EyeOff
-                      size={17}
-                    />
+                    <EyeOff size={17} />
                   ) : (
-                    <Eye
-                      size={17}
-                    />
+                    <Eye size={17} />
                   )}
                 </button>
               </div>
             </div>
 
-            <div
-              className="form-field"
-              style={{
-                marginTop:
-                  "16px",
-              }}
-            >
-              <label htmlFor="new-password">
-                Nova senha
-              </label>
-
-              <div
-                style={{
-                  position:
-                    "relative",
-                }}
-              >
+            <div className="form-field" style={{ marginTop: "16px" }}>
+              <label htmlFor="profile-new-password">Nova senha</label>
+              <div style={{ position: "relative" }}>
                 <input
-                  id="new-password"
-                  name="new-password"
-                  type={
-                    showNewPassword
-                      ? "text"
-                      : "password"
-                  }
+                  id="profile-new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(event) => {
+                    setNewPassword(event.target.value);
+                    setPasswordError(null);
+                    setPasswordMessage(null);
+                  }}
+                  disabled={isChangingPassword}
                   autoComplete="new-password"
-                  value={
-                    newPassword
-                  }
-                  onChange={(
-                    event,
-                  ) => {
-                    setNewPassword(
-                      event.target.value,
-                    );
-
-                    setPasswordError(
-                      null,
-                    );
-                    setPasswordMessage(
-                      null,
-                    );
-                  }}
-                  disabled={
-                    isChangingPassword
-                  }
                   required
-                  style={{
-                    paddingRight:
-                      "44px",
-                  }}
+                  style={{ paddingRight: "44px" }}
                 />
-
                 <button
                   type="button"
                   onClick={() =>
-                    setShowNewPassword(
-                      (
-                        value,
-                      ) =>
-                        !value,
-                    )
+                    setShowNewPassword((value) => !value)
                   }
-                  disabled={
-                    isChangingPassword
-                  }
+                  disabled={isChangingPassword}
                   aria-label={
                     showNewPassword
                       ? "Ocultar nova senha"
                       : "Mostrar nova senha"
                   }
-                  title={
-                    showNewPassword
-                      ? "Ocultar nova senha"
-                      : "Mostrar nova senha"
-                  }
-                  style={{
-                    position:
-                      "absolute",
-                    top:
-                      "50%",
-                    right:
-                      "8px",
-                    transform:
-                      "translateY(-50%)",
-                    width:
-                      "32px",
-                    height:
-                      "32px",
-                    display:
-                      "flex",
-                    alignItems:
-                      "center",
-                    justifyContent:
-                      "center",
-                    padding:
-                      0,
-                    border:
-                      0,
-                    borderRadius:
-                      "6px",
-                    background:
-                      "transparent",
-                    color:
-                      "#64748b",
-                    cursor:
-                      isChangingPassword
-                        ? "not-allowed"
-                        : "pointer",
-                  }}
+                  style={passwordEyeButtonStyle}
                 >
                   {showNewPassword ? (
-                    <EyeOff
-                      size={17}
-                    />
+                    <EyeOff size={17} />
                   ) : (
-                    <Eye
-                      size={17}
-                    />
+                    <Eye size={17} />
                   )}
                 </button>
               </div>
             </div>
 
-            <div
-              className="form-field"
-              style={{
-                marginTop:
-                  "16px",
-              }}
-            >
-              <label htmlFor="confirm-password">
+            <div className="form-field" style={{ marginTop: "16px" }}>
+              <label htmlFor="profile-confirm-password">
                 Confirmar nova senha
               </label>
-
-              <div
-                style={{
-                  position:
-                    "relative",
-                }}
-              >
+              <div style={{ position: "relative" }}>
                 <input
-                  id="confirm-password"
-                  name="confirm-password"
-                  type={
-                    showConfirmPassword
-                      ? "text"
-                      : "password"
-                  }
+                  id="profile-confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(event) => {
+                    setConfirmPassword(event.target.value);
+                    setPasswordError(null);
+                    setPasswordMessage(null);
+                  }}
+                  disabled={isChangingPassword}
                   autoComplete="new-password"
-                  value={
-                    confirmPassword
-                  }
-                  onChange={(
-                    event,
-                  ) => {
-                    setConfirmPassword(
-                      event.target.value,
-                    );
-
-                    setPasswordError(
-                      null,
-                    );
-                    setPasswordMessage(
-                      null,
-                    );
-                  }}
-                  disabled={
-                    isChangingPassword
-                  }
                   required
-                  style={{
-                    paddingRight:
-                      "44px",
-                  }}
+                  style={{ paddingRight: "44px" }}
                 />
-
                 <button
                   type="button"
                   onClick={() =>
-                    setShowConfirmPassword(
-                      (
-                        value,
-                      ) =>
-                        !value,
-                    )
+                    setShowConfirmPassword((value) => !value)
                   }
-                  disabled={
-                    isChangingPassword
-                  }
+                  disabled={isChangingPassword}
                   aria-label={
                     showConfirmPassword
                       ? "Ocultar confirmação"
                       : "Mostrar confirmação"
                   }
-                  title={
-                    showConfirmPassword
-                      ? "Ocultar confirmação"
-                      : "Mostrar confirmação"
-                  }
-                  style={{
-                    position:
-                      "absolute",
-                    top:
-                      "50%",
-                    right:
-                      "8px",
-                    transform:
-                      "translateY(-50%)",
-                    width:
-                      "32px",
-                    height:
-                      "32px",
-                    display:
-                      "flex",
-                    alignItems:
-                      "center",
-                    justifyContent:
-                      "center",
-                    padding:
-                      0,
-                    border:
-                      0,
-                    borderRadius:
-                      "6px",
-                    background:
-                      "transparent",
-                    color:
-                      "#64748b",
-                    cursor:
-                      isChangingPassword
-                        ? "not-allowed"
-                        : "pointer",
-                  }}
+                  style={passwordEyeButtonStyle}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff
-                      size={17}
-                    />
+                    <EyeOff size={17} />
                   ) : (
-                    <Eye
-                      size={17}
-                    />
+                    <Eye size={17} />
                   )}
                 </button>
               </div>
@@ -792,11 +440,7 @@ function ProfilePage() {
               <div
                 className="error-message"
                 role="alert"
-                aria-live="polite"
-                style={{
-                  marginTop:
-                    "16px",
-                }}
+                style={{ marginTop: "16px" }}
               >
                 {passwordError}
               </div>
@@ -805,56 +449,37 @@ function ProfilePage() {
             {passwordMessage && (
               <div
                 role="status"
-                aria-live="polite"
                 style={{
-                  display:
-                    "flex",
-                  alignItems:
-                    "center",
+                  display: "flex",
+                  alignItems: "center",
                   gap: "8px",
-                  marginTop:
-                    "16px",
-                  padding:
-                    "10px 12px",
-                  border:
-                    "1px solid #bbf7d0",
-                  borderRadius:
-                    "8px",
-                  background:
-                    "#f0fdf4",
-                  color:
-                    "#166534",
-                  fontSize:
-                    "12px",
+                  marginTop: "16px",
+                  padding: "10px 12px",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "8px",
+                  background: "#f0fdf4",
+                  color: "#166534",
+                  fontSize: "12px",
                 }}
               >
-                <CheckCircle2
-                  size={16}
-                />
-
+                <CheckCircle2 size={16} />
                 {passwordMessage}
               </div>
             )}
 
             <div
               style={{
-                display:
-                  "flex",
-                justifyContent:
-                  "flex-end",
-                marginTop:
-                  "20px",
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: "20px",
               }}
             >
               <button
                 type="submit"
                 className="primary-button"
-                disabled={
-                  isChangingPassword
-                }
+                disabled={isChangingPassword}
               >
                 <KeyRound size={15} />
-
                 {isChangingPassword
                   ? "Alterando..."
                   : "Alterar senha"}
@@ -866,5 +491,23 @@ function ProfilePage() {
     </section>
   );
 }
+
+const passwordEyeButtonStyle = {
+  position: "absolute" as const,
+  top: "50%",
+  right: "8px",
+  transform: "translateY(-50%)",
+  width: "32px",
+  height: "32px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 0,
+  border: 0,
+  borderRadius: "6px",
+  background: "transparent",
+  color: "#64748b",
+  cursor: "pointer",
+};
 
 export default ProfilePage;

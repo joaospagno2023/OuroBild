@@ -95,6 +95,19 @@ class UserRepository(
         raise NotImplementedError
     
     @abstractmethod
+    def update_profile(
+        self,
+        user_id: int,
+        display_name: str,
+        email: str | None,
+    ) -> User:
+        """
+        Atualiza o nome e o e-mail do próprio perfil.
+        """
+
+        raise NotImplementedError
+
+    @abstractmethod
     def update_status(
         self,
         user_id: int,

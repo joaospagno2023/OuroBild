@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Check,
   ChevronDown,
   Circle,
@@ -8,6 +9,7 @@ import {
 } from "lucide-react";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -15,16 +17,15 @@ import {
 import {
   executeProject,
   getExecution,
+  getProjects,
   type PipelineExecutionResponse,
+  type Project,
 } from "../services/projectsApi";
 
-
-type Project = {
-  id: string;
-  name: string;
-  description: string;
-  type: "client" | "server";
-};
+import {
+  getEnvironments,
+  type Environment,
+} from "../services/environmentsApi";
 
 
 type ExecutionStatus =
@@ -49,47 +50,26 @@ type ProjectExecution =
   };
 
 
-const projects: Project[] = [
-  {
-    id: "linkpagamento",
-    name: "WinService LinkPagamento",
-    description:
-      "Serviço responsável pelo LinkPagamento",
-    type: "client",
-  },
-  {
-    id: "ourocce",
-    name: "Ouro Service CCe",
-    description:
-      "Serviço responsável pelo CCe",
-    type: "client",
-  },
-  {
-    id: "wcfcadastro",
-    name: "Ouro Net Server Cadastro",
-    description:
-      "Serviço responsável pelo Server de Cadastro",
-    type: "server",
-  },
-  {
-    id: "ouroCustomwebhook",
-    name: "Ouro Net Server Custom Web Hook",
-    description:
-      "Serviço responsável pelo Server de Cadastro",
-    type: "server",
-  },
-  {
-    id: "wcfmovimento",
-    name: "Ouro Net Server Movimento",
-    description:
-      "Serviço responsável pelo Server de Movimento",
-    type: "server",
-  },
-];
+const ENVIRONMENT_LABELS: Record<string, string> = {
+  production: "Produção",
+  versioned: "Versionado",
+};
 
 
-const initialExecutions: ProjectExecution[] =
-  projects.map((project) => ({
+function getEnvironmentLabel(
+  environmentId: string,
+): string {
+  return (
+    ENVIRONMENT_LABELS[environmentId] ??
+    environmentId
+  );
+}
+
+
+function createInitialExecutions(
+  projects: Project[],
+): ProjectExecution[] {
+  return projects.map((project) => ({
     ...project,
     status: "waiting",
     progress: 0,
@@ -101,6 +81,7 @@ const initialExecutions: ProjectExecution[] =
     message: "Aguardando execução",
     failedStep: null,
   }));
+}
 
 
 function SetupPage() {
@@ -109,48 +90,189 @@ function SetupPage() {
     setSelectedProjects,
   ] = useState<string[]>([]);
 
+  const [
+    projects,
+    setProjects,
+  ] = useState<Project[]>([]);
+
+  const [
+    environments,
+    setEnvironments,
+  ] = useState<Environment[]>([]);
+
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
+
+  const [
+    loadError,
+    setLoadError,
+  ] = useState("");
 
   const [
     environment,
     setEnvironment,
   ] = useState("production");
 
-
   const [
     version,
     setVersion,
   ] = useState("1.0.0");
 
-
   const [
     revision,
     setRevision,
-  ] = useState("1");
-
+  ] = useState("0");
 
   const [
     configuration,
     setConfiguration,
   ] = useState("Release");
 
-
   const [
     executions,
     setExecutions,
-  ] = useState<ProjectExecution[]>(
-    initialExecutions,
-  );
-
+  ] = useState<ProjectExecution[]>([]);
 
   const [
     isGenerating,
     setIsGenerating,
   ] = useState(false);
 
+  const [
+    toastMessage,
+    setToastMessage,
+  ] = useState("");
+
+  useEffect(() => {
+    if (!toastMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setToastMessage("");
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [toastMessage]);
+
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSetupData() {
+      try {
+        setIsLoading(true);
+        setLoadError("");
+
+        const [
+          projectResult,
+          environmentResult,
+        ] = await Promise.all([
+          getProjects(),
+          getEnvironments(),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const availableProjects =
+          projectResult.filter(
+            (project) => project.enabled,
+          );
+
+        const availableEnvironments =
+          environmentResult
+            .filter(
+              (item) =>
+                item.id === "production" ||
+                item.id === "versioned",
+            )
+            .sort(
+              (left, right) =>
+                left.id === "production"
+                  ? -1
+                  : right.id === "production"
+                    ? 1
+                    : 0,
+            );
+
+        setProjects(
+          availableProjects,
+        );
+
+        setEnvironments(
+          availableEnvironments,
+        );
+
+        setExecutions(
+          createInitialExecutions(
+            availableProjects,
+          ),
+        );
+
+        setSelectedProjects([]);
+
+        const productionEnvironment =
+          availableEnvironments.find(
+            (item) =>
+              item.id === "production",
+          );
+
+        const defaultEnvironment =
+          productionEnvironment ??
+          availableEnvironments[0];
+
+        if (defaultEnvironment) {
+          setEnvironment(
+            defaultEnvironment.id,
+          );
+        } else {
+          setEnvironment("");
+
+          setLoadError(
+            "Nenhum ambiente válido foi encontrado.",
+          );
+        }
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setProjects([]);
+        setEnvironments([]);
+        setExecutions([]);
+        setSelectedProjects([]);
+        setEnvironment("");
+
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar os projetos e ambientes.",
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadSetupData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
 
   const allSelected =
+    projects.length > 0 &&
     selectedProjects.length ===
-    projects.length;
+      projects.length;
 
 
   const selectedCount =
@@ -166,7 +288,10 @@ function SetupPage() {
               project.id,
             ),
         ),
-      [selectedProjects],
+      [
+        projects,
+        selectedProjects,
+      ],
     );
 
 
@@ -216,64 +341,149 @@ function SetupPage() {
     const pollIntervalMs = 1000;
 
     while (true) {
-      const execution = await getExecution(executionId);
+      const execution =
+        await getExecution(
+          executionId,
+        );
 
-      updateExecution(projectId, execution);
+      updateExecution(
+        projectId,
+        execution,
+      );
 
       if (
-        execution.status === "completed" ||
-        execution.status === "failed"
+        execution.status ===
+          "completed" ||
+        execution.status ===
+          "failed"
       ) {
         return;
       }
 
-      await new Promise((resolve) =>
-        window.setTimeout(resolve, pollIntervalMs),
+      await new Promise(
+        (resolve) =>
+          window.setTimeout(
+            resolve,
+            pollIntervalMs,
+          ),
       );
     }
   }
+
 
   function updateExecution(
     projectId: string,
     execution: PipelineExecutionResponse,
   ) {
-    setExecutions((current) =>
-      current.map((item) =>
-        item.id === projectId
-          ? {
-              ...item,
-              status:
-                execution.status === "pending"
-                  ? "pending"
-                  : execution.status === "running"
-                    ? "running"
-                    : execution.status === "completed"
-                      ? "success"
-                      : "error",
-              progress: Math.round(
-                execution.progress_percent,
-              ),
-              executionId: execution.execution_id,
-              phase: execution.phase,
-              currentStep: execution.current_step,
-              currentStepIndex:
-                execution.current_step_index,
-              totalSteps: execution.total_steps,
-              message: execution.message,
-              failedStep: execution.failed_step,
-            }
-          : item,
-      ),
+    setExecutions(
+      (current) =>
+        current.map(
+          (item) =>
+            item.id === projectId
+              ? {
+                  ...item,
+                  status:
+                    execution.status ===
+                    "pending"
+                      ? "pending"
+                      : execution.status ===
+                          "running"
+                        ? "running"
+                        : execution.status ===
+                            "completed"
+                          ? "success"
+                          : "error",
+                  progress:
+                    Math.round(
+                      execution.progress_percent,
+                    ),
+                  executionId:
+                    execution.execution_id,
+                  phase:
+                    execution.phase,
+                  currentStep:
+                    execution.current_step,
+                  currentStepIndex:
+                    execution.current_step_index,
+                  totalSteps:
+                    execution.total_steps,
+                  message:
+                    execution.message,
+                  failedStep:
+                    execution.failed_step,
+                }
+              : item,
+        ),
     );
   }
 
+
   async function generateSetups() {
-    if (
-      selectedCount === 0 ||
-      isGenerating
-    ) {
+    if (isGenerating) {
       return;
     }
+
+    if (selectedCount === 0) {
+      setToastMessage(
+        "Selecione pelo menos um projeto para gerar o Setup.",
+      );
+      return;
+    }
+
+    if (!environment) {
+      setToastMessage(
+        "Selecione um ambiente para continuar.",
+      );
+      return;
+    }
+
+    const trimmedRevision =
+      revision.trim();
+
+    if (trimmedRevision === "") {
+      setToastMessage(
+        "Informe a revisão.",
+      );
+      return;
+    }
+
+    const numericRevision =
+      Number(trimmedRevision);
+
+    if (
+      !Number.isInteger(
+        numericRevision,
+      ) ||
+      numericRevision < 0
+    ) {
+      setToastMessage(
+        "A revisão deve ser um número inteiro maior ou igual a 0.",
+      );
+      return;
+    }
+
+    if (
+      environment === "production" &&
+      numericRevision !== 0
+    ) {
+      setToastMessage(
+        "Para o ambiente Produção, a revisão deve ser 0.",
+      );
+      return;
+    }
+
+    if (
+      environment === "versioned" &&
+      numericRevision <= 0
+    ) {
+      setToastMessage(
+        "Para este ambiente, a revisão deve ser maior que 0.",
+      );
+      return;
+    }
+
+    const parsedRevision =
+      numericRevision;
 
     setIsGenerating(true);
 
@@ -281,76 +491,58 @@ function SetupPage() {
       ...selectedProjects,
     ];
 
-    setExecutions((current) =>
-      current.map((execution) =>
-        selectedIds.includes(execution.id)
-          ? {
-              ...execution,
-              status: "pending",
-              progress: 0,
-              executionId: null,
-              phase: null,
-              currentStep: null,
-              currentStepIndex: 0,
-              totalSteps: 0,
-              message: "Aguardando execução",
-              failedStep: null,
-            }
-          : execution,
-      ),
-    );
-
-    let parsedRevision: number | null = null;
-
-    if (revision.trim() !== "") {
-      const numericRevision =
-        Number(revision);
-
-      if (
-        !Number.isInteger(numericRevision) ||
-        numericRevision < 0
-      ) {
-        setExecutions((current) =>
-          current.map((execution) =>
-            selectedIds.includes(execution.id)
+    setExecutions(
+      (current) =>
+        current.map(
+          (execution) =>
+            selectedIds.includes(
+              execution.id,
+            )
               ? {
                   ...execution,
-                  status: "error",
+                  status: "pending",
                   progress: 0,
-                  message: "Revisão inválida.",
+                  executionId:
+                    null,
+                  phase: null,
+                  currentStep: null,
+                  currentStepIndex:
+                    0,
+                  totalSteps: 0,
+                  message:
+                    "Aguardando execução",
+                  failedStep: null,
                 }
               : execution,
-          ),
-        );
-
-        setIsGenerating(false);
-
-        return;
-      }
-
-      parsedRevision = numericRevision;
-    }
+        ),
+    );
 
     try {
       for (
         let index = 0;
-        index < selectedIds.length;
+        index <
+        selectedIds.length;
         index += 1
       ) {
         const projectId =
           selectedIds[index];
 
-        setExecutions((current) =>
-          current.map((execution) =>
-            execution.id === projectId
-              ? {
-                  ...execution,
-                  status: "pending",
-                  progress: 0,
-                  message: "Iniciando execução...",
-                }
-              : execution,
-          ),
+        setExecutions(
+          (current) =>
+            current.map(
+              (execution) =>
+                execution.id ===
+                projectId
+                  ? {
+                      ...execution,
+                      status:
+                        "pending",
+                      progress: 0,
+                      message:
+                        "Iniciando execução...",
+                    }
+                  : execution,
+            ),
         );
 
         try {
@@ -383,35 +575,47 @@ function SetupPage() {
               ? error.message
               : "Erro durante a execução.";
 
-          setExecutions((current) =>
-            current.map((execution) =>
-              execution.id === projectId
-                ? {
-                    ...execution,
-                    status: "error",
-                    progress: 0,
-                    message,
-                  }
-                : execution,
-            ),
+          setExecutions(
+            (current) =>
+              current.map(
+                (execution) =>
+                  execution.id ===
+                  projectId
+                    ? {
+                        ...execution,
+                        status:
+                          "error",
+                        progress: 0,
+                        message,
+                      }
+                    : execution,
+              ),
           );
         }
 
         const nextProject =
           selectedIds[index + 1];
 
-        if (nextProject !== undefined) {
-          setExecutions((current) =>
-            current.map((execution) =>
-              execution.id === nextProject
-                ? {
-                    ...execution,
-                    status: "pending",
-                    progress: 0,
-                    message: "Aguardando execução",
-                  }
-                : execution,
-            ),
+        if (
+          nextProject !==
+          undefined
+        ) {
+          setExecutions(
+            (current) =>
+              current.map(
+                (execution) =>
+                  execution.id ===
+                  nextProject
+                    ? {
+                        ...execution,
+                        status:
+                          "pending",
+                        progress: 0,
+                        message:
+                          "Aguardando execução",
+                      }
+                    : execution,
+              ),
           );
         }
       }
@@ -423,6 +627,29 @@ function SetupPage() {
 
   return (
     <section>
+      {toastMessage && (
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            top: "24px",
+            right: "24px",
+            zIndex: 9999,
+            maxWidth: "420px",
+            padding: "14px 18px",
+            borderRadius: "10px",
+            background: "#dc2626",
+            color: "#ffffff",
+            boxShadow:
+              "0 8px 24px rgba(0, 0, 0, 0.18)",
+            fontSize: "14px",
+            fontWeight: 600,
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
+
       <div className="page-heading">
         <div>
           <span className="page-eyebrow">
@@ -474,6 +701,10 @@ function SetupPage() {
               className="secondary-button"
               type="button"
               onClick={toggleAll}
+              disabled={
+                isLoading ||
+                projects.length === 0
+              }
             >
               {allSelected
                 ? "Desmarcar todos"
@@ -482,103 +713,144 @@ function SetupPage() {
           </div>
 
 
-          <div className="project-list">
-            <button
-              type="button"
-              className={`project-row ${
-                allSelected
-                  ? "project-row-selected"
-                  : ""
-              }`}
-              onClick={toggleAll}
-            >
-              <span
-                className={`checkbox ${
+          {loadError && (
+            <div className="error-message">
+              {loadError}
+            </div>
+          )}
+
+
+          {isLoading ? (
+            <div className="empty-state">
+              <Loader2
+                size={24}
+                className="spin"
+              />
+
+              <strong>
+                Carregando projetos...
+              </strong>
+            </div>
+          ) : (
+            <div className="project-list">
+              <button
+                type="button"
+                className={`project-row ${
                   allSelected
-                    ? "checkbox-selected"
+                    ? "project-row-selected"
                     : ""
                 }`}
+                onClick={toggleAll}
+                disabled={
+                  projects.length === 0
+                }
               >
-                {allSelected && (
-                  <Check size={15} />
-                )}
-              </span>
-
-              <div className="project-row-content">
-                <strong>
-                  Todos os projetos
-                </strong>
-
-                <span>
-                  Selecionar todos os
-                  projetos disponíveis
+                <span
+                  className={`checkbox ${
+                    allSelected
+                      ? "checkbox-selected"
+                      : ""
+                  }`}
+                >
+                  {allSelected && (
+                    <Check size={15} />
+                  )}
                 </span>
-              </div>
 
-              <ChevronDown
-                size={18}
-                className="project-chevron"
-              />
-            </button>
+                <div className="project-row-content">
+                  <strong>
+                    Todos os projetos
+                  </strong>
+
+                  <span>
+                    Selecionar todos os
+                    projetos disponíveis
+                  </span>
+                </div>
+
+                <ChevronDown
+                  size={18}
+                  className="project-chevron"
+                />
+              </button>
 
 
-            {projects.map(
-              (project) => {
-                const selected =
-                  selectedProjects.includes(
-                    project.id,
-                  );
+              {projects.map(
+                (project) => {
+                  const selected =
+                    selectedProjects.includes(
+                      project.id,
+                    );
 
-                return (
-                  <button
-                    key={project.id}
-                    type="button"
-                    className={`project-row ${
-                      selected
-                        ? "project-row-selected"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      toggleProject(
-                        project.id,
-                      )
-                    }
-                  >
-                    <span
-                      className={`checkbox ${
+                  return (
+                    <button
+                      key={project.id}
+                      type="button"
+                      className={`project-row ${
                         selected
-                          ? "checkbox-selected"
+                          ? "project-row-selected"
                           : ""
                       }`}
+                      onClick={() =>
+                        toggleProject(
+                          project.id,
+                        )
+                      }
                     >
-                      {selected && (
-                        <Check size={15} />
-                      )}
-                    </span>
-
-                    <div className="project-row-content">
-                      <strong>
-                        {project.name}
-                      </strong>
-
-                      <span>
-                        {
-                          project.description
-                        }
+                      <span
+                        className={`checkbox ${
+                          selected
+                            ? "checkbox-selected"
+                            : ""
+                        }`}
+                      >
+                        {selected && (
+                          <Check size={15} />
+                        )}
                       </span>
-                    </div>
 
-                    <span className="project-type">
-                      {project.type ===
-                      "client"
-                        ? "CLIENT"
-                        : "SERVER"}
+                      <div className="project-row-content">
+                        <strong>
+                          {project.name}
+                        </strong>
+
+                        <span>
+                          {
+                            project.description
+                          }
+                        </span>
+                      </div>
+
+                      <span className="project-type">
+                        {project.type ===
+                        "client"
+                          ? "CLIENT"
+                          : "SERVER"}
+                      </span>
+                    </button>
+                  );
+                },
+              )}
+
+
+              {!isLoading &&
+                projects.length === 0 &&
+                !loadError && (
+                  <div className="empty-state compact">
+                    <Rocket size={28} />
+
+                    <strong>
+                      Nenhum projeto disponível
+                    </strong>
+
+                    <span>
+                      Nenhum projeto ativo foi
+                      encontrado no cadastro.
                     </span>
-                  </button>
-                );
-              },
-            )}
-          </div>
+                  </div>
+                )}
+            </div>
+          )}
         </div>
 
 
@@ -605,23 +877,50 @@ function SetupPage() {
 
               <select
                 value={environment}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const nextEnvironment =
+                    event.target.value;
+
                   setEnvironment(
-                    event.target.value,
-                  )
+                    nextEnvironment,
+                  );
+
+                  if (
+                    nextEnvironment ===
+                    "production"
+                  ) {
+                    setRevision("0");
+                    return;
+                  }
+
+                  if (
+                    nextEnvironment ===
+                      "versioned" &&
+                    revision.trim() ===
+                      "0"
+                  ) {
+                    setRevision("1");
+                  }
+                }}
+                disabled={
+                  isLoading ||
+                  isGenerating ||
+                  environments.length ===
+                    0
                 }
               >
-                <option value="production">
-                  Produção
-                </option>
-
-                <option value="Homologacao">
-                  Homologação
-                </option>
-
-                <option value="Desenvolvimento">
-                  Desenvolvimento
-                </option>
+                {environments.map(
+                  (item) => (
+                    <option
+                      key={item.id}
+                      value={item.id}
+                    >
+                      {getEnvironmentLabel(
+                        item.id,
+                      )}
+                    </option>
+                  ),
+                )}
               </select>
             </label>
 
@@ -637,6 +936,9 @@ function SetupPage() {
                   setConfiguration(
                     event.target.value,
                   )
+                }
+                disabled={
+                  isGenerating
                 }
               >
                 <option value="Release">
@@ -663,6 +965,9 @@ function SetupPage() {
                   )
                 }
                 placeholder="Ex.: 1.1.1"
+                disabled={
+                  isGenerating
+                }
               />
             </label>
 
@@ -680,6 +985,9 @@ function SetupPage() {
                   )
                 }
                 placeholder="Ex.: 1"
+                disabled={
+                  isGenerating
+                }
               />
             </label>
           </div>
@@ -702,7 +1010,11 @@ function SetupPage() {
               </span>
 
               <strong>
-                {environment}
+                {environment
+                  ? getEnvironmentLabel(
+                      environment,
+                    )
+                  : "—"}
               </strong>
             </div>
 
@@ -722,7 +1034,7 @@ function SetupPage() {
             className="primary-button setup-generate-button"
             type="button"
             disabled={
-              selectedCount === 0 ||
+              isLoading ||
               isGenerating
             }
             onClick={
@@ -734,6 +1046,8 @@ function SetupPage() {
                 size={18}
                 className="spin"
               />
+            ) : selectedCount === 0 ? (
+              <AlertTriangle size={18} />
             ) : (
               <Rocket size={18} />
             )}
@@ -820,7 +1134,8 @@ function SetupPage() {
 
                   {(execution.status ===
                     "waiting" ||
-                    execution.status === "pending") && (
+                    execution.status ===
+                      "pending") && (
                     <Circle />
                   )}
                 </div>
@@ -874,25 +1189,44 @@ function SetupPage() {
                   </span>
                 </div>
 
-                {(execution.status === "running" ||
-                  execution.status === "pending" ||
-                  execution.status === "error") && (
+
+                {(execution.status ===
+                    "running" ||
+                  execution.status ===
+                    "pending" ||
+                  execution.status ===
+                    "error") && (
                   <div className="execution-details">
-                    {execution.totalSteps > 0 && (
+                    {execution.totalSteps >
+                      0 && (
                       <span>
-                        Etapa {execution.currentStepIndex} de {execution.totalSteps}
+                        Etapa{" "}
+                        {
+                          execution.currentStepIndex
+                        }{" "}
+                        de{" "}
+                        {
+                          execution.totalSteps
+                        }
                       </span>
                     )}
 
                     {execution.phase && (
                       <span>
-                        Fase: {execution.phase === "pipeline" ? "Pipeline" : "Setup"}
+                        Fase:{" "}
+                        {execution.phase ===
+                        "pipeline"
+                          ? "Pipeline"
+                          : "Setup"}
                       </span>
                     )}
 
                     {execution.failedStep && (
                       <span>
-                        Falha: {execution.failedStep}
+                        Falha:{" "}
+                        {
+                          execution.failedStep
+                        }
                       </span>
                     )}
                   </div>
