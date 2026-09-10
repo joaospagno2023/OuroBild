@@ -54,6 +54,9 @@ BEGIN TRY
     DECLARE @SetupAipRoot NVARCHAR(2000) =
         N'C:\DvpLocal\WorkSpaceTFS\Transferencia de Arquivo\TransferenciaDeArquivos\Setups\Installers\Projects';
 
+    DECLARE @SetupNetworkRootPath NVARCHAR(2000) =
+        N'\\vm-srvfile01\Fontes\Application\OuroNet\Teste';
+
     DECLARE @SetupExcluirPastaWork BIT = 0;
 
     DECLARE @LoggingEnabled BIT = 1;
@@ -76,6 +79,7 @@ BEGIN TRY
     Preencha @JwtSecret manualmente antes de executar este script.
     ----------------------------------------------------------------
     */
+
     DECLARE @JwtSecret NVARCHAR(4000) =
         N'COLOQUE_AQUI_O_JWT_SECRET_ATUAL';
 
@@ -114,6 +118,7 @@ BEGIN TRY
             SetupEngine = @SetupEngine,
             SetupOutputRoot = @SetupOutputRoot,
             SetupAipRoot = @SetupAipRoot,
+            SetupNetworkRootPath = @SetupNetworkRootPath,
             SetupExcluirPastaWork = @SetupExcluirPastaWork,
             LoggingEnabled = @LoggingEnabled,
             LoggingPath = @LoggingPath,
@@ -146,6 +151,7 @@ BEGIN TRY
             SetupEngine,
             SetupOutputRoot,
             SetupAipRoot,
+            SetupNetworkRootPath,
             SetupExcluirPastaWork,
             LoggingEnabled,
             LoggingPath,
@@ -172,6 +178,7 @@ BEGIN TRY
             @SetupEngine,
             @SetupOutputRoot,
             @SetupAipRoot,
+            @SetupNetworkRootPath,
             @SetupExcluirPastaWork,
             @LoggingEnabled,
             @LoggingPath,
@@ -197,6 +204,8 @@ BEGIN TRY
         LogLevel,
         SetupEngine,
         SetupOutputRoot,
+        SetupAipRoot,
+        SetupNetworkRootPath,
         SetupExcluirPastaWork,
         LoggingEnabled,
         LoggingLevel,

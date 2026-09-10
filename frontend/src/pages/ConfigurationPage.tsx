@@ -276,13 +276,7 @@ function ConfigurationPage() {
           {label}
         </label>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            width: "100%",
-          }}
-        >
+        <div className="path-field-row">
           <input
             value={value}
             onChange={(event) =>
@@ -290,9 +284,7 @@ function ConfigurationPage() {
                 event.target.value,
               )
             }
-            style={{
-              flex: 1,
-            }}
+            className="path-field-input"
           />
 
           <button

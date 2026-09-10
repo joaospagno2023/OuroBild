@@ -55,7 +55,6 @@ interface ProjectFormData {
   visualstudio_setup_path: string;
 
   output_msi: string;
-  network_path: string;
 
   configuration: string;
   platform: string;
@@ -82,7 +81,6 @@ const emptyForm: ProjectFormData = {
   visualstudio_setup_path: "",
 
   output_msi: "",
-  network_path: "",
 
   configuration: "Release",
   platform: "AnyCPU",
@@ -202,9 +200,6 @@ function ProjectsPage() {
       output_msi:
         project.output_msi,
 
-      network_path:
-        project.network_path,
-
       configuration:
         project.configuration,
 
@@ -271,9 +266,6 @@ function ProjectsPage() {
       output_msi:
         form.output_msi.trim(),
 
-      network_path:
-        form.network_path.trim(),
-
       configuration:
         form.configuration.trim(),
 
@@ -319,9 +311,6 @@ function ProjectsPage() {
       output_msi:
         form.output_msi.trim(),
 
-      network_path:
-        form.network_path.trim(),
-
       configuration:
         form.configuration.trim(),
 
@@ -359,10 +348,6 @@ function ProjectsPage() {
 
     if (!form.output_msi.trim()) {
       return "Informe o nome do MSI.";
-    }
-
-    if (!form.network_path.trim()) {
-      return "Informe o caminho de rede.";
     }
 
     if (!form.configuration.trim()) {
@@ -994,23 +979,6 @@ function ProjectsPage() {
               onChange={(event) =>
                 updateField(
                   "output_msi",
-                  event.target.value,
-                )
-              }
-            />
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="network-path">
-              Network Path
-            </label>
-
-            <input
-              id="network-path"
-              value={form.network_path}
-              onChange={(event) =>
-                updateField(
-                  "network_path",
                   event.target.value,
                 )
               }

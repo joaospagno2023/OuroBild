@@ -111,12 +111,6 @@ class ProjectModel(
         nullable=False,
     )
 
-    network_path: Mapped[str] = mapped_column(
-        "NetworkPath",
-        Unicode(1000),
-        nullable=False,
-    )
-
     configuration: Mapped[str] = mapped_column(
         "Configuration",
         Unicode(100),

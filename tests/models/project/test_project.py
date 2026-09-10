@@ -39,9 +39,6 @@ def create_project(
             r"Setup\Projeto.aip"
         ),
         output_msi="Projeto.msi",
-        network_path=(
-            r"\\Servidor\Builds"
-        ),
         configuration="Release",
         platform="AnyCPU",
         enabled=True,

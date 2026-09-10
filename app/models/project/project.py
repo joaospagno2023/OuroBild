@@ -15,6 +15,7 @@ from app.models.build.compilation_engine import (
 from app.models.build.compilation_target import (
     CompilationTarget,
 )
+
 from app.models.project.project_type import (
     ProjectType,
 )
@@ -60,7 +61,6 @@ class Project(BaseModel):
     aip_path: str
     visualstudio_setup_path: str | None = None
     output_msi: str
-    network_path: str
 
     #
     # Configuração
@@ -71,5 +71,3 @@ class Project(BaseModel):
     platform: str
 
     enabled: bool
-
-    

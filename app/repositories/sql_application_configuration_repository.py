@@ -6,30 +6,18 @@ Descrição : Repositório da configuração utilizando SQL Server.
 --------------------------------------------------------------------
 """
 
-from datetime import (
-    datetime,
-    timezone,
-)
+from datetime import datetime, timezone
 
-from sqlalchemy import (
-    select,
-)
+from sqlalchemy import select
 
 from app.abstractions.application_configuration_repository import (
     ApplicationConfigurationRepository,
 )
-
-from app.database.connection import (
-    DatabaseConnection,
-)
-
+from app.database.connection import DatabaseConnection
 from app.database.models.application_configuration_model import (
     ApplicationConfigurationModel,
 )
-
-from app.models.configuration.app_settings import (
-    AppSettings,
-)
+from app.models.configuration.app_settings import AppSettings
 
 
 class SqlApplicationConfigurationRepository(
@@ -58,9 +46,7 @@ class SqlApplicationConfigurationRepository(
                 "DatabaseConnection não foi informado."
             )
 
-        self.__database_connection = (
-            database_connection
-        )
+        self.__database_connection = database_connection
 
     def get(
         self,
@@ -73,11 +59,8 @@ class SqlApplicationConfigurationRepository(
         """
 
         with self.__database_connection.create_session() as session:
-
             statement = (
-                select(
-                    ApplicationConfigurationModel
-                )
+                select(ApplicationConfigurationModel)
                 .where(
                     ApplicationConfigurationModel.id
                     == self.CONFIGURATION_ID
@@ -85,9 +68,7 @@ class SqlApplicationConfigurationRepository(
             )
 
             configuration_model = (
-                session.scalars(
-                    statement
-                )
+                session.scalars(statement)
                 .first()
             )
 
@@ -122,11 +103,8 @@ class SqlApplicationConfigurationRepository(
             )
 
         with self.__database_connection.create_session() as session:
-
             statement = (
-                select(
-                    ApplicationConfigurationModel
-                )
+                select(ApplicationConfigurationModel)
                 .where(
                     ApplicationConfigurationModel.id
                     == self.CONFIGURATION_ID
@@ -134,88 +112,81 @@ class SqlApplicationConfigurationRepository(
             )
 
             configuration_model = (
-                session.scalars(
-                    statement
-                )
+                session.scalars(statement)
                 .first()
             )
 
-            now = datetime.now(
-                timezone.utc
-            )
+            now = datetime.now(timezone.utc)
 
             if configuration_model is None:
-
-                configuration_model = (
-                    ApplicationConfigurationModel(
-                        id=self.CONFIGURATION_ID,
-                        application_name=(
-                            settings.application_name
-                        ),
-                        version=settings.version,
-                        log_level=settings.log_level,
-                        base_path=str(
-                            settings.base_path
-                        ),
-                        installer_path=str(
-                            settings.installer_path
-                        ),
-                        publish_path=str(
-                            settings.publish_path
-                        ),
-                        msbuild_path=str(
-                            settings.build_tools.msbuild_path
-                        ),
-                        advanced_installer_path=str(
-                            settings.build_tools.advanced_installer_path
-                        ),
-                        robocopy_path=str(
-                            settings.build_tools.robocopy_path
-                        ),
-                        setup_engine=(
-                            settings.setup.engine.value
-                        ),
-                        setup_output_root=str(
-                            settings.setup.output_root
-                        ),
-                        setup_aip_root=str(
-                            settings.setup.aip_root
-                        ),
-                        setup_excluir_pasta_work=(
-                            settings.setup.excluirpastawork
-                        ),
-                        logging_enabled=(
-                            settings.logging.enabled
-                        ),
-                        logging_path=str(
-                            settings.logging.path
-                        ),
-                        logging_level=(
-                            settings.logging.level
-                        ),
-                        storage_workspace_path=str(
-                            settings.storage.workspace_path
-                        ),
-                        jwt_secret=(
-                            settings.security.jwt_secret
-                        ),
-                        jwt_algorithm=(
-                            settings.security.jwt_algorithm
-                        ),
-                        token_expiration_minutes=(
-                            settings.security.token_expiration_minutes
-                        ),
-                        created_at=now,
-                        updated_at=now,
-                    )
+                configuration_model = ApplicationConfigurationModel(
+                    id=self.CONFIGURATION_ID,
+                    application_name=(
+                        settings.application_name
+                    ),
+                    version=settings.version,
+                    log_level=settings.log_level,
+                    base_path=str(
+                        settings.base_path
+                    ),
+                    installer_path=str(
+                        settings.installer_path
+                    ),
+                    publish_path=str(
+                        settings.publish_path
+                    ),
+                    msbuild_path=str(
+                        settings.build_tools.msbuild_path
+                    ),
+                    advanced_installer_path=str(
+                        settings.build_tools.advanced_installer_path
+                    ),
+                    robocopy_path=str(
+                        settings.build_tools.robocopy_path
+                    ),
+                    setup_engine=(
+                        settings.setup.engine.value
+                    ),
+                    setup_output_root=str(
+                        settings.setup.output_root
+                    ),
+                    setup_aip_root=str(
+                        settings.setup.aip_root
+                    ),
+                    setup_network_root_path=str(
+                        settings.setup.network_root_path
+                    ),
+                    setup_excluir_pasta_work=(
+                        settings.setup.excluirpastawork
+                    ),
+                    logging_enabled=(
+                        settings.logging.enabled
+                    ),
+                    logging_path=str(
+                        settings.logging.path
+                    ),
+                    logging_level=(
+                        settings.logging.level
+                    ),
+                    storage_workspace_path=str(
+                        settings.storage.workspace_path
+                    ),
+                    jwt_secret=(
+                        settings.security.jwt_secret
+                    ),
+                    jwt_algorithm=(
+                        settings.security.jwt_algorithm
+                    ),
+                    token_expiration_minutes=(
+                        settings.security.token_expiration_minutes
+                    ),
+                    created_at=now,
+                    updated_at=now,
                 )
 
-                session.add(
-                    configuration_model
-                )
+                session.add(configuration_model)
 
             else:
-
                 configuration_model.application_name = (
                     settings.application_name
                 )
@@ -262,6 +233,10 @@ class SqlApplicationConfigurationRepository(
 
                 configuration_model.setup_aip_root = str(
                     settings.setup.aip_root
+                )
+
+                configuration_model.setup_network_root_path = str(
+                    settings.setup.network_root_path
                 )
 
                 configuration_model.setup_excluir_pasta_work = (
@@ -319,31 +294,22 @@ class SqlApplicationConfigurationRepository(
         from app.models.configuration.build_tools_settings import (
             BuildToolsSettings,
         )
-
         from app.models.configuration.logging_settings import (
             LoggingSettings,
         )
-
         from app.models.configuration.security_settings import (
             SecuritySettings,
         )
-
         from app.models.configuration.setup_settings import (
             SetupSettings,
         )
-
         from app.models.configuration.storage_settings import (
             StorageSettings,
         )
-
-        from app.models.setup.setup_engine import (
-            SetupEngine,
-        )
+        from app.models.setup.setup_engine import SetupEngine
 
         return AppSettings(
-            application_name=(
-                model.application_name
-            ),
+            application_name=model.application_name,
             version=model.version,
             log_level=model.log_level,
             base_path=model.base_path,
@@ -365,6 +331,9 @@ class SqlApplicationConfigurationRepository(
                 ),
                 output_root=model.setup_output_root,
                 aip_root=model.setup_aip_root,
+                network_root_path=(
+                    model.setup_network_root_path
+                ),
                 excluirpastawork=(
                     model.setup_excluir_pasta_work
                 ),
@@ -381,7 +350,5 @@ class SqlApplicationConfigurationRepository(
                     model.token_expiration_minutes
                 ),
             ),
-            database=(
-                self.__database_connection.settings
-            ),
+            database=self.__database_connection.settings,
         )

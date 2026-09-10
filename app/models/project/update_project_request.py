@@ -50,7 +50,6 @@ class UpdateProjectRequest(
     visualstudio_setup_path: str | None = None
 
     output_msi: str
-    network_path: str
 
     configuration: str
     platform: str

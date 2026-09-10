@@ -116,6 +116,12 @@ class ApplicationConfigurationModel(
         nullable=False,
     )
 
+    setup_network_root_path: Mapped[str] = mapped_column(
+        "SetupNetworkRootPath",
+        Unicode(2000),
+        nullable=False,
+    )
+
     setup_excluir_pasta_work: Mapped[bool] = mapped_column(
         "SetupExcluirPastaWork",
         Boolean,

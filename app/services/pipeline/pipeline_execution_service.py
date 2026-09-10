@@ -20,6 +20,9 @@ from app.models.execution.pipeline_execution_state import (
     PipelineExecutionState,
     PipelineExecutionStatus,
 )
+from app.models.setup.setup_publication_mode import (
+    SetupPublicationMode,
+)
 from app.use_cases.execute_pipeline_use_case import (
     ExecutePipelineUseCase,
 )
@@ -68,6 +71,9 @@ class PipelineExecutionService:
         environment_id: str | None = None,
         version: str | None = None,
         revision: int | None = None,
+        publication_mode: SetupPublicationMode = (
+            SetupPublicationMode.LOCAL
+        ),
     ) -> PipelineExecutionResponse:
         """
         Cria uma execução e inicia seu processamento
@@ -79,7 +85,8 @@ class PipelineExecutionService:
             f"project_id={project_id} | "
             f"environment_id={environment_id} | "
             f"version={version!r} | "
-            f"revision={revision!r}"
+            f"revision={revision!r} | "
+            f"publication_mode={publication_mode.value!r}"
         )
 
         execution_id = (
@@ -105,6 +112,7 @@ class PipelineExecutionService:
             environment_id,
             version,
             revision,
+            publication_mode,
         )
 
         return self.__to_response(
@@ -143,6 +151,7 @@ class PipelineExecutionService:
         environment_id: str | None,
         version: str | None,
         revision: int | None,
+        publication_mode: SetupPublicationMode,
     ) -> None:
         """
         Executa uma Pipeline em background.
@@ -157,7 +166,8 @@ class PipelineExecutionService:
             f"project_id={project_id} | "
             f"environment_id={environment_id} | "
             f"version={version!r} | "
-            f"revision={revision!r}"
+            f"revision={revision!r} | "
+            f"publication_mode={publication_mode.value!r}"
         )
 
         started_at = datetime.now()
@@ -180,7 +190,8 @@ class PipelineExecutionService:
                 f"project_id={project_id} | "
                 f"environment_id={environment_id} | "
                 f"version={version!r} | "
-                f"revision={revision!r}"
+                f"revision={revision!r} | "
+                f"publication_mode={publication_mode.value!r}"
             )
 
             result = (
@@ -189,6 +200,7 @@ class PipelineExecutionService:
                     environment_id=environment_id,
                     version=version,
                     revision=revision,
+                    publication_mode=publication_mode,
                     progress_callback=callback,
                     execution_id=execution_id,
                 )
@@ -225,6 +237,7 @@ class PipelineExecutionService:
                 f"environment_id={environment_id} | "
                 f"version={version!r} | "
                 f"revision={revision!r} | "
+                f"publication_mode={publication_mode.value!r} | "
                 f"error={exc}"
             )
 

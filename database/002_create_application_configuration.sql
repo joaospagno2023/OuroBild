@@ -74,6 +74,8 @@ BEGIN
 
         SetupAipRoot NVARCHAR(2000) NOT NULL,
 
+        SetupNetworkRootPath NVARCHAR(2000) NOT NULL,
+
         SetupExcluirPastaWork BIT NOT NULL
             CONSTRAINT DF_ApplicationConfiguration_SetupExcluirPastaWork
             DEFAULT (0),
@@ -182,6 +184,7 @@ BEGIN
         SetupEngine,
         SetupOutputRoot,
         SetupAipRoot,
+        SetupNetworkRootPath,
         SetupExcluirPastaWork,
 
         LoggingEnabled,
@@ -211,6 +214,7 @@ BEGIN
         N'advanced_installer',
         N'C:\Setups',
         N'C:\DvpLocal\WorkSpaceTFS\Transferencia de Arquivo\TransferenciaDeArquivos\Setups\Installers\Projects',
+        N'\\vm-srvfile01\Fontes\Application\OuroNet\Teste',
         0,
 
         1,
@@ -255,6 +259,7 @@ SELECT
     SetupEngine,
     SetupOutputRoot,
     SetupAipRoot,
+    SetupNetworkRootPath,
     SetupExcluirPastaWork,
     LoggingEnabled,
     LoggingPath,

@@ -50,7 +50,6 @@ def create_project_model() -> ProjectModel:
         output_msi=(
             r"C:\Setups\Projeto.Setup.msi"
         ),
-        network_path=r"\\Servidor\Builds",
         configuration="Release",
         platform="AnyCPU",
         enabled=True,

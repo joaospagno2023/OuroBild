@@ -77,7 +77,6 @@ def create_context(
         ),
         aip_path="",
         output_msi="",
-        network_path="",
         configuration="Release",
         platform="AnyCPU",
         enabled=True,

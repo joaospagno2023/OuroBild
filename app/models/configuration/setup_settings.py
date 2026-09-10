@@ -30,4 +30,6 @@ class SetupSettings(
 
     aip_root: Path
 
+    network_root_path: Path
+
     excluirpastawork: bool = False

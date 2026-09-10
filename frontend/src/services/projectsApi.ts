@@ -17,6 +17,10 @@ export type CompilationEngine =
   | "dotnet"
   | "msbuild";
 
+export type SetupPublicationMode =
+  | "local"
+  | "network";
+
 export interface Project {
   id: string;
   name: string;
@@ -36,7 +40,6 @@ export interface Project {
   visualstudio_setup_path?: string | null;
 
   output_msi: string;
-  network_path: string;
 
   configuration: string;
   platform: string;
@@ -63,7 +66,6 @@ export interface CreateProjectRequest {
   visualstudio_setup_path?: string | null;
 
   output_msi: string;
-  network_path: string;
 
   configuration: string;
   platform: string;
@@ -89,7 +91,6 @@ export interface UpdateProjectRequest {
   visualstudio_setup_path?: string | null;
 
   output_msi: string;
-  network_path: string;
 
   configuration: string;
   platform: string;
@@ -105,6 +106,35 @@ export interface ExecuteProjectRequest {
   environment_id?: string | null;
   version?: string | null;
   revision?: number | null;
+  publication_mode?: SetupPublicationMode;
+}
+
+export interface SetupBatchPublishRequest {
+  execution_ids: string[];
+  version: string;
+  revision: number;
+}
+
+export interface SetupNetworkPublishResponse {
+  success: boolean;
+  message: string;
+  project_id: string;
+  source_path?: string | null;
+  destination_path?: string | null;
+  backup_path?: string | null;
+  backup_created: boolean;
+  backup_removed: boolean;
+  files_copied: number;
+  duration_seconds: number;
+}
+
+export interface SetupBatchPublishResponse {
+  success: boolean;
+  message: string;
+  execution_ids: string[];
+  project_ids: string[];
+  source_path?: string | null;
+  publication?: SetupNetworkPublishResponse | null;
 }
 
 export interface ExecuteProjectResponse {
@@ -192,6 +222,7 @@ export interface PipelineExecutionResponse {
   success: boolean | null;
   failed_step: string | null;
 }
+
 export async function executeProject(
   projectId: string,
   request: ExecuteProjectRequest,
@@ -204,10 +235,22 @@ export async function executeProject(
     request,
   );
 }
+
 export async function getExecution(
   executionId: string,
 ): Promise<PipelineExecutionResponse> {
   return apiGet<PipelineExecutionResponse>(
     `/executions/${executionId}`,
+  );
+}
+export async function publishSetups(
+  request: SetupBatchPublishRequest,
+): Promise<SetupBatchPublishResponse> {
+  return apiPost<
+    SetupBatchPublishRequest,
+    SetupBatchPublishResponse
+  >(
+    "/setups/publish",
+    request,
   );
 }

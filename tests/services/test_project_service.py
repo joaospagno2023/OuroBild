@@ -1,9 +1,5 @@
 """
---------------------------------------------------------------------
-Projeto : OuroBuild
-Arquivo : test_project_service.py
-Descrição : Testes do serviço de projetos.
---------------------------------------------------------------------
+Testes unitários para ProjectService.
 """
 
 from unittest.mock import Mock
@@ -35,7 +31,6 @@ def project() -> Project:
         aip_path="Projeto.aip",
         visualstudio_setup_path=None,
         output_msi="Projeto.msi",
-        network_path=r"\\Servidor\Builds",
         configuration="Release",
         platform="AnyCPU",
         enabled=True,
@@ -55,7 +50,6 @@ def create_request() -> CreateProjectRequest:
         publish_path=r"bin\Release",
         aip_path="Projeto.aip",
         output_msi="Projeto.msi",
-        network_path=r"\\Servidor\Builds",
         configuration="Release",
         platform="AnyCPU",
         enabled=True,
@@ -74,7 +68,6 @@ def update_request() -> UpdateProjectRequest:
         publish_path=r"bin\Release",
         aip_path="ProjetoAlterado.aip",
         output_msi="ProjetoAlterado.msi",
-        network_path=r"\\Servidor\Builds",
         configuration="Release",
         platform="AnyCPU",
         enabled=True,

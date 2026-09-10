@@ -124,7 +124,6 @@ class ProjectService:
                 else None
             ),
             output_msi=request.output_msi.strip(),
-            network_path=request.network_path.strip(),
             configuration=request.configuration.strip(),
             platform=request.platform.strip(),
             enabled=request.enabled,
@@ -206,7 +205,6 @@ class ProjectService:
                 else None
             ),
             output_msi=request.output_msi.strip(),
-            network_path=request.network_path.strip(),
             configuration=request.configuration.strip(),
             platform=request.platform.strip(),
             enabled=request.enabled,

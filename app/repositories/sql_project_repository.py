@@ -169,7 +169,6 @@ class SqlProjectRepository(
                     request.visualstudio_setup_path
                 ),
                 output_msi=request.output_msi,
-                network_path=request.network_path,
                 configuration=request.configuration,
                 platform=request.platform,
                 enabled=request.enabled,
@@ -257,9 +256,6 @@ class SqlProjectRepository(
             )
             project_model.output_msi = (
                 request.output_msi
-            )
-            project_model.network_path = (
-                request.network_path
             )
             project_model.configuration = (
                 request.configuration
@@ -357,7 +353,6 @@ class SqlProjectRepository(
                 project_model.visualstudio_setup_path
             ),
             output_msi=project_model.output_msi,
-            network_path=project_model.network_path,
             configuration=project_model.configuration,
             platform=project_model.platform,
             enabled=project_model.enabled,

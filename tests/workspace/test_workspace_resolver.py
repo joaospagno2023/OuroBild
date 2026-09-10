@@ -14,26 +14,15 @@ import pytest
 from app.abstractions.environment_repository import (
     EnvironmentRepository,
 )
-
 from app.abstractions.project_repository import (
     ProjectRepository,
 )
-
 from app.models.environment.build_environment import (
     BuildEnvironment,
 )
-
-from app.models.project.project import (
-    Project,
-)
-
-from app.workspace.workspace_context import (
-    WorkspaceContext,
-)
-
-from app.workspace.workspace_resolver import (
-    WorkspaceResolver,
-)
+from app.models.project.project import Project
+from app.workspace.workspace_context import WorkspaceContext
+from app.workspace.workspace_resolver import WorkspaceResolver
 
 
 def create_project() -> Project:
@@ -48,7 +37,8 @@ def create_project() -> Project:
         type="client",
         solution_path=None,
         project_path=(
-            r"02-Source\01-Client"
+            r"02-Source"
+            r"\01-Client"
             r"\LinkPagamento"
             r"\LinkPagamento.csproj"
         ),
@@ -61,7 +51,6 @@ def create_project() -> Project:
             r"Setup\LinkPagamento.aip"
         ),
         output_msi="LinkPagamento.msi",
-        network_path="",
         configuration="Release",
         platform="AnyCPU",
         enabled=True,
@@ -103,12 +92,8 @@ def create_resolver(
         )
 
     return WorkspaceResolver(
-        project_repository=(
-            project_repository
-        ),
-        environment_repository=(
-            environment_repository
-        ),
+        project_repository=project_repository,
+        environment_repository=environment_repository,
     )
 
 
@@ -119,24 +104,17 @@ def test_deve_resolver_workspace_com_projeto_e_ambiente():
     """
 
     project = create_project()
-
     environment = create_environment()
 
     project_repository = MagicMock(
         spec=ProjectRepository,
     )
-
     environment_repository = MagicMock(
         spec=EnvironmentRepository,
     )
 
-    project_repository.get_by_id.return_value = (
-        project
-    )
-
-    environment_repository.get_by_id.return_value = (
-        environment
-    )
+    project_repository.get_by_id.return_value = project
+    environment_repository.get_by_id.return_value = environment
 
     resolver = create_resolver(
         project_repository=project_repository,
@@ -152,11 +130,8 @@ def test_deve_resolver_workspace_com_projeto_e_ambiente():
         result,
         WorkspaceContext,
     )
-
     assert result.project is project
-
     assert result.environment is environment
-
     assert result.project_file == (
         environment.root_path
         / project.project_path
@@ -170,24 +145,17 @@ def test_deve_buscar_projeto_pelo_project_id():
     """
 
     project = create_project()
-
     environment = create_environment()
 
     project_repository = MagicMock(
         spec=ProjectRepository,
     )
-
     environment_repository = MagicMock(
         spec=EnvironmentRepository,
     )
 
-    project_repository.get_by_id.return_value = (
-        project
-    )
-
-    environment_repository.get_by_id.return_value = (
-        environment
-    )
+    project_repository.get_by_id.return_value = project
+    environment_repository.get_by_id.return_value = environment
 
     resolver = create_resolver(
         project_repository=project_repository,
@@ -200,7 +168,7 @@ def test_deve_buscar_projeto_pelo_project_id():
     )
 
     project_repository.get_by_id.assert_called_once_with(
-         project_id="linkpagamento",
+        project_id="linkpagamento",
     )
 
 
@@ -211,24 +179,17 @@ def test_deve_buscar_ambiente_pelo_environment_id():
     """
 
     project = create_project()
-
     environment = create_environment()
 
     project_repository = MagicMock(
         spec=ProjectRepository,
     )
-
     environment_repository = MagicMock(
         spec=EnvironmentRepository,
     )
 
-    project_repository.get_by_id.return_value = (
-        project
-    )
-
-    environment_repository.get_by_id.return_value = (
-        environment
-    )
+    project_repository.get_by_id.return_value = project
+    environment_repository.get_by_id.return_value = environment
 
     resolver = create_resolver(
         project_repository=project_repository,
@@ -254,23 +215,18 @@ def test_deve_rejeitar_projeto_nao_encontrado():
     project_repository = MagicMock(
         spec=ProjectRepository,
     )
-
     environment_repository = MagicMock(
         spec=EnvironmentRepository,
     )
 
-    project_repository.get_by_id.return_value = (
-        None
-    )
+    project_repository.get_by_id.return_value = None
 
     resolver = create_resolver(
         project_repository=project_repository,
         environment_repository=environment_repository,
     )
 
-    with pytest.raises(
-        Exception,
-    ):
+    with pytest.raises(Exception):
         resolver.resolve(
             project_id="projeto_inexistente",
             environment_id="producao",
@@ -290,27 +246,19 @@ def test_deve_rejeitar_ambiente_nao_encontrado():
     project_repository = MagicMock(
         spec=ProjectRepository,
     )
-
     environment_repository = MagicMock(
         spec=EnvironmentRepository,
     )
 
-    project_repository.get_by_id.return_value = (
-        project
-    )
-
-    environment_repository.get_by_id.return_value = (
-        None
-    )
+    project_repository.get_by_id.return_value = project
+    environment_repository.get_by_id.return_value = None
 
     resolver = create_resolver(
         project_repository=project_repository,
         environment_repository=environment_repository,
     )
 
-    with pytest.raises(
-        Exception,
-    ):
+    with pytest.raises(Exception):
         resolver.resolve(
             project_id="linkpagamento",
             environment_id="ambiente_inexistente",

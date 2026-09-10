@@ -52,6 +52,10 @@ from app.models.publish.publish_request import (
     PublishRequest,
 )
 
+from app.models.setup.setup_publication_mode import (
+    SetupPublicationMode,
+)
+
 from app.models.setup.setup_request import (
     SetupRequest,
 )
@@ -143,6 +147,9 @@ class ExecutePipelineUseCase:
         environment_id: str | None = None,
         version: str | None = None,
         revision: int | None = None,
+        publication_mode: SetupPublicationMode = (
+            SetupPublicationMode.LOCAL
+        ),
         progress_callback: Callable[
             [
                 str,
@@ -319,6 +326,7 @@ class ExecutePipelineUseCase:
                     version=version,
                     revision=revision,
                     run_build=False,
+                    publication_mode=publication_mode,
                 )
             )
             if setup_enabled
@@ -417,6 +425,7 @@ class ExecutePipelineUseCase:
             version=version,
             revision=revision,
             run_build=False,
+            publication_mode=publication_mode,
         )
 
         #

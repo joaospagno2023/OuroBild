@@ -251,7 +251,8 @@ def execute_pipeline(
             f"project_id={project_id} | "
             f"environment_id={execution.environment_id} | "
             f"version={execution.version!r} | "
-            f"revision={execution.revision!r}"
+            f"revision={execution.revision!r} | "
+            f"publication_mode={execution.publication_mode.value!r}"
         )
     )
 
@@ -269,4 +270,5 @@ def execute_pipeline(
         environment_id=execution.environment_id,
         version=execution.version,
         revision=execution.revision,
+        publication_mode=execution.publication_mode,
     )

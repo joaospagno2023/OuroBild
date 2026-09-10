@@ -10,29 +10,12 @@ from pathlib import Path
 
 import pytest
 
-from app.models.build.compilation_engine import (
-    CompilationEngine,
-)
-
-from app.models.build.compilation_target import (
-    CompilationTarget,
-)
-
-from app.models.project.project import (
-    Project,
-)
-
-from app.models.project.project_type import (
-    ProjectType,
-)
-
-from app.models.setup.setup_paths import (
-    SetupPaths,
-)
-
-from app.services.setup.setup_path_resolver import (
-    SetupPathResolver,
-)
+from app.models.build.compilation_engine import CompilationEngine
+from app.models.build.compilation_target import CompilationTarget
+from app.models.project.project import Project
+from app.models.project.project_type import ProjectType
+from app.models.setup.setup_paths import SetupPaths
+from app.services.setup.setup_path_resolver import SetupPathResolver
 
 
 def create_project(
@@ -48,24 +31,14 @@ def create_project(
         id="teste",
         name="Projeto Teste",
         description="Projeto utilizado nos testes.",
-
         type=ProjectType.CLIENT,
-
         solution_path=None,
         project_path="Projeto.csproj",
-
-        compilation_target=(
-            CompilationTarget.PROJECT
-        ),
-
-        compilation_engine=(
-            CompilationEngine.MSBUILD
-        ),
-
+        compilation_target=CompilationTarget.PROJECT,
+        compilation_engine=CompilationEngine.MSBUILD,
         publish_path=publish_path,
         aip_path=aip_path,
         output_msi=output_msi,
-        network_path="",
         configuration="Release",
         platform="AnyCPU",
         enabled=True,
@@ -413,9 +386,7 @@ def test_deve_resolver_setup_output_path_para_cliente(
         "bin",
     )
 
-    project.type = (
-        ProjectType.CLIENT
-    )
+    project.type = ProjectType.CLIENT
 
     paths = create_paths(
         tmp_path,
@@ -449,9 +420,7 @@ def test_deve_resolver_setup_output_path_para_server(
         "bin",
     )
 
-    project.type = (
-        ProjectType.SERVER
-    )
+    project.type = ProjectType.SERVER
 
     paths = create_paths(
         tmp_path,
@@ -486,9 +455,7 @@ def test_deve_resolver_output_msi_dentro_da_pasta_do_tipo(
         output_msi="LinkPagamento.msi",
     )
 
-    project.type = (
-        ProjectType.CLIENT
-    )
+    project.type = ProjectType.CLIENT
 
     paths = create_paths(
         tmp_path,

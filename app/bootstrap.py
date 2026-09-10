@@ -20,6 +20,9 @@ from app.api.routers.build_router import (
 from app.api.routers.project_router import (
     router as project_router,
 )
+from app.api.routers.setup_publish_router import (
+    router as setup_publish_router,
+)
 
 from app.api.routers.environment_router import (
     router as environment_router,
@@ -182,6 +185,13 @@ from app.services.setup.setup_orchestrator import (
 )
 from app.use_cases.execute_setup_use_case import (
     DefaultExecuteSetupUseCase,
+)
+from app.use_cases.publish_setups_use_case import (
+    DefaultPublishSetupsUseCase,
+)
+
+from app.services.setup.network_setup_publisher import (
+    DefaultSetupNetworkPublisher,
 )
 
 from app.services.setup.setup_file_change_applier import (
@@ -806,6 +816,24 @@ class Bootstrap:
             )
         )
 
+        self.setup_network_publisher = (
+            DefaultSetupNetworkPublisher(
+                settings=self.settings,
+            )
+        )
+
+        self.publish_setups_use_case = (
+            DefaultPublishSetupsUseCase(
+                pipeline_execution_repository=(
+                    self.pipeline_execution_repository
+                ),
+                setup_network_publisher=(
+                    self.setup_network_publisher
+                ),
+                settings=self.settings,
+            )
+        )
+
         self.execute_pipeline_use_case = (
             ExecutePipelineUseCase(
                 project_repository=self.project_repository,
@@ -938,6 +966,10 @@ class Bootstrap:
 
         app.include_router(
             project_router,
+        )
+
+        app.include_router(
+            setup_publish_router,
         )
 
         app.include_router(
