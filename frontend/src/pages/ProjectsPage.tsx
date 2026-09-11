@@ -8,6 +8,7 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -136,6 +137,10 @@ function ProjectsPage() {
     useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectFilter, setProjectFilter] = useState<
+    "all" | "client" | "server"
+  >("all");
 
   useEffect(() => {
     void loadProjects();
@@ -529,6 +534,39 @@ function ProjectsPage() {
       );
     }
 
+    const normalizedSearch = projectSearch.trim().toLowerCase();
+
+    const filteredProjects = projects.filter((project) => {
+      const matchesFilter =
+        projectFilter === "all" || project.type === projectFilter;
+
+      if (!matchesFilter) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return (
+        project.id.toLowerCase().includes(normalizedSearch) ||
+        project.name.toLowerCase().includes(normalizedSearch) ||
+        project.description.toLowerCase().includes(normalizedSearch)
+      );
+    });
+
+    const clientCount = projects.filter(
+      (project) => project.type === "client",
+    ).length;
+
+    const serverCount = projects.filter(
+      (project) => project.type === "server",
+    ).length;
+
+    const activeCount = projects.filter(
+      (project) => project.enabled,
+    ).length;
+
     return (
       <div className="content-card">
         <div className="card-header">
@@ -553,86 +591,340 @@ function ProjectsPage() {
           </button>
         </div>
 
-        <div className="project-admin-list">
-          {projects.map((project) => (
-            <div className="project-admin-row" key={project.id}>
-              <div className="project-admin-icon">
-                <FolderCog size={19} />
-              </div>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "18px",
+            padding: "10px 12px",
+            border: "1px solid #e2e8f0",
+            borderRadius: "10px",
+            background: "#f8fafc",
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              flex: "1 1 280px",
+              minWidth: "240px",
+            }}
+          >
+            <Search
+              size={15}
+              style={{
+                position: "absolute",
+                left: "11px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#94a3b8",
+                pointerEvents: "none",
+              }}
+            />
 
-              <div className="project-admin-info">
-                <strong>{project.name}</strong>
-                <span>{project.id}</span>
-              </div>
+            <input
+              aria-label="Pesquisar projetos"
+              value={projectSearch}
+              onChange={(event) => setProjectSearch(event.target.value)}
+              placeholder="Pesquisar por nome, identificador ou descrição..."
+              style={{
+                width: "100%",
+                height: "36px",
+                padding: "0 12px 0 34px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "8px",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontSize: "11px",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
 
-              <span
-                className={`project-admin-type ${
-                  project.type === "server"
-                    ? "project-admin-type-server"
-                    : ""
-                }`}
-              >
-                {project.type === "server" ? "Servidor" : "Cliente"}
-              </span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              flexWrap: "wrap",
+            }}
+          >
+            {[
+              {
+                id: "all" as const,
+                label: "Todos",
+                count: projects.length,
+              },
+              {
+                id: "client" as const,
+                label: "Clientes",
+                count: clientCount,
+              },
+              {
+                id: "server" as const,
+                label: "Servidores",
+                count: serverCount,
+              },
+            ].map((filter) => {
+              const isActive = projectFilter === filter.id;
 
-              <span
-                className={`status-badge ${
-                  project.enabled
-                    ? "status-badge-active"
-                    : "status-badge-inactive"
-                }`}
-              >
-                {project.enabled ? (
-                  <>
-                    <Check size={12} />
-                    Ativo
-                  </>
-                ) : (
-                  <>
-                    <X size={12} />
-                    Inativo
-                  </>
-                )}
-              </span>
-
-              <div className="project-admin-actions">
+              return (
                 <button
-                  className="table-action-button"
+                  key={filter.id}
                   type="button"
-                  onClick={() => openCleanup(project)}
+                  onClick={() => setProjectFilter(filter.id)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    minHeight: "32px",
+                    padding: "0 10px",
+                    border: `1px solid ${
+                      isActive ? "#bfdbfe" : "#e2e8f0"
+                    }`,
+                    borderRadius: "7px",
+                    background: isActive ? "#eff6ff" : "#ffffff",
+                    color: isActive ? "#1d4ed8" : "#64748b",
+                    cursor: "pointer",
+                    fontSize: "10px",
+                    fontWeight: 650,
+                  }}
                 >
-                  <ListChecks size={14} />
-                  Exceções
+                  {filter.label}
+                  <span
+                    style={{
+                      minWidth: "18px",
+                      padding: "2px 5px",
+                      borderRadius: "999px",
+                      background: isActive ? "#dbeafe" : "#f1f5f9",
+                      color: isActive ? "#1d4ed8" : "#64748b",
+                      fontSize: "9px",
+                      fontWeight: 700,
+                      textAlign: "center",
+                    }}
+                  >
+                    {filter.count}
+                  </span>
                 </button>
+              );
+            })}
+          </div>
 
-                <button
-                  className="table-action-button"
-                  type="button"
-                  onClick={() => openEdit(project)}
-                >
-                  <Edit size={14} />
-                  Editar
-                </button>
-
-                <button
-                  className="table-action-button"
-                  type="button"
-                  onClick={() => void handleStatus(project)}
-                  disabled={processingProjectId === project.id}
-                >
-                  {processingProjectId === project.id ? (
-                    <Loader2 size={14} className="spin" />
-                  ) : project.enabled ? (
-                    <CircleOff size={14} />
-                  ) : (
-                    <Check size={14} />
-                  )}
-                  {project.enabled ? "Desativar" : "Ativar"}
-                </button>
-              </div>
-            </div>
-          ))}
+          <span
+            style={{
+              color: "#64748b",
+              fontSize: "10px",
+              marginLeft: "auto",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {activeCount} ativos · {projects.length} total
+          </span>
         </div>
+
+        {filteredProjects.length === 0 ? (
+          <div className="empty-state compact">
+            <Search size={24} />
+            <strong>Nenhum projeto encontrado</strong>
+            <span>
+              Ajuste a pesquisa ou altere o filtro para visualizar outros
+              projetos.
+            </span>
+
+            {(projectSearch || projectFilter !== "all") && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  setProjectSearch("");
+                  setProjectFilter("all");
+                }}
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fill, minmax(235px, 1fr))",
+              gap: "12px",
+            }}
+          >
+            {filteredProjects.map((project) => (
+              <div
+                key={project.id}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  minWidth: 0,
+                  minHeight: "205px",
+                  padding: "14px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "10px",
+                  background: "#ffffff",
+                  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "9px",
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                    }}
+                  >
+                    <FolderCog size={18} />
+                  </div>
+
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
+                    <strong
+                      style={{
+                        display: "block",
+                        color: "#0f172a",
+                        fontSize: "12px",
+                        lineHeight: 1.35,
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {project.name}
+                    </strong>
+
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: "3px",
+                        color: "#94a3b8",
+                        fontSize: "9px",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {project.id}
+                    </span>
+                  </div>
+                </div>
+
+                <p
+                  style={{
+                    margin: "12px 0 0",
+                    minHeight: "38px",
+                    color: "#64748b",
+                    fontSize: "10px",
+                    lineHeight: 1.5,
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {project.description}
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: "6px",
+                    marginTop: "12px",
+                  }}
+                >
+                  <span
+                    className={`project-admin-type ${
+                      project.type === "server"
+                        ? "project-admin-type-server"
+                        : ""
+                    }`}
+                  >
+                    {project.type === "server" ? "Servidor" : "Cliente"}
+                  </span>
+
+                  <span
+                    className={`status-badge ${
+                      project.enabled
+                        ? "status-badge-active"
+                        : "status-badge-inactive"
+                    }`}
+                  >
+                    {project.enabled ? (
+                      <>
+                        <Check size={12} />
+                        Ativo
+                      </>
+                    ) : (
+                      <>
+                        <X size={12} />
+                        Inativo
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "6px",
+                    marginTop: "auto",
+                    paddingTop: "14px",
+                  }}
+                >
+                  <button
+                    className="table-action-button"
+                    type="button"
+                    onClick={() => openCleanup(project)}
+                  >
+                    <ListChecks size={14} />
+                    Exceções
+                  </button>
+
+                  <button
+                    className="table-action-button"
+                    type="button"
+                    onClick={() => openEdit(project)}
+                  >
+                    <Edit size={14} />
+                    Editar
+                  </button>
+
+                  <button
+                    className="table-action-button"
+                    type="button"
+                    onClick={() => void handleStatus(project)}
+                    disabled={processingProjectId === project.id}
+                  >
+                    {processingProjectId === project.id ? (
+                      <Loader2 size={14} className="spin" />
+                    ) : project.enabled ? (
+                      <CircleOff size={14} />
+                    ) : (
+                      <Check size={14} />
+                    )}
+                    {project.enabled ? "Desativar" : "Ativar"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

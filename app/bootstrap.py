@@ -42,6 +42,16 @@ from app.api.routers.agent_router import (
     router as agent_router,
 )
 
+from app.api.routers.project_router import (
+    router as project_router,
+)
+
+from app.api.routers.cleanup_rule_router import (
+    router as cleanup_rule_router,
+)
+
+
+
 # Core
 from app.core.configuration.configuration_loader import (
     ConfigurationLoader,
@@ -75,6 +85,9 @@ from app.services.default_process_service import (
 
 from app.services.cleanup.cleanup_rules_provider import (
     CleanupRulesProvider,
+)
+from app.services.cleanup.cleanup_rule_service import (
+    CleanupRuleService,
 )
 
 # Use Cases
@@ -473,6 +486,17 @@ class Bootstrap:
 
         CleanupRulesProvider.configure(
             repository=self.cleanup_rule_repository,
+        )
+
+        self.cleanup_rule_service = (
+            CleanupRuleService(
+                cleanup_rule_repository=(
+                    self.cleanup_rule_repository
+                ),
+                project_service=(
+                    self.project_service
+                ),
+            )
         )
 
         self.environment_repository = (
@@ -1020,6 +1044,10 @@ class Bootstrap:
         )
 
         app.include_router(
+            cleanup_rule_router,
+        )
+
+        app.include_router(
             setup_publish_router,
         )
 
@@ -1048,5 +1076,6 @@ class Bootstrap:
         app.include_router(
             agent_router,
         )
+       
 
         return app
