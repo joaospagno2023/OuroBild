@@ -1,6 +1,4 @@
-"""
-Testes do caso de uso de publicação em lote de Setups.
-"""
+"""Testes do caso de uso de publicação em lote de Setups."""
 
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -21,29 +19,35 @@ def create_use_case(
     output_root: Path,
     publication_result: SetupNetworkPublishResult | None = None,
 ):
-    repository = MagicMock()
-    repository.get_by_execution_id.side_effect = (
+    execution_repository = MagicMock()
+    execution_repository.get_by_execution_id.side_effect = (
         lambda execution_id: executions.get(execution_id)
     )
 
     publisher = MagicMock()
-
     if publication_result is not None:
         publisher.publish.return_value = publication_result
+
+    batch_repository = MagicMock()
+    log_repository = MagicMock()
 
     settings = MagicMock()
     settings.setup.output_root = output_root
 
     use_case = DefaultPublishSetupsUseCase(
-        pipeline_execution_repository=repository,
+        pipeline_execution_repository=execution_repository,
         setup_network_publisher=publisher,
+        setup_publication_batch_repository=batch_repository,
+        setup_publication_log_repository=log_repository,
         settings=settings,
     )
 
     return (
         use_case,
-        repository,
+        execution_repository,
         publisher,
+        batch_repository,
+        log_repository,
     )
 
 
@@ -79,7 +83,13 @@ def test_publica_somente_quando_todas_execucoes_estao_concluidas(
         destination_path=tmp_path / "network",
     )
 
-    use_case, _, publisher = create_use_case(
+    (
+        use_case,
+        _,
+        publisher,
+        batch_repository,
+        log_repository,
+    ) = create_use_case(
         executions,
         tmp_path,
         publication,
@@ -94,6 +104,8 @@ def test_publica_somente_quando_todas_execucoes_estao_concluidas(
     )
 
     assert result.success is True
+    assert result.status == "completed"
+    assert result.batch_id
     assert result.project_ids == [
         "client-1",
         "server-1",
@@ -104,6 +116,9 @@ def test_publica_somente_quando_todas_execucoes_estao_concluidas(
         version="10.4.7",
         revision=2,
     )
+    assert batch_repository.save.call_count == 1
+    assert batch_repository.update.call_count >= 2
+    assert log_repository.save.call_count >= 2
 
 
 def test_nao_publica_quando_uma_execucao_falhou(
@@ -129,7 +144,7 @@ def test_nao_publica_quando_uma_execucao_falhou(
         },
     }
 
-    use_case, _, publisher = create_use_case(
+    use_case, _, publisher, _, _ = create_use_case(
         executions,
         tmp_path,
     )
@@ -170,7 +185,7 @@ def test_nao_publica_quando_uma_execucao_ainda_esta_em_andamento(
         },
     }
 
-    use_case, _, publisher = create_use_case(
+    use_case, _, publisher, _, _ = create_use_case(
         executions,
         tmp_path,
     )
@@ -191,7 +206,7 @@ def test_nao_publica_quando_uma_execucao_ainda_esta_em_andamento(
 def test_nao_publica_quando_execucao_nao_existe(
     tmp_path,
 ):
-    use_case, _, publisher = create_use_case(
+    use_case, _, publisher, _, _ = create_use_case(
         {},
         tmp_path,
     )

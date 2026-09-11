@@ -221,3 +221,41 @@ export async function apiPatch<
 
   return response.json() as Promise<TResponse>;
 }
+
+
+export async function apiDelete<TResponse = void>(
+  endpoint: string,
+): Promise<TResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}${endpoint}`,
+    {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        ...getAuthorizationHeader(),
+      },
+    },
+  );
+
+  if (response.status === 401) {
+    handleUnauthorized();
+
+    throw new Error(
+      "Sessão expirada ou não autenticada.",
+    );
+  }
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(
+      message ||
+        `Erro HTTP ${response.status}: ${response.statusText}`,
+    );
+  }
+
+  if (response.status === 204) {
+    return undefined as TResponse;
+  }
+
+  return response.json() as Promise<TResponse>;
+}

@@ -18,6 +18,7 @@ from app.models.configuration.app_settings import AppSettings
 from app.models.setup.setup_network_publish_result import (
     SetupNetworkPublishResult,
 )
+
 from app.utils.pipeline_logger import (
     PipelineLogger,
 )
@@ -50,11 +51,10 @@ class DefaultSetupNetworkPublisher(
 
             <network_root>
                 <major.minor>
-                    <major.minor.patch>
-                        Client
-                        Server
-
-        O network_root já deve apontar para a pasta Setups.
+                    Setups
+                        <major.minor.patch>
+                            Client
+                            Server
 
         O diretório local de origem nunca é movido ou removido.
         """
@@ -69,16 +69,16 @@ class DefaultSetupNetworkPublisher(
 
         full_version = f"{version}.{revision}"
 
+        backup_path: Path | None = None
+        destination_path: Path | None = None
+        backup_created = False
+
         PipelineLogger.info(
             "SETUP NETWORK PUBLISH START | "
             f"project_id={project_id!r} | "
             f"source={source_path} | "
             f"version={full_version}"
         )
-
-        backup_path: Path | None = None
-        destination_path: Path | None = None
-        backup_created = False
 
         try:
             major_minor, published_version = (
@@ -90,6 +90,7 @@ class DefaultSetupNetworkPublisher(
             destination_path = (
                 network_root
                 / major_minor
+                / "Setups"
                 / published_version
             )
 
@@ -116,14 +117,13 @@ class DefaultSetupNetworkPublisher(
                 destination_path=destination_path,
             )
 
+            destination_exists = destination_path.exists()
+
             PipelineLogger.info(
                 "SETUP NETWORK PRECHECK SUCCESS | "
                 f"source={source_path} | "
-                f"network_root={network_root} | "
                 f"destination={destination_path}"
             )
-
-            destination_exists = destination_path.exists()
 
             if destination_exists:
                 backup_path = self.__create_backup(
@@ -131,17 +131,6 @@ class DefaultSetupNetworkPublisher(
                 )
 
                 backup_created = True
-
-                PipelineLogger.info(
-                    "SETUP NETWORK BACKUP CREATED | "
-                    f"original={destination_path} | "
-                    f"backup={backup_path}"
-                )
-            else:
-                PipelineLogger.info(
-                    "SETUP NETWORK BACKUP SKIPPED | "
-                    "destination does not exist"
-                )
 
             try:
                 PipelineLogger.info(
@@ -155,38 +144,21 @@ class DefaultSetupNetworkPublisher(
                     destination_path=destination_path,
                 )
 
-                PipelineLogger.info(
-                    "SETUP NETWORK COPY COMPLETED | "
-                    f"destination={destination_path}"
-                )
-
                 files_copied = self.__validate_destination(
                     destination_path=destination_path,
                 )
 
                 PipelineLogger.info(
-                    "SETUP NETWORK VALIDATION SUCCESS | "
+                    "SETUP NETWORK COPY VALIDATED | "
                     f"destination={destination_path} | "
-                    f"files_copied={files_copied}"
+                    f"files={files_copied}"
                 )
 
-            except Exception as exception:
-                PipelineLogger.error(
-                    "SETUP NETWORK COPY FAILED | "
-                    f"destination={destination_path} | "
-                    f"error={exception}"
-                )
-
+            except Exception:
                 self.__cleanup_failed_destination(
                     destination_path=destination_path,
                     destination_existed=destination_exists,
                     backup_created=backup_created,
-                )
-
-                PipelineLogger.warning(
-                    "SETUP NETWORK PARTIAL DESTINATION CLEANED | "
-                    f"destination={destination_path} | "
-                    f"backup={backup_path}"
                 )
 
                 raise
@@ -200,18 +172,13 @@ class DefaultSetupNetworkPublisher(
 
                 backup_removed = True
 
-                PipelineLogger.info(
-                    "SETUP NETWORK BACKUP REMOVED | "
-                    f"backup={backup_path}"
-                )
-
             duration = perf_counter() - started_at
 
             PipelineLogger.info(
-                "SETUP NETWORK PUBLISH SUCCESS | "
+                "SETUP NETWORK PUBLISH COMPLETED | "
                 f"project_id={project_id!r} | "
                 f"destination={destination_path} | "
-                f"files_copied={files_copied} | "
+                f"files={files_copied} | "
                 f"duration_seconds={duration:.3f}"
             )
 
@@ -238,9 +205,8 @@ class DefaultSetupNetworkPublisher(
                 f"project_id={project_id!r} | "
                 f"source={source_path} | "
                 f"destination={destination_path} | "
-                f"backup={backup_path} | "
-                f"duration_seconds={duration:.3f} | "
-                f"error={exception}"
+                f"error={exception} | "
+                f"duration_seconds={duration:.3f}"
             )
 
             return SetupNetworkPublishResult(
@@ -340,17 +306,6 @@ class DefaultSetupNetworkPublisher(
         client_path = source_path / "Client"
         cliente_path = source_path / "Cliente"
         server_path = source_path / "Server"
-
-        PipelineLogger.info(
-            "SETUP NETWORK SOURCE STRUCTURE | "
-            f"source={source_path} | "
-            f"client_exists={client_path.exists()} | "
-            f"client_is_dir={client_path.is_dir()} | "
-            f"cliente_exists={cliente_path.exists()} | "
-            f"cliente_is_dir={cliente_path.is_dir()} | "
-            f"server_exists={server_path.exists()} | "
-            f"server_is_dir={server_path.is_dir()}"
-        )
 
         if not client_path.is_dir() and not cliente_path.is_dir():
             raise FileNotFoundError(

@@ -1,10 +1,15 @@
 """
---------------------------------------------------------------------
-Projeto : OuroBuild
-Arquivo : cleanup_rules_provider.py
-Descrição : Fornece as regras de limpeza do Build.
---------------------------------------------------------------------
+Provider das regras de limpeza de artefatos.
+
+As regras globais permanecem definidas pelo sistema.
+
+As regras específicas de cada projeto são obtidas exclusivamente
+através do SqlCleanupRuleRepository.
 """
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from app.models.cleanup.cleanup_rule import (
     CleanupAction,
@@ -12,441 +17,150 @@ from app.models.cleanup.cleanup_rule import (
     CleanupTarget,
 )
 
+if TYPE_CHECKING:
+    from app.repositories.sql_cleanup_rule_repository import (
+        SqlCleanupRuleRepository,
+    )
+
 
 class CleanupRulesProvider:
     """
-    Fornece as regras padrão de limpeza do OuroBuild.
+    Fornece as regras utilizadas pelo processo de limpeza.
 
-    As regras globais são aplicadas a todos os projetos.
+    Regras globais:
+        - Arquivos: remove tudo.
+        - Arquivos *.dll: preserva.
+        - Diretórios: remove tudo.
 
-    As regras específicas são aplicadas somente quando
-    o project_id correspondente estiver sendo processado.
-
-    Regras específicas de projeto possuem prioridade sobre
-    as regras globais.
-
-    Entre regras globais, quando mais de uma corresponder
-    ao mesmo arquivo/diretório, a última da lista prevalece.
-    Por isso, exceções globais (como a preservação de DLLs)
-    são declaradas após a regra genérica de remoção.
+    Regras específicas:
+        - Obtidas exclusivamente do banco de dados por meio do
+          SqlCleanupRuleRepository.
     """
 
-    @staticmethod
+    __repository: SqlCleanupRuleRepository | None = None
+
+    @classmethod
+    def configure(
+        cls,
+        repository: SqlCleanupRuleRepository,
+    ) -> None:
+        """
+        Configura o repositório utilizado para carregar as regras
+        específicas dos projetos.
+
+        Args:
+            repository: Repositório de regras de limpeza.
+        """
+        if repository is None:
+            raise ValueError(
+                "SqlCleanupRuleRepository não foi informado."
+            )
+
+        cls.__repository = repository
+
+    @classmethod
+    def clear_configuration(cls) -> None:
+        """
+        Remove a configuração atual do repositório.
+
+        Útil principalmente para testes.
+        """
+        cls.__repository = None
+
+    @classmethod
     def get_rules(
+        cls,
         project_id: str | None = None,
     ) -> list[CleanupRule]:
         """
-        Retorna as regras aplicáveis ao projeto.
+        Retorna as regras de limpeza.
+
+        As regras globais são sempre carregadas.
+
+        Quando um project_id é informado, as regras específicas
+        são carregadas do banco de dados.
+
+        Apenas regras habilitadas são retornadas.
         """
+        rules = cls.__get_global_rules()
 
-        rules = CleanupRulesProvider.__get_global_rules()
+        if not project_id:
+            return rules
 
-        if project_id is not None:
+        project_rules = cls.__get_project_rules(
+            project_id=project_id,
+        )
 
-            rules.extend(
-                CleanupRulesProvider.__get_project_rules(
-                    project_id=project_id,
-                )
-            )
+        rules.extend(project_rules)
 
         return rules
 
     @staticmethod
     def __get_global_rules() -> list[CleanupRule]:
         """
-        Retorna as regras globais de limpeza.
-
-        Política padrão:
-
-            - Todos os arquivos são removidos, exceto as
-              exceções globais declaradas abaixo (DLLs).
-            - Todos os diretórios são removidos.
-
-        Projetos podem preservar arquivos ou diretórios
-        adicionais através de regras específicas.
+        Retorna as regras globais do processo de limpeza.
         """
-
         return [
-            #
-            # ====================================================
-            # Arquivos
-            # ====================================================
-            #
-
             CleanupRule(
                 target=CleanupTarget.FILE,
                 pattern="*",
                 action=CleanupAction.REMOVE,
+                recursive=True,
+                project_id=None,
                 description=(
-                    "Remove todos os arquivos do resultado "
-                    "do Build. Arquivos necessários devem "
-                    "ser preservados através de uma regra "
-                    "específica do projeto."
+                    "Remove todos os arquivos que não forem "
+                    "explicitamente preservados."
                 ),
+                priority=100,
+                enabled=True,
             ),
-
-            #
-            # ----------------------------------------------------
-            # Exceção global: DLLs.
-            #
-            # DLLs são necessárias em tempo de execução para
-            # praticamente todo projeto .NET. Removê-las por
-            # padrão quebraria o Setup gerado.
-            # ----------------------------------------------------
-            #
-
             CleanupRule(
                 target=CleanupTarget.FILE,
                 pattern="*.dll",
                 action=CleanupAction.PRESERVE,
+                recursive=True,
+                project_id=None,
                 description=(
-                    "Preserva todas as DLLs do resultado "
-                    "do Build, necessárias em tempo de "
-                    "execução da aplicação."
+                    "Preserva arquivos DLL."
                 ),
+                priority=110,
+                enabled=True,
             ),
-
-            #
-            # ====================================================
-            # Diretórios
-            # ====================================================
-            #
-
             CleanupRule(
                 target=CleanupTarget.DIRECTORY,
                 pattern="*",
                 action=CleanupAction.REMOVE,
+                recursive=True,
+                project_id=None,
                 description=(
-                    "Remove todos os diretórios do resultado "
-                    "do Build. Diretórios necessários devem "
-                    "ser preservados através de uma regra "
-                    "específica do projeto."
+                    "Remove todos os diretórios que não forem "
+                    "explicitamente preservados."
                 ),
+                priority=120,
+                enabled=True,
             ),
         ]
 
-    @staticmethod
+    @classmethod
     def __get_project_rules(
+        cls,
         project_id: str,
     ) -> list[CleanupRule]:
         """
-        Retorna regras específicas do projeto.
+        Carrega as regras específicas do projeto no banco de dados.
         """
-
-        rules: list[CleanupRule] = []
-
-        #
-        # ========================================================
-        # LinkPagamento
-        # ========================================================
-        #
-
-        if project_id == "linkpagamento":
-
-            #
-            # ----------------------------------------------------
-            # Executável principal
-            # ----------------------------------------------------
-            #
-
-            rules.append(
-                CleanupRule(
-                    target=CleanupTarget.FILE,
-                    pattern=(
-                        "OuroNetWinServiceLinkPagamento.exe"
-                    ),
-                    action=CleanupAction.PRESERVE,
-                    project_id=project_id,
-                    description=(
-                        "Preserva o executável principal "
-                        "do Windows Service LinkPagamento."
-                    ),
-                )
+        if cls.__repository is None:
+            raise RuntimeError(
+                "CleanupRulesProvider não foi configurado com "
+                "um SqlCleanupRuleRepository."
             )
 
-            #
-            # ----------------------------------------------------
-            # Arquivo de configuração principal
-            # ----------------------------------------------------
-            #
+        rules = cls.__repository.get_all_by_project(
+            project_id=project_id,
+        )
 
-            rules.append(
-                CleanupRule(
-                    target=CleanupTarget.FILE,
-                    pattern=(
-                        "OuroNetWinServiceLinkPagamento.exe.config"
-                    ),
-                    action=CleanupAction.PRESERVE,
-                    project_id=project_id,
-                    description=(
-                        "Preserva o arquivo de configuração "
-                        "principal do Windows Service "
-                        "LinkPagamento."
-                    ),
-                )
-            )
-
-        #
-        # ========================================================
-        # WCF Movimento
-        # ========================================================
-        #
-
-        if project_id == "wcfmovimento":
-
-            #
-            # ----------------------------------------------------
-            # Arquivos da raiz do Release
-            # ----------------------------------------------------
-            #
-
-            root_files = [
-                "connectionStrings.config",
-                "custom.configuration.server.config",
-                "Movimento.svc",
-                "packages.config",
-                "Web.config",
-            ]
-
-            for file_name in root_files:
-
-                rules.append(
-                    CleanupRule(
-                        target=CleanupTarget.FILE,
-                        pattern=file_name,
-                        action=CleanupAction.PRESERVE,
-                        project_id=project_id,
-                        description=(
-                            "Preserva o arquivo da raiz do "
-                            "Release necessário para o "
-                            "WCF Movimento: "
-                            f"{file_name}."
-                        ),
-                    )
-                )
-
-            #
-            # ----------------------------------------------------
-            # Pasta XML
-            # ----------------------------------------------------
-            #
-
-            rules.append(
-                CleanupRule(
-                    target=CleanupTarget.DIRECTORY,
-                    pattern="Xml",
-                    action=CleanupAction.PRESERVE,
-                    project_id=project_id,
-                    description=(
-                        "Preserva a pasta XML utilizada "
-                        "pelo WCF Movimento."
-                    ),
-                )
-            )
-
-        #
-        # ========================================================
-        # WCF Cadastro
-        # ========================================================
-        #
-
-        if project_id == "wcfcadastro":
-
-            #
-            # ----------------------------------------------------
-            # Arquivos da raiz do Release
-            # ----------------------------------------------------
-            #
-
-            root_files = [
-                "connectionStrings.config",
-                "custom.configuration.server.config",
-                "Cadastro.svc",
-                "CadastroWS.asmx",
-                "packages.config",
-                "Web.config",
-            ]
-
-            for file_name in root_files:
-
-                rules.append(
-                    CleanupRule(
-                        target=CleanupTarget.FILE,
-                        pattern=file_name,
-                        action=CleanupAction.PRESERVE,
-                        project_id=project_id,
-                        description=(
-                            "Preserva o arquivo da raiz do "
-                            "Release necessário para o "
-                            "WCF Cadastro: "
-                            f"{file_name}."
-                        ),
-                    )
-                )
-
-            #
-            # ----------------------------------------------------
-            # Diretórios nativos que não fazem parte do Setup.
-            #
-            # Essas regras explícitas de REMOVE têm prioridade
-            # sobre a proteção causada pelas DLLs preservadas.
-            # ----------------------------------------------------
-            #
-
-            native_directories = [
-                "x86",
-                "x64",
-                "arm64",
-            ]
-
-            for directory_name in native_directories:
-
-                rules.append(
-                    CleanupRule(
-                        target=CleanupTarget.DIRECTORY,
-                        pattern=directory_name,
-                        action=CleanupAction.REMOVE,
-                        project_id=project_id,
-                        description=(
-                            "Remove o diretório nativo "
-                            f"{directory_name} do WCF Cadastro."
-                        ),
-                    )
-                )
-
-        #
-        # ========================================================
-        # WCF Financeiro
-        # ========================================================
-        #
-
-        if project_id == "wcffinanceiro":
-
-            #
-            # ----------------------------------------------------
-            # Arquivos da raiz do Release
-            # ----------------------------------------------------
-            #
-
-            root_files = [
-                "connectionStrings.config",
-                "custom.configuration.server.config",
-                "Financial.svc",
-                "packages.config",
-                "Web.config",
-            ]
-
-            for file_name in root_files:
-
-                rules.append(
-                    CleanupRule(
-                        target=CleanupTarget.FILE,
-                        pattern=file_name,
-                        action=CleanupAction.PRESERVE,
-                        project_id=project_id,
-                        description=(
-                            "Preserva o arquivo da raiz do "
-                            "Release necessário para o "
-                            "WCF Financeiro: "
-                            f"{file_name}."
-                        ),
-                    )
-                )
-
-            #
-            # ----------------------------------------------------
-            # Diretórios nativos que não fazem parte do Setup.
-            #
-            # Essas regras explícitas de REMOVE têm prioridade
-            # sobre a proteção causada pelas DLLs preservadas.
-            # ----------------------------------------------------
-            #
-
-            native_directories = [
-                "x86",
-                "x64",
-                "arm64",
-            ]
-
-            for directory_name in native_directories:
-
-                rules.append(
-                    CleanupRule(
-                        target=CleanupTarget.DIRECTORY,
-                        pattern=directory_name,
-                        action=CleanupAction.REMOVE,
-                        project_id=project_id,
-                        description=(
-                            "Remove o diretório nativo "
-                            f"{directory_name} do WCF Financeiro."
-                        ),
-                    )
-                )
-
-        #
-        # ========================================================
-        # Ouro Net
-        # ========================================================
-        #
-
-        if project_id == "ouronet":
-
-            #
-            # ----------------------------------------------------
-            # Arquivos da raiz do Release
-            # ----------------------------------------------------
-            #
-
-            root_files = [
-                "OuroNetApp.exe",
-                "OuroNetApp.exe.config",
-            ]
-
-            for file_name in root_files:
-
-                rules.append(
-                    CleanupRule(
-                        target=CleanupTarget.FILE,
-                        pattern=file_name,
-                        action=CleanupAction.PRESERVE,
-                        project_id=project_id,
-                        description=(
-                            "Preserva o arquivo da raiz do "
-                            "Release necessário para o "
-                            "ouronet: "
-                            f"{file_name}."
-                        ),
-                    )
-                )
-
-            #
-            # ----------------------------------------------------
-            # Diretórios nativos que não fazem parte do Setup.
-            #
-            # Essas regras explícitas de REMOVE têm prioridade
-            # sobre a proteção causada pelas DLLs preservadas.
-            # ----------------------------------------------------
-            #
-
-            native_directories = [
-                "x86",
-                "x64",
-                "arm64",
-            ]
-
-            for directory_name in native_directories:
-
-                rules.append(
-                    CleanupRule(
-                        target=CleanupTarget.DIRECTORY,
-                        pattern=directory_name,
-                        action=CleanupAction.PRESERVE,
-                        project_id=project_id,
-                        description=(
-                            "Remove o diretório nativo "
-                            f"{directory_name} do ouronet."
-                        ),
-                    )
-                )
-
-        return rules
+        return [
+            rule
+            for rule in rules
+            if rule.enabled
+        ]

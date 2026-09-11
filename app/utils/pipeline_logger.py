@@ -415,7 +415,7 @@ class PipelineLogger:
             cls._get_calling_method_name()
         )
 
-        timestamp = datetime.now()
+        timestamp = datetime.now().replace(microsecond=0)
 
         timestamp_text = timestamp.strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -558,13 +558,12 @@ class PipelineLogger:
         cls,
     ) -> None:
         """
-        Escreve uma linha separadora.
+        Mantido por compatibilidade.
+
+        Separadores visuais não são persistidos no log.
         """
 
-        cls.write(
-            "=" * 80,
-            "INFO",
-        )
+        return
 
     @classmethod
     def header(

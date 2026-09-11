@@ -1,5 +1,6 @@
 import {
   FolderCog,
+  ListChecks,
   Settings,
   SlidersHorizontal,
   Users,
@@ -85,6 +86,26 @@ function AdministrationPage() {
             className="secondary-button"
             type="button"
             onClick={() => navigate("/environments")}
+          >
+            Configurar
+          </button>
+        </div>
+
+        <div className="admin-card">
+          <div className="admin-card-icon">
+            <ListChecks size={21} />
+          </div>
+
+          <h2>Exceções de limpeza</h2>
+
+          <p>
+            Configure as exceções específicas de cada projeto durante a limpeza do Build.
+          </p>
+
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => navigate("/cleanup-rules")}
           >
             Configurar
           </button>

@@ -38,6 +38,9 @@ from app.api.routers.execution_router import (
 from app.api.routers.history_router import (
     router as history_router,
 )
+from app.api.routers.agent_router import (
+    router as agent_router,
+)
 
 # Core
 from app.core.configuration.configuration_loader import (
@@ -57,10 +60,21 @@ from app.factories.default_pipeline_factory import (
 from app.repositories.sql_environment_repository import (
     SqlEnvironmentRepository,
 )
+from app.repositories.sql_agent_repository import (
+    SqlAgentRepository,
+)
+
+from app.repositories.sql_cleanup_rule_repository import (
+    SqlCleanupRuleRepository,
+)
 
 # Services
 from app.services.default_process_service import (
     DefaultProcessService,
+)
+
+from app.services.cleanup.cleanup_rules_provider import (
+    CleanupRulesProvider,
 )
 
 # Use Cases
@@ -329,6 +343,12 @@ from app.services.history.pipeline_history_service import (
 from app.repositories.sql_pipeline_execution_log_repository import (
     SqlPipelineExecutionLogRepository,
 )
+from app.repositories.sql_setup_publication_batch_repository import (
+    SqlSetupPublicationBatchRepository,
+)
+from app.repositories.sql_setup_publication_log_repository import (
+    SqlSetupPublicationLogRepository,
+)
 from app.utils.pipeline_logger import (
     PipelineLogger,
 )
@@ -392,6 +412,16 @@ class Bootstrap:
             settings=self.settings.logging,
             repository=self.pipeline_execution_log_repository,
         )
+        self.setup_publication_batch_repository = (
+            SqlSetupPublicationBatchRepository(
+                database_connection=self.database_connection,
+            )
+        )
+        self.setup_publication_log_repository = (
+            SqlSetupPublicationLogRepository(
+                database_connection=self.database_connection,
+            )
+        )
 
         #
         # Toolchain
@@ -435,6 +465,16 @@ class Bootstrap:
             project_repository=self.project_repository,
         )
 
+        self.cleanup_rule_repository = (
+            SqlCleanupRuleRepository(
+                database_connection=self.database_connection,
+            )
+        )
+
+        CleanupRulesProvider.configure(
+            repository=self.cleanup_rule_repository,
+        )
+
         self.environment_repository = (
             SqlEnvironmentRepository(
                 database_connection=self.database_connection,
@@ -444,6 +484,11 @@ class Bootstrap:
         self.project_metadata_repository = (
             JsonProjectMetadataRepository(
                 metadata_path=Path("metadata"),
+            )
+        )
+        self.agent_repository = (
+            SqlAgentRepository(
+                database_connection=self.database_connection,
             )
         )
         #
@@ -830,6 +875,12 @@ class Bootstrap:
                 setup_network_publisher=(
                     self.setup_network_publisher
                 ),
+                setup_publication_batch_repository=(
+                    self.setup_publication_batch_repository
+                ),
+                setup_publication_log_repository=(
+                    self.setup_publication_log_repository
+                ),
                 settings=self.settings,
             )
         )
@@ -993,6 +1044,9 @@ class Bootstrap:
 
         app.include_router(
             history_router,
+        )
+        app.include_router(
+            agent_router,
         )
 
         return app

@@ -6,6 +6,7 @@ Descrição : Responsável por executar uma Pipeline de Build.
 --------------------------------------------------------------------
 """
 
+from pathlib import Path
 from typing import Callable
 
 from app.abstractions.pipeline_factory import (
@@ -32,6 +33,10 @@ from app.factories.publish_context_factory import (
     PublishContextFactory,
 )
 
+from app.models.build.build_context import (
+    BuildContext,
+)
+
 from app.models.build.build_request import (
     BuildRequest,
 )
@@ -52,10 +57,6 @@ from app.models.publish.publish_request import (
     PublishRequest,
 )
 
-from app.models.setup.setup_publication_mode import (
-    SetupPublicationMode,
-)
-
 from app.models.setup.setup_request import (
     SetupRequest,
 )
@@ -70,6 +71,10 @@ from app.services.workspace.solution_locator_service import (
 
 from app.use_cases.execute_setup_use_case import (
     DefaultExecuteSetupUseCase,
+)
+
+from app.utils.pipeline_logger import (
+    PipelineLogger,
 )
 
 
@@ -147,9 +152,7 @@ class ExecutePipelineUseCase:
         environment_id: str | None = None,
         version: str | None = None,
         revision: int | None = None,
-        publication_mode: SetupPublicationMode = (
-            SetupPublicationMode.LOCAL
-        ),
+        publication_mode: str | None = None,
         progress_callback: Callable[
             [
                 str,
@@ -165,6 +168,10 @@ class ExecutePipelineUseCase:
         """
         Executa a Pipeline e, quando solicitado,
         gera o Setup.
+
+        publication_mode é recebido pela camada de execução para manter
+        compatibilidade com o fluxo de publicação. A publicação em rede
+        ocorre posteriormente pelo PublishSetupsUseCase.
         """
 
         build_request = BuildRequest(
@@ -195,6 +202,14 @@ class ExecutePipelineUseCase:
         )
 
         build_builder.build(
+            build_context,
+        )
+
+        #
+        # Valida o arquivo físico do projeto antes de qualquer etapa
+        # de Publish, Build ou execução do Pipeline.
+        #
+        self.__validate_project_file(
             build_context,
         )
 
@@ -326,7 +341,6 @@ class ExecutePipelineUseCase:
                     version=version,
                     revision=revision,
                     run_build=False,
-                    publication_mode=publication_mode,
                 )
             )
             if setup_enabled
@@ -425,7 +439,6 @@ class ExecutePipelineUseCase:
             version=version,
             revision=revision,
             run_build=False,
-            publication_mode=publication_mode,
         )
 
         #
@@ -499,6 +512,29 @@ class ExecutePipelineUseCase:
             setup_result.steps,
         )
 
+        #
+        # Propaga falha do Setup antes de persistir a execução.
+        #
+        if not setup_result.success:
+            result.success = False
+            result.failed_step = "Setup"
+            result.message = setup_result.message
+
+            if self.__pipeline_execution_repository is not None:
+                self.__pipeline_execution_repository.save(
+                    result,
+                )
+
+            return result
+
+        #
+        # Adiciona o MSI aos artefatos antes de persistir a execução.
+        #
+        if setup_result.output_msi:
+            result.artifacts.append(
+                setup_result.output_msi,
+            )
+
         if self.__pipeline_execution_repository is not None:
             self.__pipeline_execution_repository.save(
                 result,
@@ -514,24 +550,9 @@ class ExecutePipelineUseCase:
             )
 
         #
-        # Propaga falha do Setup.
+        # A execução foi concluída com sucesso.
         #
-
-        if not setup_result.success:
-            result.success = False
-
-            result.failed_step = "Setup"
-
-            result.message = (
-                setup_result.message
-            )
-
-            if self.__pipeline_execution_repository is not None:
-                self.__pipeline_execution_repository.save(
-                    result,
-                )
-
-            return result
+        return result
 
         #
         # Adiciona o MSI aos artefatos.
@@ -543,3 +564,77 @@ class ExecutePipelineUseCase:
             )
 
         return result
+
+
+    @staticmethod
+    def __validate_project_file(
+        build_context: BuildContext,
+    ) -> None:
+        """
+        Valida se o arquivo de projeto configurado existe no Workspace.
+
+        A validação ocorre depois que o BuildEnvironmentBuilder resolve o
+        caminho físico e antes de qualquer etapa da Pipeline.
+        """
+
+        project = build_context.project
+        paths = build_context.paths
+
+        project_id = project.id if project is not None else ""
+        project_path = (
+            project.project_path
+            if project is not None
+            else ""
+        )
+        project_file = paths.project_file
+        workspace_root = paths.workspace_root
+
+        PipelineLogger.info(
+            "VALIDAÇÃO DO PROJETO"
+        )
+        PipelineLogger.info(
+            f"Project ID........: {project_id}"
+        )
+        PipelineLogger.info(
+            f"Project Path......: {project_path}"
+        )
+        PipelineLogger.info(
+            f"Workspace Root....: {workspace_root}"
+        )
+        PipelineLogger.info(
+            f"Project File......: {project_file}"
+        )
+
+        if project_file is None:
+            message = (
+                "Arquivo do projeto não foi resolvido. "
+                f"Project ID: '{project_id}'. "
+                f"Project Path: '{project_path}'."
+            )
+
+            PipelineLogger.error(
+                f"VALIDAÇÃO DO PROJETO - FALHA | {message}"
+            )
+
+            raise ValueError(message)
+
+        project_file = Path(project_file)
+
+        if not project_file.is_file():
+            message = (
+                "Arquivo do projeto não encontrado no Workspace. "
+                f"Project ID: '{project_id}'. "
+                f"Project Path: '{project_path}'. "
+                f"Caminho resolvido: '{project_file}'."
+            )
+
+            PipelineLogger.error(
+                f"VALIDAÇÃO DO PROJETO - FALHA | {message}"
+            )
+
+            raise ValueError(message)
+
+        PipelineLogger.info(
+            "VALIDAÇÃO DO PROJETO - OK"
+        )
+

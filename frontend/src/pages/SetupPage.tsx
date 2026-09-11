@@ -18,10 +18,12 @@ import {
   executeProject,
   getExecution,
   getProjects,
+  getSetupPublicationStatus,
   publishSetups,
   type PipelineExecutionResponse,
   type Project,
   type SetupPublicationMode,
+  type SetupPublicationStatusResult,
 } from "../services/projectsApi";
 
 import {
@@ -172,6 +174,11 @@ function SetupPage() {
   ] = useState(0);
 
   const [
+    publicationFailed,
+    setPublicationFailed,
+  ] = useState(0);
+
+  const [
     toastMessage,
     setToastMessage,
   ] = useState("");
@@ -308,26 +315,6 @@ function SetupPage() {
 
   const selectedCount =
     selectedProjects.length;
-
-
-  const isPublishing =
-    publicationStatus === "publishing";
-
-
-  const isBusy =
-    isGenerating ||
-    isPublishing;
-
-
-  function closePublicationModal() {
-    if (isPublishing) {
-      return;
-    }
-
-    setPublicationStatus("idle");
-    setPublicationMessage("");
-    setPublicationCompleted(0);
-  }
 
 
   const selectedProjectData =
@@ -469,8 +456,47 @@ function SetupPage() {
   }
 
 
+  function closePublicationModal() {
+    if (publicationStatus === "publishing") {
+      return;
+    }
+
+    setPublicationStatus("idle");
+    setPublicationMessage("");
+    setPublicationCompleted(0);
+    setPublicationFailed(0);
+  }
+
+  async function pollSetupPublication(
+    batchId: string,
+  ): Promise<SetupPublicationStatusResult> {
+    const pollIntervalMs = 1000;
+
+    while (true) {
+      const status = await getSetupPublicationStatus(batchId);
+
+      setPublicationCompleted(status.completed);
+      setPublicationFailed(status.failed);
+
+      if (status.message) {
+        setPublicationMessage(status.message);
+      }
+
+      if (
+        status.status === "completed" ||
+        status.status === "failed"
+      ) {
+        return status;
+      }
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, pollIntervalMs);
+      });
+    }
+  }
+
   async function generateSetups() {
-    if (isBusy) {
+    if (isGenerating) {
       return;
     }
 
@@ -502,7 +528,9 @@ function SetupPage() {
       Number(trimmedRevision);
 
     if (
-      !Number.isInteger(numericRevision) ||
+      !Number.isInteger(
+        numericRevision,
+      ) ||
       numericRevision < 0
     ) {
       setToastMessage(
@@ -531,6 +559,9 @@ function SetupPage() {
       return;
     }
 
+    const parsedRevision =
+      numericRevision;
+
     const trimmedVersion =
       version.trim();
 
@@ -544,13 +575,6 @@ function SetupPage() {
       return;
     }
 
-    const selectedIds = [
-      ...selectedProjects,
-    ];
-
-    const parsedRevision =
-      numericRevision;
-
     const executionIds: string[] = [];
     let allGenerationsSucceeded = true;
 
@@ -558,6 +582,11 @@ function SetupPage() {
     setPublicationStatus("idle");
     setPublicationMessage("");
     setPublicationCompleted(0);
+    setPublicationFailed(0);
+
+    const selectedIds = [
+      ...selectedProjects,
+    ];
 
     setExecutions(
       (current) =>
@@ -570,11 +599,13 @@ function SetupPage() {
                   ...execution,
                   status: "pending",
                   progress: 0,
-                  executionId: null,
+                  executionId:
+                    null,
                   phase: null,
-                  currentStepIndex: 0,
-                  totalSteps: 0,
                   currentStep: null,
+                  currentStepIndex:
+                    0,
+                  totalSteps: 0,
                   message:
                     "Aguardando execução",
                   failedStep: null,
@@ -586,7 +617,8 @@ function SetupPage() {
     try {
       for (
         let index = 0;
-        index < selectedIds.length;
+        index <
+        selectedIds.length;
         index += 1
       ) {
         const projectId =
@@ -596,10 +628,12 @@ function SetupPage() {
           (current) =>
             current.map(
               (execution) =>
-                execution.id === projectId
+                execution.id ===
+                projectId
                   ? {
                       ...execution,
-                      status: "pending",
+                      status:
+                        "pending",
                       progress: 0,
                       message:
                         "Iniciando execução...",
@@ -616,7 +650,8 @@ function SetupPage() {
                 environment_id:
                   environment,
                 version:
-                  trimmedVersion || null,
+                  version.trim() ||
+                  null,
                 revision:
                   parsedRevision,
                 publication_mode:
@@ -640,28 +675,29 @@ function SetupPage() {
             );
 
           if (
-            finalExecution.status !==
-              "completed" ||
+            finalExecution.status !== "completed" ||
             finalExecution.success !== true
           ) {
             allGenerationsSucceeded = false;
           }
         } catch (error) {
-          allGenerationsSucceeded = false;
-
           const message =
             error instanceof Error
               ? error.message
               : "Erro durante a execução.";
 
+          allGenerationsSucceeded = false;
+
           setExecutions(
             (current) =>
               current.map(
                 (execution) =>
-                  execution.id === projectId
+                  execution.id ===
+                  projectId
                     ? {
                         ...execution,
-                        status: "error",
+                        status:
+                          "error",
                         progress: 0,
                         message,
                       }
@@ -673,15 +709,20 @@ function SetupPage() {
         const nextProject =
           selectedIds[index + 1];
 
-        if (nextProject !== undefined) {
+        if (
+          nextProject !==
+          undefined
+        ) {
           setExecutions(
             (current) =>
               current.map(
                 (execution) =>
-                  execution.id === nextProject
+                  execution.id ===
+                  nextProject
                     ? {
                         ...execution,
-                        status: "pending",
+                        status:
+                          "pending",
                         progress: 0,
                         message:
                           "Aguardando execução",
@@ -710,25 +751,18 @@ function SetupPage() {
       if (publicationMode !== "network") {
         setToastMessage(
           `${selectedIds.length} Setup${
-            selectedIds.length === 1
-              ? ""
-              : "s"
+            selectedIds.length === 1 ? "" : "s"
           } gerado${
-            selectedIds.length === 1
-              ? ""
-              : "s"
+            selectedIds.length === 1 ? "" : "s"
           } com sucesso.`,
         );
-
         return;
       }
 
       setPublicationStatus("publishing");
       setPublicationMessage(
         `Publicando ${selectedIds.length} Setup${
-          selectedIds.length === 1
-            ? ""
-            : "s"
+          selectedIds.length === 1 ? "" : "s"
         } na rede...`,
       );
       setPublicationCompleted(0);
@@ -736,12 +770,9 @@ function SetupPage() {
       try {
         const publication =
           await publishSetups({
-            execution_ids:
-              executionIds,
-            version:
-              trimmedVersion,
-            revision:
-              parsedRevision,
+            execution_ids: executionIds,
+            version: trimmedVersion,
+            revision: parsedRevision,
           });
 
         if (!publication.success) {
@@ -752,13 +783,32 @@ function SetupPage() {
           return;
         }
 
-        setPublicationCompleted(
-          selectedIds.length,
-        );
-        setPublicationStatus("success");
         setPublicationMessage(
           publication.message,
         );
+
+        const finalPublication =
+          await pollSetupPublication(
+            publication.batch_id,
+          );
+
+        if (
+          finalPublication.status === "completed" &&
+          finalPublication.success === true &&
+          finalPublication.failed === 0
+        ) {
+          setPublicationStatus("success");
+          setPublicationMessage(
+            finalPublication.message ??
+              "Todos os Setups foram publicados com sucesso.",
+          );
+        } else {
+          setPublicationStatus("error");
+          setPublicationMessage(
+            finalPublication.message ??
+              "A publicação não foi concluída para todos os projetos.",
+          );
+        }
       } catch (error) {
         setPublicationStatus("error");
         setPublicationMessage(
@@ -795,516 +845,6 @@ function SetupPage() {
           }}
         >
           {toastMessage}
-        </div>
-      )}
-
-
-
-      {publicationStatus !== "idle" && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="setup-publication-title"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 10000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            background:
-              "rgba(15, 23, 42, 0.45)",
-            backdropFilter: "blur(4px)",
-          }}
-        >
-          <div
-            style={{
-              width: "min(760px, 100%)",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              borderRadius: "18px",
-              background: "#ffffff",
-              boxShadow:
-                "0 24px 70px rgba(15, 23, 42, 0.24)",
-              padding: "28px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: "20px",
-              }}
-            >
-              <div>
-                <h2
-                  id="setup-publication-title"
-                  style={{
-                    margin: 0,
-                    fontSize: "24px",
-                    lineHeight: 1.2,
-                    color: "#0f172a",
-                  }}
-                >
-                  Publicação dos Setups
-                </h2>
-
-                <p
-                  style={{
-                    margin:
-                      "8px 0 0",
-                    color: "#64748b",
-                    fontSize: "14px",
-                  }}
-                >
-                  {publicationStatus ===
-                  "publishing"
-                    ? "A geração terminou. Agora os Setups estão sendo copiados para a rede."
-                    : publicationStatus ===
-                        "success"
-                      ? "Todos os Setups foram publicados com sucesso."
-                      : "A publicação não foi concluída."}
-                </p>
-              </div>
-
-              {!isPublishing && (
-                <button
-                  type="button"
-                  aria-label="Fechar publicação"
-                  onClick={
-                    closePublicationModal
-                  }
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "36px",
-                    height: "36px",
-                    flexShrink: 0,
-                    border: "0",
-                    borderRadius: "10px",
-                    background: "#f1f5f9",
-                    color: "#475569",
-                    cursor: "pointer",
-                  }}
-                >
-                  <X size={18} />
-                </button>
-              )}
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "1fr 1fr",
-                gap: "14px",
-                marginTop: "24px",
-              }}
-            >
-              <div
-                style={{
-                  borderRadius: "14px",
-                  padding: "18px",
-                  background: "#eff6ff",
-                  border:
-                    "1px solid #bfdbfe",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "30px",
-                      height: "30px",
-                      borderRadius: "50%",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      fontWeight: 700,
-                    }}
-                  >
-                    1
-                  </span>
-
-                  <strong
-                    style={{
-                      color: "#1e3a8a",
-                    }}
-                  >
-                    Geração dos Setups
-                  </strong>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "12px",
-                    color: "#475569",
-                    fontSize: "14px",
-                  }}
-                >
-                  {executions.filter(
-                    (execution) =>
-                      selectedProjects.includes(
-                        execution.id,
-                      ),
-                  ).filter(
-                    (execution) =>
-                      execution.status ===
-                      "success",
-                  ).length} de {selectedCount} Setup
-                  {selectedCount === 1
-                    ? " gerado com sucesso."
-                    : "s gerados com sucesso."}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  borderRadius: "14px",
-                  padding: "18px",
-                  background:
-                    publicationStatus ===
-                    "success"
-                      ? "#ecfdf5"
-                      : publicationStatus ===
-                          "error"
-                        ? "#fef2f2"
-                        : "#eff6ff",
-                  border:
-                    publicationStatus ===
-                    "success"
-                      ? "1px solid #a7f3d0"
-                      : publicationStatus ===
-                          "error"
-                        ? "1px solid #fecaca"
-                        : "1px solid #bfdbfe",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "30px",
-                      height: "30px",
-                      borderRadius: "50%",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background:
-                        publicationStatus ===
-                        "success"
-                          ? "#10b981"
-                          : publicationStatus ===
-                              "error"
-                            ? "#ef4444"
-                            : "#2563eb",
-                      color: "#ffffff",
-                      fontWeight: 700,
-                    }}
-                  >
-                    2
-                  </span>
-
-                  <strong
-                    style={{
-                      color:
-                        publicationStatus ===
-                        "success"
-                          ? "#065f46"
-                          : publicationStatus ===
-                              "error"
-                            ? "#991b1b"
-                            : "#1e3a8a",
-                    }}
-                  >
-                    Copiando para rede
-                  </strong>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "12px",
-                    color: "#475569",
-                    fontSize: "14px",
-                  }}
-                >
-                  {publicationStatus ===
-                  "publishing"
-                    ? `Publicação em lote em andamento. ${selectedCount} Setup${
-                        selectedCount === 1
-                          ? ""
-                          : "s"
-                      } incluído${
-                        selectedCount === 1
-                          ? ""
-                          : "s"
-                      }.`
-                    : publicationStatus ===
-                        "success"
-                      ? `${publicationCompleted} de ${selectedCount} publicados com sucesso.`
-                      : publicationMessage}
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                marginTop: "22px",
-                padding: "20px",
-                borderRadius: "14px",
-                background: "#f8fafc",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "16px",
-                }}
-              >
-                <strong
-                  style={{
-                    color: "#0f172a",
-                  }}
-                >
-                  {publicationStatus ===
-                  "publishing"
-                    ? "Copiando a publicação em lote..."
-                    : publicationStatus ===
-                        "success"
-                      ? "Publicação concluída"
-                      : "Publicação interrompida"}
-                </strong>
-
-                <span
-                  style={{
-                    fontWeight: 700,
-                    color:
-                      publicationStatus ===
-                      "error"
-                        ? "#dc2626"
-                        : "#2563eb",
-                  }}
-                >
-                  {publicationStatus ===
-                  "publishing"
-                    ? `${selectedCount} Setup${
-                        selectedCount === 1
-                          ? ""
-                          : "s"
-                      }`
-                    : publicationStatus ===
-                        "success"
-                      ? `${selectedCount}/${selectedCount}`
-                      : `${publicationCompleted}/${selectedCount}`}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  height: "10px",
-                  marginTop: "14px",
-                  overflow: "hidden",
-                  borderRadius: "999px",
-                  background: "#e2e8f0",
-                }}
-              >
-                <div
-                  style={{
-                    width:
-                      publicationStatus ===
-                      "publishing"
-                        ? "35%"
-                        : `${
-                            selectedCount >
-                            0
-                              ? Math.min(
-                                  100,
-                                  Math.round(
-                                    (publicationCompleted /
-                                      selectedCount) *
-                                      100,
-                                  ),
-                                )
-                              : 0
-                          }%`,
-                    height: "100%",
-                    borderRadius: "inherit",
-                    background:
-                      publicationStatus ===
-                      "error"
-                        ? "#ef4444"
-                        : publicationStatus ===
-                            "success"
-                          ? "#10b981"
-                          : "#2563eb",
-                    transition:
-                      "width 300ms ease",
-                    animation:
-                      publicationStatus ===
-                      "publishing"
-                        ? "ourobuild-modal-progress 1.2s ease-in-out infinite alternate"
-                        : undefined,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div
-              style={{
-                marginTop: "18px",
-              }}
-            >
-              <strong
-                style={{
-                  display: "block",
-                  marginBottom: "10px",
-                  color: "#0f172a",
-                }}
-              >
-                Projetos selecionados
-              </strong>
-
-              <div
-                style={{
-                  display: "grid",
-                  gap: "8px",
-                }}
-              >
-                {selectedProjectData.map(
-                  (project, index) => (
-                    <div
-                      key={project.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "10px 12px",
-                        borderRadius: "10px",
-                        background:
-                          "#f8fafc",
-                        border:
-                          "1px solid #e2e8f0",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          flexShrink: 0,
-                          display:
-                            "inline-flex",
-                          alignItems:
-                            "center",
-                          justifyContent:
-                            "center",
-                          borderRadius:
-                            "50%",
-                          background:
-                            publicationStatus ===
-                            "success"
-                              ? "#dcfce7"
-                              : "#dbeafe",
-                          color:
-                            publicationStatus ===
-                            "success"
-                              ? "#166534"
-                              : "#1d4ed8",
-                          fontSize: "12px",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {index + 1}
-                      </span>
-
-                      <span
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "2px",
-                          color: "#334155",
-                          fontSize: "14px",
-                        }}
-                      >
-                        <strong>
-                          {project.name}
-                        </strong>
-
-                        <small
-                          style={{
-                            color: "#64748b",
-                            fontSize: "12px",
-                          }}
-                        >
-                          Incluído na publicação em lote
-                        </small>
-                      </span>
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
-
-            {publicationStatus ===
-              "error" && (
-              <div
-                role="alert"
-                style={{
-                  marginTop: "18px",
-                  padding: "14px 16px",
-                  borderRadius: "10px",
-                  background: "#fef2f2",
-                  color: "#991b1b",
-                  border:
-                    "1px solid #fecaca",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                }}
-              >
-                {publicationMessage}
-              </div>
-            )}
-
-            {publicationStatus ===
-              "success" && (
-              <div
-                role="status"
-                style={{
-                  marginTop: "18px",
-                  padding: "14px 16px",
-                  borderRadius: "10px",
-                  background: "#ecfdf5",
-                  color: "#065f46",
-                  border:
-                    "1px solid #a7f3d0",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                }}
-              >
-                {publicationMessage}
-              </div>
-            )}
-          </div>
-
-          <style>
-            {`\n              @keyframes ourobuild-modal-progress {\n                from {\n                  transform: translateX(-10%);\n                  opacity: 0.65;\n                }\n                to {\n                  transform: translateX(140%);\n                  opacity: 1;\n                }\n              }\n            `}
-          </style>
         </div>
       )}
 
@@ -1562,7 +1102,7 @@ function SetupPage() {
                 }}
                 disabled={
                   isLoading ||
-                  isBusy ||
+                  isGenerating ||
                   environments.length ===
                     0
                 }
@@ -1596,7 +1136,7 @@ function SetupPage() {
                   )
                 }
                 disabled={
-                  isBusy
+                  isGenerating
                 }
               >
                 <option value="Release">
@@ -1623,7 +1163,7 @@ function SetupPage() {
                   )
                 }
                 disabled={
-                  isBusy
+                  isGenerating
                 }
               >
                 <option value="local">
@@ -1651,7 +1191,7 @@ function SetupPage() {
                 }
                 placeholder="Ex.: 1.1.1"
                 disabled={
-                  isBusy
+                  isGenerating
                 }
               />
             </label>
@@ -1671,7 +1211,7 @@ function SetupPage() {
                 }
                 placeholder="Ex.: 1"
                 disabled={
-                  isBusy
+                  isGenerating
                 }
               />
             </label>
@@ -1720,13 +1260,13 @@ function SetupPage() {
             type="button"
             disabled={
               isLoading ||
-              isBusy
+              isGenerating
             }
             onClick={
               generateSetups
             }
           >
-            {isBusy ? (
+            {isGenerating ? (
               <Loader2
                 size={18}
                 className="spin"
@@ -1737,11 +1277,9 @@ function SetupPage() {
               <Rocket size={18} />
             )}
 
-            {isPublishing
-              ? "Publicando Setups..."
-              : isGenerating
-                ? "Gerando Setups..."
-                : `Gerar ${selectedCount} Setup${
+            {isGenerating
+              ? "Gerando Setups..."
+              : `Gerar ${selectedCount} Setup${
                   selectedCount === 1
                     ? ""
                     : "s"
@@ -1775,6 +1313,419 @@ function SetupPage() {
         </div>
       </div>
 
+
+      {publicationStatus !== "idle" && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="setup-publication-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            background: "rgba(15, 23, 42, 0.45)",
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <div
+            style={{
+              width: "min(760px, 100%)",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              borderRadius: "18px",
+              background: "#ffffff",
+              boxShadow: "0 24px 70px rgba(15, 23, 42, 0.24)",
+              padding: "28px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "20px",
+              }}
+            >
+              <div>
+                <h2
+                  id="setup-publication-title"
+                  style={{
+                    margin: 0,
+                    fontSize: "24px",
+                    lineHeight: 1.2,
+                    color: "#0f172a",
+                  }}
+                >
+                  Publicação dos Setups
+                </h2>
+
+                <p
+                  style={{
+                    margin: "8px 0 0",
+                    color: "#64748b",
+                    fontSize: "14px",
+                  }}
+                >
+                  {publicationStatus === "publishing"
+                    ? "A geração terminou. Agora os Setups estão sendo copiados para a rede."
+                    : publicationStatus === "success"
+                      ? "Todos os Setups foram publicados com sucesso."
+                      : "A publicação não foi concluída."}
+                </p>
+              </div>
+
+              {publicationStatus !== "publishing" && (
+                <button
+                  type="button"
+                  aria-label="Fechar publicação"
+                  onClick={closePublicationModal}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "36px",
+                    height: "36px",
+                    flexShrink: 0,
+                    border: "0",
+                    borderRadius: "10px",
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "14px",
+                marginTop: "24px",
+              }}
+            >
+              <div
+                style={{
+                  borderRadius: "14px",
+                  padding: "18px",
+                  background: publicationStatus === "success" ? "#ecfdf5" : "#eff6ff",
+                  border: publicationStatus === "success" ? "1px solid #a7f3d0" : "1px solid #bfdbfe",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "30px",
+                      height: "30px",
+                      borderRadius: "50%",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: publicationStatus === "success" ? "#10b981" : "#2563eb",
+                      color: "#ffffff",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {publicationStatus === "success" ? <Check size={16} /> : "1"}
+                  </span>
+
+                  <strong
+                    style={{
+                      color: publicationStatus === "success" ? "#065f46" : "#1e3a8a",
+                    }}
+                  >
+                    Geração dos Setups
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "12px",
+                    color: "#475569",
+                    fontSize: "14px",
+                  }}
+                >
+                  {selectedCount} de {selectedCount} Setup{selectedCount === 1 ? "" : "s"} gerado{selectedCount === 1 ? "" : "s"} com sucesso.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  borderRadius: "14px",
+                  padding: "18px",
+                  background: publicationStatus === "error" ? "#fef2f2" : "#eff6ff",
+                  border: publicationStatus === "error" ? "1px solid #fecaca" : "1px solid #bfdbfe",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "30px",
+                      height: "30px",
+                      borderRadius: "50%",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: publicationStatus === "error" ? "#dc2626" : "#2563eb",
+                      color: "#ffffff",
+                      fontWeight: 700,
+                    }}
+                  >
+                    2
+                  </span>
+
+                  <strong
+                    style={{
+                      color: publicationStatus === "error" ? "#991b1b" : "#1e3a8a",
+                    }}
+                  >
+                    Copiando para rede
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "12px",
+                    color: "#475569",
+                    fontSize: "14px",
+                  }}
+                >
+                  {publicationStatus === "publishing"
+                    ? "Publicação em andamento..."
+                    : `${publicationCompleted} de ${selectedCount} publicados${
+                        publicationFailed > 0
+                          ? `; ${publicationFailed} com falha`
+                          : ""
+                      }.`}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: "22px",
+                padding: "20px",
+                borderRadius: "14px",
+                background: "#f8fafc",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                }}
+              >
+                <strong style={{ color: "#0f172a" }}>
+                  {publicationStatus === "publishing"
+                    ? "Copiando os Setups..."
+                    : publicationStatus === "success"
+                      ? "Publicação concluída"
+                      : "Publicação interrompida"}
+                </strong>
+
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: publicationStatus === "error" ? "#dc2626" : publicationStatus === "success" ? "#059669" : "#2563eb",
+                  }}
+                >
+                  {publicationStatus === "publishing"
+                    ? `${publicationCompleted}/${selectedCount}`
+                    : `${publicationCompleted}/${selectedCount}`}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  height: "10px",
+                  marginTop: "14px",
+                  overflow: "hidden",
+                  borderRadius: "999px",
+                  background: "#e2e8f0",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${selectedCount > 0 ? Math.min(100, Math.round((publicationCompleted / selectedCount) * 100)) : 0}%`,
+                    height: "100%",
+                    borderRadius: "inherit",
+                    background: publicationStatus === "error" ? "#ef4444" : publicationStatus === "success" ? "#10b981" : "#2563eb",
+                    transition: "width 300ms ease",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginTop: "18px" }}>
+              <strong
+                style={{
+                  display: "block",
+                  marginBottom: "10px",
+                  color: "#0f172a",
+                }}
+              >
+                Projetos selecionados
+              </strong>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: "8px",
+                }}
+              >
+                {selectedProjectData.map(
+                  (project) => (
+                    <div
+                      key={project.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        padding: "12px 14px",
+                        borderRadius: "10px",
+                        background: "#ffffff",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "26px",
+                            height: "26px",
+                            borderRadius: "50%",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: publicationStatus === "success" ? "#dcfce7" : "#dbeafe",
+                            color: publicationStatus === "success" ? "#166534" : "#1d4ed8",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {publicationStatus === "success" ? <Check size={14} /> : selectedProjectData.indexOf(project) + 1}
+                        </span>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "2px",
+                          }}
+                        >
+                          <strong style={{ color: "#334155" }}>
+                            {project.name}
+                          </strong>
+
+                          <span
+                            style={{
+                              color: "#64748b",
+                              fontSize: "12px",
+                            }}
+                          >
+                            {publicationStatus === "success"
+                              ? "Copiado com sucesso"
+                              : publicationStatus === "error"
+                                ? "Não foi possível concluir a publicação"
+                                : "Aguardando conclusão da cópia..."}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: "18px",
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "10px",
+              }}
+            >
+              {[
+                ["Total", selectedCount],
+                ["Concluídos", publicationCompleted],
+                ["Falhas", publicationFailed],
+              ].map(([label, value]) => (
+                <div
+                  key={label as string}
+                  style={{
+                    padding: "14px",
+                    borderRadius: "12px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "block",
+                      color: "#64748b",
+                      fontSize: "12px",
+                    }}
+                  >
+                    {label}
+                  </span>
+
+                  <strong
+                    style={{
+                      display: "block",
+                      marginTop: "3px",
+                      fontSize: "22px",
+                      color: "#0f172a",
+                    }}
+                  >
+                    {value}
+                  </strong>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                marginTop: "18px",
+                padding: "14px 16px",
+                borderRadius: "10px",
+                background: publicationStatus === "error" ? "#fef2f2" : "#eff6ff",
+                color: publicationStatus === "error" ? "#991b1b" : "#1e3a8a",
+                fontSize: "14px",
+              }}
+            >
+              {publicationStatus === "publishing"
+                ? "Aguarde enquanto os Setups são copiados para a rede."
+                : publicationMessage}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="content-card execution-card">
         <div className="card-header">

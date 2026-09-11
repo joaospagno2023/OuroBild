@@ -476,7 +476,7 @@ class AdvancedInstallerService(
         title: str,
         directory: Path,
     ) -> None:
-        """Registra no log o conteúdo de um diretório para diagnóstico."""
+        """Registra somente um resumo do conteúdo do diretório."""
         directory = Path(directory)
 
         PipelineLogger.info(
@@ -513,34 +513,27 @@ class AdvancedInstallerService(
             )
             return
 
-        files = sorted(
-            [
-                path
-                for path in directory.rglob("*")
-                if path.is_file()
-            ],
-            key=lambda path: str(path).lower(),
+        file_count = sum(
+            1
+            for path in directory.rglob("*")
+            if path.is_file()
+        )
+
+        directory_count = sum(
+            1
+            for path in directory.rglob("*")
+            if path.is_dir()
         )
 
         PipelineLogger.info(
             "Diretorio existe......: True"
         )
         PipelineLogger.info(
-            f"Arquivos..............: {len(files)}"
+            f"Arquivos..............: {file_count}"
         )
-
-        for file_path in files:
-            try:
-                relative_path = file_path.relative_to(
-                    directory
-                )
-            except ValueError:
-                relative_path = file_path
-
-            PipelineLogger.info(
-                f"ARQUIVO...............: {relative_path}"
-            )
-
+        PipelineLogger.info(
+            f"Diretorios............: {directory_count}"
+        )
         PipelineLogger.info(
             "=" * 80
         )
@@ -549,26 +542,24 @@ class AdvancedInstallerService(
     def __log_cleanup_results(
         cleanup_result,
     ) -> None:
-        """Registra exatamente quais arquivos o Cleanup removeu ou preservou."""
-        for file_path in cleanup_result.files_removed:
-            PipelineLogger.info(
-                f"CLEANUP REMOVE..........: {file_path}"
-            )
-
-        for file_path in cleanup_result.files_preserved:
-            PipelineLogger.info(
-                f"CLEANUP PRESERVE........: {file_path}"
-            )
-
-        for directory_path in cleanup_result.directories_removed:
-            PipelineLogger.info(
-                f"CLEANUP DIR REMOVE......: {directory_path}"
-            )
-
-        for directory_path in cleanup_result.directories_preserved:
-            PipelineLogger.info(
-                f"CLEANUP DIR PRESERVE....: {directory_path}"
-            )
+        """Registra somente o resumo e os erros do Cleanup."""
+        PipelineLogger.info(
+            "CLEANUP RESULTADO"
+        )
+        PipelineLogger.info(
+            f"Arquivos removidos......: {len(cleanup_result.files_removed)}"
+        )
+        PipelineLogger.info(
+            f"Arquivos preservados....: {len(cleanup_result.files_preserved)}"
+        )
+        PipelineLogger.info(
+            f"Diretorios removidos....: "
+            f"{len(cleanup_result.directories_removed)}"
+        )
+        PipelineLogger.info(
+            f"Diretorios preservados..: "
+            f"{len(cleanup_result.directories_preserved)}"
+        )
 
         for error in cleanup_result.errors:
             PipelineLogger.error(

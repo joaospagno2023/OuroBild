@@ -15,21 +15,14 @@ from app.models.setup.setup_network_publish_result import (
 )
 
 
-class SetupBatchPublishResult(
-    BaseModel,
-):
-    """
-    Resultado da publicação em lote de uma versão de Setup.
-    """
+class SetupBatchPublishResult(BaseModel):
+    """Resultado da publicação em lote de uma versão de Setup."""
 
+    batch_id: str
     success: bool
-
+    status: str
     message: str
-
     execution_ids: list[str]
-
     project_ids: list[str]
-
     source_path: Path | None = None
-
     publication: SetupNetworkPublishResult | None = None

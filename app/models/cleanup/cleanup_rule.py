@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : cleanup_rule.py
-Descrição : Representa uma regra de limpeza do Build.
+Descrição : Modelos de domínio das regras de limpeza.
 --------------------------------------------------------------------
 """
 
@@ -11,35 +11,38 @@ from enum import Enum
 from pydantic import BaseModel
 
 
-class CleanupAction(str, Enum):
+class CleanupAction(
+    str,
+    Enum,
+):
     """
-    Ação que será aplicada pela regra de limpeza.
+    Define a ação aplicada por uma regra.
     """
 
     REMOVE = "remove"
-
     PRESERVE = "preserve"
 
 
-class CleanupTarget(str, Enum):
+class CleanupTarget(
+    str,
+    Enum,
+):
     """
-    Tipo de recurso ao qual a regra se aplica.
+    Define o tipo de recurso tratado pela regra.
     """
 
     FILE = "file"
-
     DIRECTORY = "directory"
 
 
-class CleanupRule(BaseModel):
+class CleanupRule(
+    BaseModel,
+):
     """
-    Representa uma regra de limpeza de arquivos ou diretórios.
-
-    project_id:
-        None  -> regra global.
-
-        Informado -> regra específica de um projeto.
+    Representa uma regra de limpeza persistida.
     """
+
+    id: int | None = None
 
     target: CleanupTarget
 
@@ -52,3 +55,7 @@ class CleanupRule(BaseModel):
     project_id: str | None = None
 
     description: str | None = None
+
+    priority: int = 100
+
+    enabled: bool = True

@@ -18,6 +18,7 @@ import UsersPage from "./pages/UsersPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import EnvironmentsPage from "./pages/EnvironmentsPage";
 import ConfigurationPage from "./pages/ConfigurationPage";
+import CleanupRulesPage from "./pages/CleanupRulesPage";
 import ProfilePage from "./pages/ProfilePage";
 
 function App() {
@@ -86,6 +87,10 @@ function App() {
           <Route
             path="/configuration"
             element={<ConfigurationPage />}
+          />
+          <Route
+            path="/cleanup-rules"
+            element={<CleanupRulesPage />}
           />
           <Route
             path="/profile"
