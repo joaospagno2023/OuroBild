@@ -1,12 +1,12 @@
 import {
   AlertTriangle,
   Check,
-  ChevronDown,
   Circle,
   Loader2,
   Rocket,
   Search,
   Server,
+  Square,
   Users,
   X,
 } from "lucide-react";
@@ -14,6 +14,7 @@ import {
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -40,7 +41,8 @@ type ExecutionStatus =
   | "pending"
   | "running"
   | "success"
-  | "error";
+  | "error"
+  | "cancelled";
 
 
 type PublicationStatus =
@@ -160,6 +162,13 @@ function SetupPage() {
     isGenerating,
     setIsGenerating,
   ] = useState(false);
+
+  const [
+    stopRequested,
+    setStopRequested,
+  ] = useState(false);
+
+  const stopRequestedRef = useRef(false);
 
   const [
     publicationStatus,
@@ -354,20 +363,6 @@ function SetupPage() {
   );
 
 
-  const selectedProjectData =
-    useMemo(
-      () =>
-        projects.filter(
-          (project) =>
-            selectedProjects.includes(
-              project.id,
-            ),
-        ),
-      [
-        projects,
-        selectedProjects,
-      ],
-    );
 
 
   function toggleProject(
@@ -493,16 +488,7 @@ function SetupPage() {
   }
 
 
-  function closePublicationModal() {
-    if (publicationStatus === "publishing") {
-      return;
-    }
 
-    setPublicationStatus("idle");
-    setPublicationMessage("");
-    setPublicationCompleted(0);
-    setPublicationFailed(0);
-  }
 
   async function pollSetupPublication(
     batchId: string,
@@ -531,6 +517,57 @@ function SetupPage() {
       });
     }
   }
+
+  function stopGeneration() {
+    if (!isGenerating) {
+      return;
+    }
+
+    stopRequestedRef.current = true;
+    setStopRequested(true);
+
+    setToastMessage(
+      "Parada solicitada. O projeto atual será concluído; os próximos projetos não serão iniciados.",
+    );
+  }
+
+
+  function markRemainingProjectsAsCancelled(
+    selectedIds: string[],
+    startIndex: number,
+  ) {
+    const remainingIds = selectedIds.slice(
+      startIndex,
+    );
+
+    if (remainingIds.length === 0) {
+      return;
+    }
+
+    setExecutions(
+      (current) =>
+        current.map(
+          (execution) =>
+            remainingIds.includes(
+              execution.id,
+            )
+              ? {
+                  ...execution,
+                  status: "cancelled",
+                  progress: 0,
+                  executionId: null,
+                  phase: null,
+                  currentStep: null,
+                  currentStepIndex: 0,
+                  totalSteps: 0,
+                  message: "Execução não iniciada.",
+                  failedStep: null,
+                }
+              : execution,
+        ),
+    );
+  }
+
 
   async function generateSetups() {
     if (isGenerating) {
@@ -615,6 +652,8 @@ function SetupPage() {
     const executionIds: string[] = [];
     let allGenerationsSucceeded = true;
 
+    stopRequestedRef.current = false;
+    setStopRequested(false);
     setIsGenerating(true);
     setPublicationStatus("idle");
     setPublicationMessage("");
@@ -658,6 +697,15 @@ function SetupPage() {
         selectedIds.length;
         index += 1
       ) {
+        if (stopRequestedRef.current) {
+          markRemainingProjectsAsCancelled(
+            selectedIds,
+            index,
+          );
+          allGenerationsSucceeded = false;
+          break;
+        }
+
         const projectId =
           selectedIds[index];
 
@@ -741,6 +789,23 @@ function SetupPage() {
                     : execution,
               ),
           );
+        }
+
+        if (!allGenerationsSucceeded) {
+          markRemainingProjectsAsCancelled(
+            selectedIds,
+            index + 1,
+          );
+          break;
+        }
+
+        if (stopRequestedRef.current) {
+          markRemainingProjectsAsCancelled(
+            selectedIds,
+            index + 1,
+          );
+          allGenerationsSucceeded = false;
+          break;
         }
 
         const nextProject =
@@ -856,6 +921,8 @@ function SetupPage() {
       }
     } finally {
       setIsGenerating(false);
+      setStopRequested(false);
+      stopRequestedRef.current = false;
     }
   }
 
@@ -1311,29 +1378,46 @@ function SetupPage() {
             padding: "2px 0",
           }}
         >
-          <button
-            className="primary-button setup-generate-button"
-            type="button"
-            disabled={isLoading || isGenerating}
-            onClick={generateSetups}
-            style={{
-              minWidth: "240px",
-              justifyContent: "center",
-            }}
-          >
-            {isGenerating ? (
-              <Loader2 size={18} className="spin" />
-            ) : selectedCount === 0 ? (
-              <AlertTriangle size={18} />
-            ) : (
-              <Rocket size={18} />
-            )}
-            {isGenerating
-              ? "Gerando Setups..."
-              : selectedCount === 0
+          {isGenerating ? (
+            <button
+              className="secondary-button setup-generate-button"
+              type="button"
+              disabled={stopRequested}
+              onClick={stopGeneration}
+              style={{
+                minWidth: "240px",
+                justifyContent: "center",
+                borderColor: "#fecaca",
+                color: "#b91c1c",
+                background: "#fef2f2",
+              }}
+            >
+              <Square size={16} fill="currentColor" />
+              {stopRequested
+                ? "Parada solicitada..."
+                : "Parar geração"}
+            </button>
+          ) : (
+            <button
+              className="primary-button setup-generate-button"
+              type="button"
+              disabled={isLoading}
+              onClick={generateSetups}
+              style={{
+                minWidth: "240px",
+                justifyContent: "center",
+              }}
+            >
+              {selectedCount === 0 ? (
+                <AlertTriangle size={18} />
+              ) : (
+                <Rocket size={18} />
+              )}
+              {selectedCount === 0
                 ? "Selecione os projetos"
                 : `Gerar ${selectedCount} Setup${selectedCount === 1 ? "" : "s"}`}
-          </button>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1396,6 +1480,11 @@ function SetupPage() {
                     <X />
                   )}
 
+                  {execution.status ===
+                    "cancelled" && (
+                    <X />
+                  )}
+
                   {(execution.status ===
                     "waiting" ||
                     execution.status ===
@@ -1439,6 +1528,11 @@ function SetupPage() {
                       "error" &&
                       (execution.message ||
                         "Erro durante a geração")}
+
+                    {execution.status ===
+                      "cancelled" &&
+                      (execution.message ||
+                        "Execução não iniciada.")}
                   </span>
                 </div>
 
@@ -1543,6 +1637,95 @@ function SetupPage() {
           )}
         </div>
       </div>
+
+      {publicationStatus !== "idle" && (
+        <div
+          className="content-card publication-card"
+          style={{
+            width: "100%",
+            maxWidth: "none",
+            boxSizing: "border-box",
+            marginTop: "20px",
+          }}
+        >
+          <div className="card-header">
+            <div>
+              <h2>Publicação dos Setups</h2>
+              <p>
+                Acompanhamento da cópia dos Setups para a rede.
+              </p>
+            </div>
+
+            <strong>
+              {publicationStatus === "publishing" && "Publicando..."}
+              {publicationStatus === "success" && "Concluída"}
+              {publicationStatus === "error" && "Com erro"}
+            </strong>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: "12px",
+              marginTop: "16px",
+            }}
+          >
+            <div className="setup-summary">
+              <div>
+                <span>Publicados</span>
+                <strong>{publicationCompleted}</strong>
+              </div>
+            </div>
+
+            <div className="setup-summary">
+              <div>
+                <span>Com erro</span>
+                <strong>{publicationFailed}</strong>
+              </div>
+            </div>
+
+            <div className="setup-summary">
+              <div>
+                <span>Status</span>
+                <strong>
+                  {publicationStatus === "publishing"
+                    ? "Em andamento"
+                    : publicationStatus === "success"
+                      ? "Sucesso"
+                      : "Erro"}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          {publicationMessage && (
+            <div
+              style={{
+                marginTop: "16px",
+                padding: "12px 14px",
+                borderRadius: "10px",
+                background:
+                  publicationStatus === "error"
+                    ? "#fef2f2"
+                    : publicationStatus === "success"
+                      ? "#f0fdf4"
+                      : "#eff6ff",
+                color:
+                  publicationStatus === "error"
+                    ? "#991b1b"
+                    : publicationStatus === "success"
+                      ? "#166534"
+                      : "#1e40af",
+                fontSize: "14px",
+                lineHeight: 1.5,
+              }}
+            >
+              {publicationMessage}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -8,6 +8,10 @@ Descrição : Contrato para publicação de Setups na rede.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Callable
+
+SetupNetworkPublishProgressCallback = Callable[[int, int, str, int], None]
+
 
 from app.models.setup.setup_network_publish_result import (
     SetupNetworkPublishResult,
@@ -24,6 +28,7 @@ class SetupNetworkPublisher(ABC):
         source_path: Path,
         version: str,
         revision: int,
+        progress_callback: SetupNetworkPublishProgressCallback | None = None,
     ) -> SetupNetworkPublishResult:
         """
         Publica a estrutura de Setup na rede.

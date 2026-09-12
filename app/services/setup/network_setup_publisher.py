@@ -8,19 +8,19 @@ Descrição : Publica Setups na estrutura de rede configurada.
 
 from datetime import datetime
 from pathlib import Path
-from shutil import copytree, rmtree
+from shutil import copy2, copytree, rmtree
+from typing import Callable
 from time import perf_counter
 
 from app.abstractions.setup_network_publisher import (
     SetupNetworkPublisher,
 )
 from app.models.configuration.app_settings import AppSettings
+SetupNetworkPublishProgressCallback = Callable[[int, int, str, int], None]
+
+
 from app.models.setup.setup_network_publish_result import (
     SetupNetworkPublishResult,
-)
-
-from app.utils.pipeline_logger import (
-    PipelineLogger,
 )
 
 
@@ -43,6 +43,7 @@ class DefaultSetupNetworkPublisher(
         source_path: Path,
         version: str,
         revision: int,
+        progress_callback: SetupNetworkPublishProgressCallback | None = None,
     ) -> SetupNetworkPublishResult:
         """
         Publica o Setup gerado na rede.
@@ -73,13 +74,6 @@ class DefaultSetupNetworkPublisher(
         destination_path: Path | None = None
         backup_created = False
 
-        PipelineLogger.info(
-            "SETUP NETWORK PUBLISH START | "
-            f"project_id={project_id!r} | "
-            f"source={source_path} | "
-            f"version={full_version}"
-        )
-
         try:
             major_minor, published_version = (
                 self.__resolve_network_version(
@@ -92,11 +86,6 @@ class DefaultSetupNetworkPublisher(
                 / major_minor
                 / "Setups"
                 / published_version
-            )
-
-            PipelineLogger.info(
-                "SETUP NETWORK DESTINATION | "
-                f"destination={destination_path}"
             )
 
             self.__validate_request(
@@ -119,12 +108,6 @@ class DefaultSetupNetworkPublisher(
 
             destination_exists = destination_path.exists()
 
-            PipelineLogger.info(
-                "SETUP NETWORK PRECHECK SUCCESS | "
-                f"source={source_path} | "
-                f"destination={destination_path}"
-            )
-
             if destination_exists:
                 backup_path = self.__create_backup(
                     destination_path=destination_path,
@@ -133,26 +116,21 @@ class DefaultSetupNetworkPublisher(
                 backup_created = True
 
             try:
-                PipelineLogger.info(
-                    "SETUP NETWORK COPY START | "
-                    f"source={source_path} | "
-                    f"destination={destination_path}"
-                )
-
-                self.__copy_setup(
+                files_copied, total_files = self.__copy_setup(
                     source_path=source_path,
                     destination_path=destination_path,
+                    progress_callback=progress_callback,
                 )
 
-                files_copied = self.__validate_destination(
+                validated_files = self.__validate_destination(
                     destination_path=destination_path,
                 )
 
-                PipelineLogger.info(
-                    "SETUP NETWORK COPY VALIDATED | "
-                    f"destination={destination_path} | "
-                    f"files={files_copied}"
-                )
+                if validated_files != files_copied:
+                    raise IOError(
+                        "A quantidade de arquivos copiados não "
+                        "corresponde à quantidade validada no destino."
+                    )
 
             except Exception:
                 self.__cleanup_failed_destination(
@@ -174,14 +152,6 @@ class DefaultSetupNetworkPublisher(
 
             duration = perf_counter() - started_at
 
-            PipelineLogger.info(
-                "SETUP NETWORK PUBLISH COMPLETED | "
-                f"project_id={project_id!r} | "
-                f"destination={destination_path} | "
-                f"files={files_copied} | "
-                f"duration_seconds={duration:.3f}"
-            )
-
             return SetupNetworkPublishResult(
                 success=True,
                 message=(
@@ -199,15 +169,6 @@ class DefaultSetupNetworkPublisher(
 
         except Exception as exception:
             duration = perf_counter() - started_at
-
-            PipelineLogger.error(
-                "SETUP NETWORK PUBLISH FAILED | "
-                f"project_id={project_id!r} | "
-                f"source={source_path} | "
-                f"destination={destination_path} | "
-                f"error={exception} | "
-                f"duration_seconds={duration:.3f}"
-            )
 
             return SetupNetworkPublishResult(
                 success=False,
@@ -437,9 +398,11 @@ class DefaultSetupNetworkPublisher(
     def __copy_setup(
         source_path: Path,
         destination_path: Path,
-    ) -> None:
+        progress_callback: SetupNetworkPublishProgressCallback | None = None,
+    ) -> tuple[int, int]:
         """
-        Copia Client/Cliente e Server para o destino.
+        Copia Client/Cliente e Server para o destino com
+        acompanhamento arquivo a arquivo.
         """
 
         destination_path.parent.mkdir(
@@ -467,15 +430,67 @@ class DefaultSetupNetworkPublisher(
             destination_path / "Server"
         )
 
+        source_files = [
+            source_file
+            for source_root in (
+                client_source,
+                server_source,
+            )
+            for source_file in source_root.rglob("*")
+            if source_file.is_file()
+        ]
+
+        total_files = len(source_files)
+        files_copied = 0
+
+        if progress_callback is not None:
+            progress_callback(
+                0,
+                total_files,
+                "Preparando cópia...",
+                0,
+            )
+
+        def copy_file(
+            source_file: str,
+            destination_file: str,
+        ) -> str:
+            nonlocal files_copied
+
+            copied_path = copy2(
+                source_file,
+                destination_file,
+            )
+
+            files_copied += 1
+
+            if progress_callback is not None:
+                progress_callback(
+                    files_copied,
+                    total_files,
+                    Path(source_file).name,
+                    int(
+                        (files_copied / total_files) * 100
+                    )
+                    if total_files > 0
+                    else 100,
+                )
+
+            return copied_path
+
         copytree(
             client_source,
             client_destination,
+            copy_function=copy_file,
         )
 
         copytree(
             server_source,
             server_destination,
+            copy_function=copy_file,
         )
+
+        return files_copied, total_files
 
     @staticmethod
     def __validate_destination(

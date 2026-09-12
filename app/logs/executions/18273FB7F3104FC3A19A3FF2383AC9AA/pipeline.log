@@ -1,0 +1,154 @@
+2026-09-11 16:23:31 | INFO    | PipelineLogger.write | PIPELINE EXECUTE | project_id=CceAutomaticAnswer | environment_id=production | version='1.0.0' | revision=0 | publication_mode='local'
+2026-09-11 16:23:31 | INFO    | PipelineLogger.write | PIPELINE USE CASE | project_id=CceAutomaticAnswer | environment_id=production | version='1.0.0' | revision=0 | publication_mode='local'
+2026-09-11 16:23:31 | INFO    | PipelineLogger.write | VALIDAÇÃO DO PROJETO
+2026-09-11 16:23:32 | INFO    | PipelineLogger.write | Project ID........: CceAutomaticAnswer
+2026-09-11 16:23:32 | INFO    | PipelineLogger.write | Project Path......: 02-Source\01-Client\OuroNet.Client.WinService.CceAutomaticAnswer\OuroNet.Client.WinService.CceAutomaticAnswer.csproj
+2026-09-11 16:23:33 | INFO    | PipelineLogger.write | Workspace Root....: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet
+2026-09-11 16:23:33 | INFO    | PipelineLogger.write | Project File......: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.CceAutomaticAnswer\OuroNet.Client.WinService.CceAutomaticAnswer.csproj
+2026-09-11 16:23:33 | INFO    | PipelineLogger.write | VALIDAÇÃO DO PROJETO - OK
+2026-09-11 16:23:35 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:35 | INFO    | PipelineLogger.write | PIPELINE RUNNER - INICIO
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | Arquivo........: C:\Custom\ourobuild\app\pipeline\runner\pipeline_runner.py
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | Pipeline.......: Build Pipeline
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | Quantidade Steps: 3
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | 
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Restore
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | STEP CLASS.....: RestoreStep
+2026-09-11 16:23:36 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:38 | INFO    | PipelineLogger.write | 
+2026-09-11 16:23:39 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:39 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Step............: Restore
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Analysis........: <class 'NoneType'>
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | 
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Build
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | STEP CLASS.....: BuildStep
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | MSBUILD CONFIGURATION
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Project........: WinServices CceAutomaticAnswer
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Project File...: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.CceAutomaticAnswer\OuroNet.Client.WinService.CceAutomaticAnswer.csproj
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Configuration..: Release
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Platform.......: AnyCPU
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Normalized.....: AnyCPU
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | MSBuild........: C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\MSBuild.exe
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | MSBUILD ARGUMENTS
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Project........: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.CceAutomaticAnswer\OuroNet.Client.WinService.CceAutomaticAnswer.csproj
+2026-09-11 16:23:40 | INFO    | PipelineLogger.write | Configuration..: /p:Configuration=Release
+2026-09-11 16:23:41 | INFO    | PipelineLogger.write | Platform.......: /p:Platform=AnyCPU
+2026-09-11 16:23:47 | INFO    | PipelineLogger.write | 
+2026-09-11 16:23:47 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:47 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-11 16:23:48 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:48 | INFO    | PipelineLogger.write | Step............: Build
+2026-09-11 16:23:49 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-09-11 16:23:49 | INFO    | PipelineLogger.write | Analysis........: <class 'app.models.build.build_execution.BuildExecution'>
+2026-09-11 16:23:50 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-11 16:23:50 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-11 16:23:50 | INFO    | PipelineLogger.write | 
+2026-09-11 16:23:51 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:51 | INFO    | PipelineLogger.write | BUILD EXECUTION
+2026-09-11 16:23:51 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:52 | INFO    | PipelineLogger.write | Warnings........: 0
+2026-09-11 16:23:52 | INFO    | PipelineLogger.write | Errors..........: 0
+2026-09-11 16:23:52 | INFO    | PipelineLogger.write | BUILD ARMAZENADO EM PipelineResult
+2026-09-11 16:23:52 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:52 | INFO    | PipelineLogger.write | 
+2026-09-11 16:23:52 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:23:52 | INFO    | PipelineLogger.write | EXECUTANDO STEP: Publish
+2026-09-11 16:23:53 | INFO    | PipelineLogger.write | STEP CLASS.....: PublishStep
+2026-09-11 16:23:53 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:01 | INFO    | PipelineLogger.write | 
+2026-09-11 16:24:01 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:01 | INFO    | PipelineLogger.write | PIPELINE RUNNER - STEP RESULT
+2026-09-11 16:24:01 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:01 | INFO    | PipelineLogger.write | Step............: Publish
+2026-09-11 16:24:02 | INFO    | PipelineLogger.write | Status..........: StepStatus.SUCCESS
+2026-09-11 16:24:02 | INFO    | PipelineLogger.write | Analysis........: <class 'NoneType'>
+2026-09-11 16:24:02 | INFO    | PipelineLogger.write | 
+2026-09-11 16:24:02 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:03 | INFO    | PipelineLogger.write | PIPELINE RESULT
+2026-09-11 16:24:03 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:04 | INFO    | PipelineLogger.write | Success.........: True
+2026-09-11 16:24:04 | INFO    | PipelineLogger.write | Failed Step.....: 
+2026-09-11 16:24:05 | INFO    | PipelineLogger.write | Elapsed.........: 27.215755
+2026-09-11 16:24:05 | INFO    | PipelineLogger.write | Build Warnings..: 0
+2026-09-11 16:24:06 | INFO    | PipelineLogger.write | Build Errors....: 0
+2026-09-11 16:24:06 | INFO    | PipelineLogger.write | Publish.........: None
+2026-09-11 16:24:06 | INFO    | PipelineLogger.write | Steps executadas: 3
+2026-09-11 16:24:06 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:06 | INFO    | PipelineLogger.write | SALVANDO EXECUÇÃO
+2026-09-11 16:24:06 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:06 | INFO    | PipelineLogger.write | EXECUÇÃO SALVA
+2026-09-11 16:24:06 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:07 | INFO    | PipelineLogger.write | 
+2026-09-11 16:24:07 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:08 | INFO    | PipelineLogger.write | PIPELINE RUNNER - FINAL
+2026-09-11 16:24:08 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:08 | INFO    | PipelineLogger.write | PipelineResult...: <class 'app.models.pipeline.pipeline_result.PipelineResult'>
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | Build............: <class 'app.models.build.build_execution.BuildExecution'>
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | Publish..........: <class 'NoneType'>
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | Steps............: 3
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | WORKSPACE RESOLVER DIAGNOSTICO - PARAMETROS RECEBIDOS
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | project_id.............: 'CceAutomaticAnswer'
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | environment_id.........: 'production'
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | version................: '1.0.0'
+2026-09-11 16:24:09 | INFO    | PipelineLogger.write | revision...............: 0
+2026-09-11 16:24:10 | INFO    | PipelineLogger.write | WORKSPACE RESOLVER DIAGNOSTICO - AMBIENTE
+2026-09-11 16:24:10 | INFO    | PipelineLogger.write | environment.resolver...: 'production'
+2026-09-11 16:24:11 | INFO    | PipelineLogger.write | environment.root_path..: WindowsPath('C:/DvpLocal/WorkSpaceTFS/OuroNet/Scc/Producao/OuroNet')
+2026-09-11 16:24:11 | INFO    | PipelineLogger.write | workspace_root..........: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | project_file............: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.CceAutomaticAnswer\OuroNet.Client.WinService.CceAutomaticAnswer.csproj
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | SETUP DIAGNOSTICO - PUBLISH DE ORIGEM
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | Projeto...............: CceAutomaticAnswer
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | Ambiente..............: production
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | Versao................: 1.0.0
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | Revisao................: 0
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | PublishPath............: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.CceAutomaticAnswer\bin\Release
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | PublishPath existe.....: True
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | ORIGEM - ANTES DA COPIA
+2026-09-11 16:24:12 | INFO    | PipelineLogger.write | Diretorio.............: C:\DvpLocal\WorkSpaceTFS\OuroNet\Scc\Producao\OuroNet\02-Source\01-Client\OuroNet.Client.WinService.CceAutomaticAnswer\bin\Release
+2026-09-11 16:24:13 | INFO    | PipelineLogger.write | Diretorio existe......: True
+2026-09-11 16:24:13 | INFO    | PipelineLogger.write | Arquivos..............: 724
+2026-09-11 16:24:13 | INFO    | PipelineLogger.write | Diretorios............: 75
+2026-09-11 16:24:13 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | SETUP DIAGNOSTICO - WORKSPACE APOS COPIA
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | Workspace.............: C:\Setups\.work\CceAutomaticAnswer
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | Workspace Release.....: C:\Setups\.work\CceAutomaticAnswer\Release
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | Release existe........: True
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | WORKSPACE - APOS COPIA E ANTES DO CLEANUP
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | Diretorio.............: C:\Setups\.work\CceAutomaticAnswer\Release
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | Diretorio existe......: True
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | Arquivos..............: 724
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | Diretorios............: 75
+2026-09-11 16:24:24 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:27 | INFO    | PipelineLogger.write | SETUP DIAGNOSTICO - CLEANUP
+2026-09-11 16:24:27 | INFO    | PipelineLogger.write | Arquivos analisados.....: 724
+2026-09-11 16:24:27 | INFO    | PipelineLogger.write | Arquivos removidos......: 655
+2026-09-11 16:24:27 | INFO    | PipelineLogger.write | Arquivos preservados....: 69
+2026-09-11 16:24:27 | INFO    | PipelineLogger.write | Diretorios analisados...: 75
+2026-09-11 16:24:27 | INFO    | PipelineLogger.write | Diretorios removidos....: 72
+2026-09-11 16:24:27 | INFO    | PipelineLogger.write | Diretorios preservados..: 3
+2026-09-11 16:24:27 | INFO    | PipelineLogger.write | CLEANUP RESULTADO
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | Arquivos removidos......: 655
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | Arquivos preservados....: 69
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | Diretorios removidos....: 72
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | Diretorios preservados..: 3
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | WORKSPACE - APOS CLEANUP
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | Diretorio.............: C:\Setups\.work\CceAutomaticAnswer\Release
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | Diretorio existe......: True
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | Arquivos..............: 67
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | Diretorios............: 3
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | ================================================================================
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | SETUP DIAGNOSTICO - SOURCEPATH DO AIP ATUALIZADO
+2026-09-11 16:24:28 | INFO    | PipelineLogger.write | AIP...................: C:\Setups\.work\CceAutomaticAnswer\AIP\OuroNet.WinServiceCceAutomaticAnswer.Setup.aip
+2026-09-11 16:24:29 | INFO    | PipelineLogger.write | SourcePath...........: C:\Setups\.work\CceAutomaticAnswer\Release

@@ -2,14 +2,15 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : bootstrap.py
-DescriÃ§Ã£o : ResponsÃ¡vel por inicializar a aplicaÃ§Ã£o e criar as
+Descrição : ResponsÃ¡vel por inicializar a aplicaÃ§Ã£o e criar as
              dependÃªncias da aplicaÃ§Ã£o.
 --------------------------------------------------------------------
 """
+# Standard Library
 import inspect
-
 from pathlib import Path
 
+# Framework
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -23,15 +24,12 @@ from app.api.routers.project_router import (
 from app.api.routers.setup_publish_router import (
     router as setup_publish_router,
 )
-
 from app.api.routers.environment_router import (
     router as environment_router,
 )
-
 from app.api.routers.configuration_router import (
     router as configuration_router,
 )
-
 from app.api.routers.execution_router import (
     router as execution_router,
 )
@@ -41,20 +39,42 @@ from app.api.routers.history_router import (
 from app.api.routers.agent_router import (
     router as agent_router,
 )
-
 from app.api.routers.project_router import (
     router as project_router,
 )
-
 from app.api.routers.cleanup_rule_router import (
     router as cleanup_rule_router,
 )
-
-
+from app.api.routers.publish_router import (
+    router as publish_router,
+)
+from app.api.routers.analyze_router import (
+    router as analyze_router,
+)
+from app.api.routers.auth_router import (
+    router as auth_router,
+)
+from app.api.routers.users_router import (
+    router as users_router,
+)
 
 # Core
 from app.core.configuration.configuration_loader import (
     ConfigurationLoader,
+)
+from app.core.configuration.toolchain_loader import (
+    ToolchainLoader,
+)
+from app.core.security.password_service import (
+    PasswordService,
+)
+from app.core.security.jwt_service import (
+    JwtService,
+)
+
+# Database
+from app.database.connection import (
+    DatabaseConnection,
 )
 
 # Factories
@@ -64,205 +84,114 @@ from app.factories.build_context_factory import (
 from app.factories.default_pipeline_factory import (
     DefaultPipelineFactory,
 )
+from app.factories.publish_context_factory import (
+    PublishContextFactory,
+)
+from app.factories.analysis_context_factory import (
+    AnalysisContextFactory,
+)
 
 # Repositories
-
 from app.repositories.sql_environment_repository import (
     SqlEnvironmentRepository,
 )
 from app.repositories.sql_agent_repository import (
     SqlAgentRepository,
 )
-
 from app.repositories.sql_cleanup_rule_repository import (
     SqlCleanupRuleRepository,
+)
+from app.repositories.json_project_metadata_repository import (
+    JsonProjectMetadataRepository,
+)
+from app.repositories.sql_pipeline_execution_repository import (
+    SqlPipelineExecutionRepository,
+)
+from app.repositories.sql_application_configuration_repository import (
+    SqlApplicationConfigurationRepository,
+)
+from app.repositories.sql_user_repository import (
+    SqlUserRepository,
+)
+from app.repositories.sql_permission_repository import (
+    SqlPermissionRepository,
+)
+from app.repositories.sql_project_repository import (
+    SqlProjectRepository,
+)
+from app.repositories.sql_pipeline_execution_log_repository import (
+    SqlPipelineExecutionLogRepository,
+)
+from app.repositories.sql_setup_publication_batch_repository import (
+    SqlSetupPublicationBatchRepository,
+)
+from app.repositories.sql_setup_publication_log_repository import (
+    SqlSetupPublicationLogRepository,
 )
 
 # Services
 from app.services.default_process_service import (
     DefaultProcessService,
 )
-
 from app.services.cleanup.cleanup_rules_provider import (
     CleanupRulesProvider,
 )
 from app.services.cleanup.cleanup_rule_service import (
     CleanupRuleService,
 )
-
-# Use Cases
-from app.use_cases.execute_build_use_case import (
-    ExecuteBuildUseCase,
-)
-from app.use_cases.execute_pipeline_use_case import (
-    ExecutePipelineUseCase,
-)
-from app.use_cases.get_projects_use_case import (
-    GetProjectsUseCase,
-)
-
-from app.api.exception_handlers import (
-    register_exception_handlers,
-)
-
-from app.factories.publish_context_factory import (
-    PublishContextFactory,
-)
-
-from app.use_cases.execute_publish_use_case import (
-    ExecutePublishUseCase,
-)
-
-from app.api.routers.publish_router import (
-    router as publish_router,
-)
-
-from app.core.configuration.toolchain_loader import (
-    ToolchainLoader,
-)
-
 from app.services.msbuild_locator import (
     MSBuildLocator,
-)
-from app.api.routers.analyze_router import (
-    router as analyze_router,
-)
-
-from app.analyzers.build_analyzer import (
-    BuildAnalyzer,
-)
-
-from app.analyzers.framework_analyzer import (
-    FrameworkAnalyzer,
-)
-
-from app.analyzers.project_analyzer import (
-    ProjectAnalyzer,
-)
-
-from app.factories.analysis_context_factory import (
-    AnalysisContextFactory,
-)
-
-from app.readers.project_reader import (
-    ProjectReader,
-)
-
-from app.use_cases.execute_analyze_use_case import (
-    ExecuteAnalyzeUseCase,
-)
-
-from app.validators.project_validator import (
-    ProjectValidator,
-)
-
-# Workspace
-from app.workspace.workspace_resolver import (
-    WorkspaceResolver,
-)
-
-# Services
-
-from app.repositories.json_project_metadata_repository import (
-    JsonProjectMetadataRepository,
 )
 from app.services.hash_service import (
     HashService,
 )
-
 from app.services.project_metadata_service import (
     ProjectMetadataService,
 )
-
 from app.services.workspace.solution_locator_service import (
     SolutionLocatorService,
-)
-from app.pipeline.runner.pipeline_runner import (
-    PipelineRunner,
-)
-from app.repositories.sql_pipeline_execution_repository import (
-    SqlPipelineExecutionRepository,
 )
 from app.services.setup.windows_visual_studio_locator import (
     WindowsVisualStudioLocator,
 )
-
 from app.services.setup.visual_studio_installer_service import (
     VisualStudioInstallerService,
 )
-
 from app.services.setup.advanced_installer_setup_definition_loader import (
     AdvancedInstallerSetupDefinitionLoader,
 )
-
 from app.services.setup.setup_factory import (
     DefaultSetupFactory,
 )
-
 from app.services.setup.setup_path_resolver import (
     SetupPathResolver,
 )
-
 from app.services.setup.visual_studio_setup_definition_loader import (
     VisualStudioSetupDefinitionLoader,
 )
-
 from app.services.setup.setup_orchestrator import (
     DefaultSetupOrchestrator,
 )
-from app.use_cases.execute_setup_use_case import (
-    DefaultExecuteSetupUseCase,
-)
-from app.use_cases.publish_setups_use_case import (
-    DefaultPublishSetupsUseCase,
-)
-
 from app.services.setup.network_setup_publisher import (
     DefaultSetupNetworkPublisher,
 )
-
+from app.services.setup.setup_network_publication_service import (
+    SetupNetworkPublicationService,
+)
 from app.services.setup.setup_file_change_applier import (
     SetupFileChangeApplier,
 )
-
 from app.services.setup.setup_file_synchronizer import (
     SetupFileSynchronizer,
 )
-
 from app.services.setup.setup_file_template_provider import (
     SetupFileTemplateProvider,
 )
-
 from app.services.setup.setup_project_preparer import (
     SetupProjectPreparer,
 )
-
 from app.services.setup.setup_workspace_service import (
     SetupWorkspaceService,
-)
-
-from app.services.setup.vdproj_block_parser import (
-    VdprojBlockParser,
-)
-
-from app.services.setup.vdproj_component_identity_generator import (
-    VdprojComponentIdentityGenerator,
-)
-
-from app.services.setup.vdproj_file_block_builder import (
-    VdprojFileBlockBuilder,
-)
-
-from app.services.setup.vdproj_file_block_inserter import (
-    VdprojFileBlockInserter,
-)
-
-from app.services.setup.vdproj_file_modifier import (
-    VdprojFileModifier,
-)
-
-from app.services.setup.vdproj_setup_file_loader import (
-    VdprojSetupFileLoader,
 )
 from app.services.setup.temporary_solution_service import (
     TemporarySolutionService,
@@ -270,11 +199,9 @@ from app.services.setup.temporary_solution_service import (
 from app.services.setup.disable_out_of_proc_build_service import (
     DisableOutOfProcBuildService,
 )
-
 from app.services.setup.advanced_installer_service import (
     AdvancedInstallerService,
 )
-
 from app.services.setup.advanced_installer_workspace_service import (
     AdvancedInstallerWorkspaceService,
 )
@@ -293,79 +220,109 @@ from app.services.setup.advanced_installer_aip_synchronizer import (
 from app.services.cleanup.build_artifact_cleanup_factory import (
     BuildArtifactCleanupFactory,
 )
-
-from app.api.routers.auth_router import (
-    router as auth_router,
-)
-from app.api.routers.users_router import (
-    router as users_router,
-)
-
-from app.database.connection import (
-    DatabaseConnection,
-)
-
-from app.repositories.sql_application_configuration_repository import (
-    SqlApplicationConfigurationRepository,
-)
-
-from app.repositories.sql_user_repository import (
-    SqlUserRepository,
-)
-
-from app.core.security.password_service import (
-    PasswordService,
-)
-
-from app.core.security.jwt_service import (
-    JwtService,
-)
-
 from app.services.auth.authentication_service import (
     AuthenticationService,
 )
 from app.services.auth.user_service import (
     UserService,
 )
-
-from app.repositories.sql_permission_repository import (
-    SqlPermissionRepository,
-)
-
 from app.services.authorization.permission_service import (
     PermissionService,
 )
-
-from app.repositories.sql_project_repository import (
-    SqlProjectRepository,
-)
-
 from app.services.project_service import (
     ProjectService,
 )
 from app.services.environment_service import (
     EnvironmentService,
 )
-
 from app.services.configuration.configuration_service import (
     ConfigurationService,
 )
 from app.services.history.pipeline_history_service import (
     PipelineHistoryService,
 )
-from app.repositories.sql_pipeline_execution_log_repository import (
-    SqlPipelineExecutionLogRepository,
+from app.services.setup.vdproj_block_parser import (
+    VdprojBlockParser,
 )
-from app.repositories.sql_setup_publication_batch_repository import (
-    SqlSetupPublicationBatchRepository,
+from app.services.setup.vdproj_component_identity_generator import (
+    VdprojComponentIdentityGenerator,
 )
-from app.repositories.sql_setup_publication_log_repository import (
-    SqlSetupPublicationLogRepository,
+from app.services.setup.vdproj_file_block_builder import (
+    VdprojFileBlockBuilder,
 )
+from app.services.setup.vdproj_file_block_inserter import (
+    VdprojFileBlockInserter,
+)
+from app.services.setup.vdproj_file_modifier import (
+    VdprojFileModifier,
+)
+from app.services.setup.vdproj_setup_file_loader import (
+    VdprojSetupFileLoader,
+)
+
+# Pipeline
+from app.pipeline.runner.pipeline_runner import (
+    PipelineRunner,
+)
+
+# Analyzers
+from app.analyzers.build_analyzer import (
+    BuildAnalyzer,
+)
+from app.analyzers.framework_analyzer import (
+    FrameworkAnalyzer,
+)
+from app.analyzers.project_analyzer import (
+    ProjectAnalyzer,
+)
+
+# Readers
+from app.readers.project_reader import (
+    ProjectReader,
+)
+
+# Validators
+from app.validators.project_validator import (
+    ProjectValidator,
+)
+
+# Workspace
+from app.workspace.workspace_resolver import (
+    WorkspaceResolver,
+)
+
+# Use Cases
+from app.use_cases.execute_build_use_case import (
+    ExecuteBuildUseCase,
+)
+from app.use_cases.execute_pipeline_use_case import (
+    ExecutePipelineUseCase,
+)
+from app.use_cases.get_projects_use_case import (
+    GetProjectsUseCase,
+)
+from app.use_cases.execute_publish_use_case import (
+    ExecutePublishUseCase,
+)
+from app.use_cases.execute_analyze_use_case import (
+    ExecuteAnalyzeUseCase,
+)
+from app.use_cases.execute_setup_use_case import (
+    DefaultExecuteSetupUseCase,
+)
+from app.use_cases.publish_setups_use_case import (
+    DefaultPublishSetupsUseCase,
+)
+
+# API Support
+from app.api.exception_handlers import (
+    register_exception_handlers,
+)
+
+# Utils
 from app.utils.pipeline_logger import (
     PipelineLogger,
 )
-
 
 class Bootstrap:
     """
@@ -464,38 +421,15 @@ class Bootstrap:
             )
         )
 
-        self.environment_service = EnvironmentService(
-            environment_repository=self.environment_repository,
-        )
-        
         self.project_metadata_repository = (
             JsonProjectMetadataRepository(
                 metadata_path=Path("metadata"),
             )
         )
 
-        self.project_service = ProjectService(
-            project_repository=self.project_repository,
-        )
-
         self.cleanup_rule_repository = (
             SqlCleanupRuleRepository(
                 database_connection=self.database_connection,
-            )
-        )
-
-        CleanupRulesProvider.configure(
-            repository=self.cleanup_rule_repository,
-        )
-
-        self.cleanup_rule_service = (
-            CleanupRuleService(
-                cleanup_rule_repository=(
-                    self.cleanup_rule_repository
-                ),
-                project_service=(
-                    self.project_service
-                ),
             )
         )
 
@@ -529,6 +463,29 @@ class Bootstrap:
         #
         # Services
         #
+
+        self.environment_service = EnvironmentService(
+            environment_repository=self.environment_repository,
+        )
+
+        self.project_service = ProjectService(
+            project_repository=self.project_repository,
+        )
+
+        CleanupRulesProvider.configure(
+            repository=self.cleanup_rule_repository,
+        )
+
+        self.cleanup_rule_service = (
+            CleanupRuleService(
+                cleanup_rule_repository=(
+                    self.cleanup_rule_repository
+                ),
+                project_service=(
+                    self.project_service
+                ),
+            )
+        )
 
         self.process_service = (
             DefaultProcessService()
@@ -888,6 +845,13 @@ class Bootstrap:
         self.setup_network_publisher = (
             DefaultSetupNetworkPublisher(
                 settings=self.settings,
+            )
+        )
+
+        self.setup_network_publication_service = (
+            SetupNetworkPublicationService(
+                settings=self.settings,
+                publisher=self.setup_network_publisher,
             )
         )
 

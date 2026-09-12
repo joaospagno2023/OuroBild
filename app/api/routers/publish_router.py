@@ -2,16 +2,16 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : publish_router.py
-Descrição : Endpoints responsáveis pela execução de Publish.
+Descrição : Endpoints responsáveis pela execução e publicação de Setup.
 --------------------------------------------------------------------
 """
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     HTTPException,
     Request,
+    status,
 )
 
 from app.api.dependencies.authorization_dependencies import (
@@ -23,19 +23,23 @@ from app.api.dependencies.current_user import (
 from app.models.publish.publish_request import (
     PublishRequest,
 )
-from app.models.setup.publish_setups_request import (
-    PublishSetupsRequest,
+from app.models.setup.setup_publication_request import (
+    SetupPublicationRequest,
 )
-from app.models.setup.setup_batch_publish_request import (
-    SetupBatchPublishRequest,
-)
-from app.models.setup.setup_batch_publish_result import (
-    SetupBatchPublishResult,
+from app.models.setup.setup_publication_start_result import (
+    SetupPublicationStartResult,
 )
 from app.models.setup.setup_publication_status_result import (
-    SetupPublicationProjectStatus,
     SetupPublicationStatusResult,
 )
+
+
+from app.services.publish_execution_lock import (
+    PublishExecutionLock,
+)
+
+
+publish_execution_lock = PublishExecutionLock()
 
 
 router = APIRouter(
@@ -69,18 +73,35 @@ def execute_publish(
         build.execute
     """
 
-    bootstrap = request.app.state.bootstrap
-
-    return (
-        bootstrap.execute_publish_use_case.execute(
-            publish_request,
+    if not publish_execution_lock.try_acquire():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "busy",
+                "message": (
+                    "Já existe uma publicação "
+                    "em execução. Aguarde a "
+                    "conclusão da publicação atual."
+                ),
+            },
         )
-    )
+
+    try:
+        bootstrap = request.app.state.bootstrap
+
+        return (
+            bootstrap.execute_publish_use_case.execute(
+                publish_request,
+            )
+        )
+    finally:
+        publish_execution_lock.release()
 
 
 @router.post(
     "/setups/network",
-    response_model=SetupBatchPublishResult,
+    response_model=SetupPublicationStartResult,
+    status_code=status.HTTP_202_ACCEPTED,
     dependencies=[
         Depends(
             require_permission(
@@ -89,153 +110,39 @@ def execute_publish(
         ),
     ],
 )
-def publish_setups_network(
-    publish_request: PublishSetupsRequest,
+def start_setup_network_publication(
+    publication_request: SetupPublicationRequest,
     request: Request,
-    background_tasks: BackgroundTasks,
-) -> SetupBatchPublishResult:
-    """
-    Cria um lote de publicação e inicia a cópia em segundo plano.
-
-    Requer a permissão:
-
-        setup.execute
-    """
+) -> SetupPublicationStartResult:
+    """Inicia a cópia dos Setups para a rede em background."""
 
     bootstrap = request.app.state.bootstrap
 
-    try:
-        setup_batch_request = SetupBatchPublishRequest(
-            execution_ids=publish_request.execution_ids,
-            version=publish_request.version,
-            revision=publish_request.revision,
-        )
-
-        result = bootstrap.publish_setups_use_case.start(
-            setup_batch_request,
-        )
-
-        background_tasks.add_task(
-            bootstrap.publish_setups_use_case.execute_batch,
-            setup_batch_request,
-            result.batch_id,
-        )
-
-        return result
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
-    except (FileNotFoundError, NotADirectoryError) as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    return bootstrap.setup_network_publication_service.start(
+        publication_request,
+    )
 
 
 @router.get(
     "/setups/network/{batch_id}",
     response_model=SetupPublicationStatusResult,
-    dependencies=[
-        Depends(
-            require_permission(
-                "setup.execute",
-            ),
-        ),
-    ],
 )
-def get_setup_publication_status(
+def get_setup_network_publication_status(
     batch_id: str,
     request: Request,
 ) -> SetupPublicationStatusResult:
-    """Retorna o estado atual de um lote de publicação."""
+    """Retorna o progresso atual de uma publicação de Setup."""
 
     bootstrap = request.app.state.bootstrap
 
-    try:
-        batch = bootstrap.setup_publication_batch_repository.get_by_batch_id(
-            batch_id,
-        )
-        if batch is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Lote não encontrado: {batch_id}",
-            )
+    result = bootstrap.setup_network_publication_service.get(
+        batch_id,
+    )
 
-        logs = bootstrap.setup_publication_log_repository.get_by_batch_id(
-            batch_id,
-        )
-
-        projects = _build_project_statuses(logs)
-        progress_percent = (
-            round(
-                (batch.completed_setups / batch.total_setups) * 100
-            )
-            if batch.total_setups > 0
-            else 0
-        )
-
-        success: bool | None
-        if batch.status == "completed":
-            success = True
-        elif batch.status == "failed":
-            success = False
-        else:
-            success = None
-
-        return SetupPublicationStatusResult(
-            batch_id=batch.batch_id,
-            status=batch.status,
-            success=success,
-            message=batch.message,
-            total=batch.total_setups,
-            completed=batch.completed_setups,
-            failed=batch.failed_setups,
-            progress_percent=progress_percent,
-            projects=projects,
-        )
-    except HTTPException:
-        raise
-    except ValueError as exc:
+    if result is None:
         raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Publicação de Setup não encontrada.",
+        )
 
-
-def _build_project_statuses(
-    logs,
-) -> list[SetupPublicationProjectStatus]:
-    project_data: dict[str, SetupPublicationProjectStatus] = {}
-
-    for log in logs:
-        if not log.project_id:
-            continue
-
-        execution_id = log.execution_id or ""
-        current = project_data.get(log.project_id)
-
-        if current is None:
-            current = SetupPublicationProjectStatus(
-                project_id=log.project_id,
-                execution_id=execution_id,
-                status="waiting",
-                message="Aguardando início da cópia...",
-            )
-            project_data[log.project_id] = current
-
-        if log.execution_id:
-            current.execution_id = log.execution_id
-
-        if log.event_type == "PROJECT_PUBLISH_START":
-            current.status = "publishing"
-            current.message = log.message
-        elif log.event_type == "PROJECT_PUBLISH_SUCCESS":
-            current.status = "success"
-            current.message = log.message
-        elif log.event_type == "PROJECT_PUBLISH_FAILED":
-            current.status = "error"
-            current.message = log.message
-
-    return list(project_data.values())
+    return result
