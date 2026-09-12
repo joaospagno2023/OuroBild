@@ -168,33 +168,13 @@ export interface PublishSetupProjectResult {
   duration_seconds: number;
 }
 
-export interface PublishSetupsStartResult {
-  batch_id: string;
+export interface PublishSetupsResult {
   success: boolean;
-  status: "pending" | "running" | "completed" | "failed";
   message: string;
-  execution_ids: string[];
-  project_ids: string[];
-  source_path?: string | null;
-}
-
-export interface SetupPublicationProjectStatus {
-  project_id: string;
-  execution_id: string;
-  status: "waiting" | "publishing" | "success" | "error";
-  message: string;
-}
-
-export interface SetupPublicationStatusResult {
-  batch_id: string;
-  status: "pending" | "running" | "completed" | "failed";
-  success: boolean | null;
-  message: string | null;
   total: number;
   completed: number;
   failed: number;
-  progress_percent: number;
-  projects: SetupPublicationProjectStatus[];
+  projects: PublishSetupProjectResult[];
 }
 
 export interface ExecuteProjectResponse {
@@ -340,6 +320,24 @@ export async function executeProject(
   );
 }
 
+export interface SetupOutputCleanupResult {
+  success: boolean;
+  message: string;
+  output_root: string;
+  preserved_path: string;
+  removed_items: number;
+}
+
+export async function prepareSetupOutput(): Promise<SetupOutputCleanupResult> {
+  return apiPost<
+    Record<string, never>,
+    SetupOutputCleanupResult
+  >(
+    "/setups/prepare-output",
+    {},
+  );
+}
+
 export async function getExecution(
   executionId: string,
 ): Promise<PipelineExecutionResponse> {
@@ -350,20 +348,12 @@ export async function getExecution(
 
 export async function publishSetups(
   request: PublishSetupsRequest,
-): Promise<PublishSetupsStartResult> {
+): Promise<PublishSetupsResult> {
   return apiPost<
     PublishSetupsRequest,
-    PublishSetupsStartResult
+    PublishSetupsResult
   >(
     "/publishes/setups/network",
     request,
-  );
-}
-
-export async function getSetupPublicationStatus(
-  batchId: string,
-): Promise<SetupPublicationStatusResult> {
-  return apiGet<SetupPublicationStatusResult>(
-    `/publishes/setups/network/${batchId}`,
   );
 }

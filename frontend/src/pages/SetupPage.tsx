@@ -24,6 +24,7 @@ import {
   getProjects,
   getSetupPublicationStatus,
   publishSetups,
+  prepareSetupOutput,
   type PipelineExecutionResponse,
   type Project,
   type SetupPublicationMode,
@@ -691,6 +692,44 @@ function SetupPage() {
     );
 
     try {
+      try {
+        const cleanupResult =
+          await prepareSetupOutput();
+
+        if (!cleanupResult.success) {
+          throw new Error(
+            cleanupResult.message,
+          );
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Não foi possível preparar a pasta de saída dos Setups.";
+
+        setExecutions(
+          (current) =>
+            current.map(
+              (execution) =>
+                selectedIds.includes(
+                  execution.id,
+                )
+                  ? {
+                      ...execution,
+                      status: "error",
+                      progress: 0,
+                      message,
+                    }
+                  : execution,
+            ),
+        );
+
+        setToastMessage(
+          `A geração foi interrompida: ${message}`,
+        );
+        return;
+      }
+
       for (
         let index = 0;
         index <

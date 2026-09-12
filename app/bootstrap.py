@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : bootstrap.py
-Descrição : ResponsÃ¡vel por inicializar a aplicaÃ§Ã£o e criar as
+DescriÃ§Ã£o : ResponsÃ¡vel por inicializar a aplicaÃ§Ã£o e criar as
              dependÃªncias da aplicaÃ§Ã£o.
 --------------------------------------------------------------------
 """
@@ -23,6 +23,9 @@ from app.api.routers.project_router import (
 )
 from app.api.routers.setup_publish_router import (
     router as setup_publish_router,
+)
+from app.api.routers.setup_generation_router import (
+    router as setup_generation_router,
 )
 from app.api.routers.environment_router import (
     router as environment_router,
@@ -177,6 +180,9 @@ from app.services.setup.network_setup_publisher import (
 )
 from app.services.setup.setup_network_publication_service import (
     SetupNetworkPublicationService,
+)
+from app.services.setup.setup_output_cleanup_service import (
+    SetupOutputCleanupService,
 )
 from app.services.setup.setup_file_change_applier import (
     SetupFileChangeApplier,
@@ -855,6 +861,12 @@ class Bootstrap:
             )
         )
 
+        self.setup_output_cleanup_service = (
+            SetupOutputCleanupService(
+                settings=self.settings,
+            )
+        )
+
         self.publish_setups_use_case = (
             DefaultPublishSetupsUseCase(
                 pipeline_execution_repository=(
@@ -1013,6 +1025,10 @@ class Bootstrap:
 
         app.include_router(
             setup_publish_router,
+        )
+
+        app.include_router(
+            setup_generation_router,
         )
 
         app.include_router(
