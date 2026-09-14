@@ -8,7 +8,7 @@ export type SetupEngine =
   | "visual_studio";
 
 export interface StorageConfiguration {
-  root_path: string;
+   workspace_path: string;
 }
 
 export interface BuildToolsConfiguration {
@@ -21,6 +21,7 @@ export interface SetupConfiguration {
   engine: SetupEngine;
   output_root: string;
   aip_root: string;
+  network_root_path: string;
   excluirpastawork: boolean;
 }
 

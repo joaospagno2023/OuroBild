@@ -24,7 +24,6 @@ import {
   getProjects,
   getSetupPublicationStatus,
   publishSetups,
-  prepareSetupOutput,
   type PipelineExecutionResponse,
   type Project,
   type SetupPublicationMode,
@@ -80,6 +79,49 @@ function getEnvironmentLabel(
     ENVIRONMENT_LABELS[environmentId] ??
     environmentId
   );
+}
+
+
+function validateVersion(
+  value: string,
+): string {
+  const version = value.trim();
+
+  if (!version) {
+    return "Informe a versão no formato X.Y.Z, por exemplo: 10.0.1.";
+  }
+
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    return "A versão deve estar no formato X.Y.Z, por exemplo: 10.0.1. Não utilize vírgulas.";
+  }
+
+  const parts = version
+    .split(".")
+    .map((part) => Number(part));
+
+  if (
+    parts.length !== 3 ||
+    parts.some(
+      (part) =>
+        !Number.isInteger(part) ||
+        part < 0,
+    )
+  ) {
+    return "A versão deve estar no formato X.Y.Z, por exemplo: 10.0.1.";
+  }
+
+  const [major, minor, patch] = parts;
+
+  if (
+    major < 10 ||
+    (major === 10 &&
+      minor === 0 &&
+      patch === 0)
+  ) {
+    return "A versão deve ser superior a 10.0.0 para gerar o Setup.";
+  }
+
+  return "";
 }
 
 
@@ -141,6 +183,11 @@ function SetupPage() {
     revision,
     setRevision,
   ] = useState("0");
+
+  const [
+    versionError,
+    setVersionError,
+  ] = useState("");
 
   const [
     configuration,
@@ -589,6 +636,24 @@ function SetupPage() {
       return;
     }
 
+    const trimmedVersion =
+      version.trim();
+
+    const currentVersionError =
+      validateVersion(trimmedVersion);
+
+    if (currentVersionError) {
+      setVersionError(
+        currentVersionError,
+      );
+      setToastMessage(
+        currentVersionError,
+      );
+      return;
+    }
+
+    setVersionError("");
+
     const trimmedRevision =
       revision.trim();
 
@@ -637,19 +702,6 @@ function SetupPage() {
     const parsedRevision =
       numericRevision;
 
-    const trimmedVersion =
-      version.trim();
-
-    if (
-      publicationMode === "network" &&
-      trimmedVersion === ""
-    ) {
-      setToastMessage(
-        "Informe a versão para copiar o Setup para a rede.",
-      );
-      return;
-    }
-
     const executionIds: string[] = [];
     let allGenerationsSucceeded = true;
 
@@ -692,44 +744,6 @@ function SetupPage() {
     );
 
     try {
-      try {
-        const cleanupResult =
-          await prepareSetupOutput();
-
-        if (!cleanupResult.success) {
-          throw new Error(
-            cleanupResult.message,
-          );
-        }
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Não foi possível preparar a pasta de saída dos Setups.";
-
-        setExecutions(
-          (current) =>
-            current.map(
-              (execution) =>
-                selectedIds.includes(
-                  execution.id,
-                )
-                  ? {
-                      ...execution,
-                      status: "error",
-                      progress: 0,
-                      message,
-                    }
-                  : execution,
-            ),
-        );
-
-        setToastMessage(
-          `A geração foi interrompida: ${message}`,
-        );
-        return;
-      }
-
       for (
         let index = 0;
         index <
@@ -1123,10 +1137,27 @@ function SetupPage() {
               <span>Versão</span>
               <input
                 value={version}
-                onChange={(event) => setVersion(event.target.value)}
-                placeholder="Ex.: 1.1.1"
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setVersion(value);
+                  setVersionError(
+                    validateVersion(value),
+                  );
+                }}
+                onBlur={() => {
+                  const validationError = validateVersion(version);
+                  setVersionError(validationError);
+
+                  if (validationError) {
+                    setToastMessage(validationError);
+                  }
+                }}
+                placeholder="Ex.: 10.0.1"
                 disabled={isGenerating}
+                aria-invalid={Boolean(versionError)}
               />
+
+
             </label>
 
             <label className="form-field">

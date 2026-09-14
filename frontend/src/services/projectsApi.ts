@@ -103,7 +103,6 @@ export interface UpdateProjectStatusRequest {
   enabled: boolean;
 }
 
-
 export type CleanupRuleTarget =
   | "file"
   | "directory";
@@ -168,20 +167,66 @@ export interface PublishSetupProjectResult {
   duration_seconds: number;
 }
 
-export interface PublishSetupsResult {
+export interface PublishSetupsStartResult {
+  batch_id: string;
   success: boolean;
+  status:
+    | "pending"
+    | "running"
+    | "completed"
+    | "failed";
   message: string;
+  execution_ids: string[];
+  project_ids: string[];
+  source_path?: string | null;
+}
+
+export interface SetupPublicationProjectStatus {
+  project_id: string;
+  execution_id: string;
+  status:
+    | "waiting"
+    | "publishing"
+    | "success"
+    | "error";
+  message: string;
+}
+
+export interface SetupPublicationStatusResult {
+  batch_id: string;
+  status:
+    | "pending"
+    | "running"
+    | "completed"
+    | "failed";
+  success: boolean | null;
+  message: string | null;
+
   total: number;
   completed: number;
   failed: number;
-  projects: PublishSetupProjectResult[];
+
+  progress_percent: number;
+
+  current_file: string | null;
+  current_file_index: number;
+  total_files: number;
+
+  projects: SetupPublicationProjectStatus[];
 }
 
 export interface ExecuteProjectResponse {
   execution_id: string;
   project_id: string;
-  status: "pending" | "running" | "completed" | "failed";
-  phase: "pipeline" | "setup" | null;
+  status:
+    | "pending"
+    | "running"
+    | "completed"
+    | "failed";
+  phase:
+    | "pipeline"
+    | "setup"
+    | null;
   current_step: string | null;
   current_step_index: number;
   total_steps: number;
@@ -193,6 +238,39 @@ export interface ExecuteProjectResponse {
   elapsed_seconds?: number | null;
   success?: boolean | null;
   failed_step?: string | null;
+}
+
+export interface PipelineExecutionResponse {
+  execution_id: string;
+  project_id: string;
+  status:
+    | "pending"
+    | "running"
+    | "completed"
+    | "failed";
+  phase:
+    | "pipeline"
+    | "setup"
+    | null;
+  current_step: string | null;
+  current_step_index: number;
+  total_steps: number;
+  progress_percent: number;
+  message: string;
+  created_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  elapsed_seconds: number | null;
+  success: boolean | null;
+  failed_step: string | null;
+}
+
+export interface SetupOutputCleanupResult {
+  success: boolean;
+  message: string;
+  output_root: string;
+  preserved_path: string;
+  removed_items: number;
 }
 
 export async function getProjects(): Promise<Project[]> {
@@ -245,22 +323,25 @@ export async function updateProjectStatus(
   );
 }
 
-export interface PipelineExecutionResponse {
-  execution_id: string;
-  project_id: string;
-  status: "pending" | "running" | "completed" | "failed";
-  phase: "pipeline" | "setup" | null;
-  current_step: string | null;
-  current_step_index: number;
-  total_steps: number;
-  progress_percent: number;
-  message: string;
-  created_at: string | null;
-  started_at: string | null;
-  finished_at: string | null;
-  elapsed_seconds: number | null;
-  success: boolean | null;
-  failed_step: string | null;
+export async function executeProject(
+  projectId: string,
+  request: ExecuteProjectRequest,
+): Promise<PipelineExecutionResponse> {
+  return apiPost<
+    ExecuteProjectRequest,
+    PipelineExecutionResponse
+  >(
+    `/projects/${projectId}/execute`,
+    request,
+  );
+}
+
+export async function getExecution(
+  executionId: string,
+): Promise<PipelineExecutionResponse> {
+  return apiGet<PipelineExecutionResponse>(
+    `/executions/${executionId}`,
+  );
 }
 
 export async function getProjectCleanupRules(
@@ -307,27 +388,6 @@ export async function deleteProjectCleanupRule(
   );
 }
 
-export async function executeProject(
-  projectId: string,
-  request: ExecuteProjectRequest,
-): Promise<PipelineExecutionResponse> {
-  return apiPost<
-    ExecuteProjectRequest,
-    PipelineExecutionResponse
-  >(
-    `/projects/${projectId}/execute`,
-    request,
-  );
-}
-
-export interface SetupOutputCleanupResult {
-  success: boolean;
-  message: string;
-  output_root: string;
-  preserved_path: string;
-  removed_items: number;
-}
-
 export async function prepareSetupOutput(): Promise<SetupOutputCleanupResult> {
   return apiPost<
     Record<string, never>,
@@ -338,22 +398,22 @@ export async function prepareSetupOutput(): Promise<SetupOutputCleanupResult> {
   );
 }
 
-export async function getExecution(
-  executionId: string,
-): Promise<PipelineExecutionResponse> {
-  return apiGet<PipelineExecutionResponse>(
-    `/executions/${executionId}`,
-  );
-}
-
 export async function publishSetups(
   request: PublishSetupsRequest,
-): Promise<PublishSetupsResult> {
+): Promise<PublishSetupsStartResult> {
   return apiPost<
     PublishSetupsRequest,
-    PublishSetupsResult
+    PublishSetupsStartResult
   >(
     "/publishes/setups/network",
     request,
+  );
+}
+
+export async function getSetupPublicationStatus(
+  batchId: string,
+): Promise<SetupPublicationStatusResult> {
+  return apiGet<SetupPublicationStatusResult>(
+    `/publishes/setups/network/${batchId}`,
   );
 }

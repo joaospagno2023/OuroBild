@@ -442,8 +442,8 @@ class AdvancedInstallerService(
                     success=False,
                     message=(
                         "O Advanced Installer finalizou "
-                        "a geraÃ§Ã£o do Setup, porÃ©m o "
-                        "arquivo MSI nÃ£o foi encontrado: "
+                        "a geração do Setup, porem o "
+                        "arquivo MSI NÃO foi encontrado: "
                         f"{output_msi}"
                     ),
                     project_id=request.project_id,

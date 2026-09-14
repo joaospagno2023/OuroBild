@@ -60,6 +60,11 @@ function ConfigurationPage() {
     setError,
   ] = useState("");
 
+  const [
+    toastMessage,
+    setToastMessage,
+  ] = useState("");
+
   useEffect(() => {
     void loadConfiguration();
   }, []);
@@ -81,6 +86,62 @@ function ConfigurationPage() {
       );
       setMode("ready");
     }
+  }
+
+  useEffect(() => {
+    if (!toastMessage) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setToastMessage("");
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [toastMessage]);
+
+  function validateVersion(
+    value: string,
+  ): string {
+    const version = value.trim();
+
+    if (!version) {
+      return "Não é possível salvar: informe a versão no formato X.Y.Z.";
+    }
+
+    if (!/^\\d+\\.\\d+\\.\\d+$/.test(version)) {
+      return "Não é possível salvar: a versão deve estar no formato X.Y.Z e não pode usar vírgula.";
+    }
+
+    const parts = version
+      .split(".")
+      .map((part) => Number(part));
+
+    if (
+      parts.length !== 3 ||
+      parts.some(
+        (part) =>
+          !Number.isInteger(part) ||
+          part < 0,
+      )
+    ) {
+      return "Não é possível salvar: a versão deve estar no formato X.Y.Z.";
+    }
+
+    const [major, minor, patch] = parts;
+
+    if (
+      major < 10 ||
+      (major === 10 &&
+        minor === 0 &&
+        patch === 0)
+    ) {
+      return "Não é possível salvar: a versão deve ser superior a 10.0.0.";
+    }
+
+    return "";
   }
 
   function updateField<
@@ -114,9 +175,9 @@ function ConfigurationPage() {
 
         return {
           ...current,
-          storage: {
-            ...current.storage,
-            root_path: value,
+          setup: {
+            ...current.setup,
+            network_root_path: value,
           },
         };
       },
@@ -235,6 +296,16 @@ function ConfigurationPage() {
     event.preventDefault();
 
     if (!configuration) {
+      return;
+    }
+
+    const versionValidationError =
+      validateVersion(configuration.version);
+
+    if (versionValidationError) {
+      setToastMessage(
+        versionValidationError,
+      );
       return;
     }
 
@@ -398,6 +469,29 @@ function ConfigurationPage() {
         </div>
       </div>
 
+      {toastMessage && (
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            top: "24px",
+            right: "24px",
+            zIndex: 9999,
+            maxWidth: "420px",
+            padding: "14px 18px",
+            borderRadius: "8px",
+            background: "#b91c1c",
+            color: "#ffffff",
+            boxShadow:
+              "0 8px 24px rgba(0, 0, 0, 0.18)",
+            fontSize: "14px",
+            fontWeight: 600,
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
+
       {message && (
         <div className="success-message">
           {message}
@@ -465,6 +559,18 @@ function ConfigurationPage() {
                     event.target.value,
                   )
                 }
+                onBlur={(event) => {
+                  const validationError =
+                    validateVersion(
+                      event.target.value,
+                    );
+
+                  if (validationError) {
+                    setToastMessage(
+                      validationError,
+                    );
+                  }
+                }}
               />
             </div>
 
@@ -553,8 +659,8 @@ function ConfigurationPage() {
             )}
 
             {renderPathField(
-              "Armazenamento",
-              configuration.storage.root_path,
+              "Armazenamento rede",
+              configuration.setup.network_root_path,
               updateStorageRootPath,
               "folder",
             )}
