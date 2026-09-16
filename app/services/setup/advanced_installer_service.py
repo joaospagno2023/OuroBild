@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : advanced_installer_service.py
-DescriÃ§Ã£o : Gera o Setup utilizando o Advanced Installer.
+Descrição : Gera o Setup utilizando o Advanced Installer.
 --------------------------------------------------------------------
 """
 
@@ -89,25 +89,25 @@ class AdvancedInstallerService(
         if process_service is None:
             raise ValueError(
                 "ProcessService "
-                "nÃ£o foi informado."
+                "não foi informado."
             )
 
         if configuration_loader is None:
             raise ValueError(
                 "ConfigurationLoader "
-                "nÃ£o foi informado."
+                "não foi informado."
             )
 
         if cleanup_factory is None:
             raise ValueError(
                 "BuildArtifactCleanupFactory "
-                "nÃ£o foi informado."
+                "não foi informado."
             )
 
         if workspace_service is None:
             raise ValueError(
                 "AdvancedInstallerWorkspaceService "
-                "nÃ£o foi informado."
+                "não foi informado."
             )
 
         if not isinstance(
@@ -131,7 +131,7 @@ class AdvancedInstallerService(
         )
 
         # Mantido por compatibilidade com o Bootstrap atual.
-        # O sincronizador nÃ£o Ã© mais utilizado neste fluxo; a atualizaÃ§Ã£o
+        # O sincronizador não Ã© mais utilizado neste fluxo; a atualizaÃ§Ã£o
         # dos arquivos Ã© feita pelo RefreshSync nativo do Advanced Installer.
         self.__aip_synchronizer = aip_synchronizer
 
@@ -585,19 +585,19 @@ class AdvancedInstallerService(
 
         if not aip_path.exists():
             raise FileNotFoundError(
-                "Arquivo AIP nÃ£o encontrado: "
+                "Arquivo AIP não encontrado: "
                 f"{aip_path}"
             )
 
         if not publish_path.exists():
             raise FileNotFoundError(
-                "Pasta de publicaÃ§Ã£o nÃ£o encontrada: "
+                "Pasta de publicação não encontrada: "
                 f"{publish_path}"
             )
 
         if not publish_path.is_dir():
             raise ValueError(
-                "A pasta de publicaÃ§Ã£o nÃ£o Ã© um diretÃ³rio: "
+                "A pasta de publicaÃ§Ã£o não Ã© um diretÃ³rio: "
                 f"{publish_path}"
             )
 
@@ -628,7 +628,7 @@ class AdvancedInstallerService(
 
         if match is None:
             raise ValueError(
-                "SynchronizedFolderComponent nÃ£o encontrado no AIP."
+                "SynchronizedFolderComponent não encontrado no AIP."
             )
 
         body = match.group("body")
@@ -646,7 +646,7 @@ class AdvancedInstallerService(
 
         if source_match is None:
             raise ValueError(
-                "A pasta sincronizada do AIP nÃ£o possui SourcePath."
+                "A pasta sincronizada do AIP não possui SourcePath."
             )
 
         source_path_text = (
@@ -741,7 +741,7 @@ class AdvancedInstallerService(
 
         if not normalized_version:
             raise ValueError(
-                "A versÃ£o do Setup nÃ£o foi informada."
+                "A versÃ£o do Setup não foi informada."
             )
 
         command = Command(
@@ -834,38 +834,38 @@ class AdvancedInstallerService(
         if request is None:
             raise ValueError(
                 "A solicitaÃ§Ã£o de Setup "
-                "nÃ£o foi informada."
+                "não foi informada."
             )
 
         if definition is None:
             raise ValueError(
                 "A definiÃ§Ã£o do Setup "
-                "nÃ£o foi informada."
+                "não foi informada."
             )
 
         if paths is None:
             raise ValueError(
                 "Os caminhos do Setup "
-                "nÃ£o foram informados."
+                "não foram informados."
             )
 
         if paths.publish_path is None:
             raise ValueError(
                 "O caminho de publicaÃ§Ã£o "
-                "nÃ£o foi informado."
+                "não foi informado."
             )
 
         if not advanced_installer_path.exists():
             raise FileNotFoundError(
                 "AdvancedInstaller.com "
-                "nÃ£o encontrado: "
+                "não encontrado: "
                 f"{advanced_installer_path}"
             )
 
         if not advanced_installer_path.is_file():
             raise ValueError(
                 "O caminho do Advanced Installer "
-                "nÃ£o Ã© um arquivo: "
+                "não Ã© um arquivo: "
                 f"{advanced_installer_path}"
             )
 
@@ -876,14 +876,14 @@ class AdvancedInstallerService(
         if not aip_path.exists():
             raise FileNotFoundError(
                 "Arquivo AIP "
-                "nÃ£o encontrado: "
+                "não encontrado: "
                 f"{aip_path}"
             )
 
         if not aip_path.is_file():
             raise ValueError(
                 "O caminho do AIP "
-                "nÃ£o Ã© um arquivo: "
+                "não Ã© um arquivo: "
                 f"{aip_path}"
             )
 
@@ -967,13 +967,13 @@ class AdvancedInstallerService(
     ) -> SetupResult:
         """
         Cria um SetupResult de falha para uma
-        operaÃ§Ã£o do Advanced Installer.
+        Operação do Advanced Installer.
         """
 
         return SetupResult(
             success=False,
             message=(
-                "Falha durante a operaÃ§Ã£o "
+                "Falha durante a Operação "
                 f"{operation} do Advanced Installer. "
                 f"ExitCode: "
                 f"{process_result.exit_code}. "

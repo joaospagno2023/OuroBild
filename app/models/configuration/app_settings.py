@@ -77,6 +77,12 @@ class AppSettings(
     setup: SetupSettings
 
     #
+    # Integrações
+    #
+
+    ourodeploy_sql_api_url: str = ""
+
+    #
     # Logging
     #
 

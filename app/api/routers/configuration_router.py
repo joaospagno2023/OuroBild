@@ -12,6 +12,8 @@ from fastapi import (
     Request,
 )
 
+from pydantic import BaseModel
+
 from app.api.dependencies.current_user import (
     get_current_user,
 )
@@ -37,6 +39,17 @@ router = APIRouter(
     prefix="/configuration",
     tags=["Configuration"],
 )
+
+
+class OuroDeploySqlStatusResponse(BaseModel):
+    """
+    Representa o status de disponibilidade da API OuroDeploy SQL.
+    """
+
+    configured: bool
+    online: bool
+    url: str
+    message: str
 
 
 @router.get(
@@ -149,4 +162,35 @@ def browse_file(
 
     return PathSelectionResponse(
         path=selected_path,
+    )
+
+
+@router.get(
+    "/ourodeploy-sql/status",
+    response_model=OuroDeploySqlStatusResponse,
+)
+def get_ourodeploy_sql_status(
+    request: Request,
+    current_user: User = Depends(
+        get_current_user,
+    ),
+) -> OuroDeploySqlStatusResponse:
+    """
+    Verifica o status da API OuroDeploy SQL configurada.
+    """
+
+    _ = current_user
+
+    bootstrap = request.app.state.bootstrap
+
+    status = (
+        bootstrap.configuration_service
+        .get_ourodeploy_sql_status()
+    )
+
+    return OuroDeploySqlStatusResponse(
+        configured=status.configured,
+        online=status.online,
+        url=status.url,
+        message=status.message,
     )

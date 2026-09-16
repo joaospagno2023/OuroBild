@@ -31,6 +31,11 @@ export interface LoggingConfiguration {
   level: string;
 }
 
+export interface OuroDeploySqlStatus {
+  online: boolean;
+  message: string;
+}
+
 export interface Configuration {
   application_name: string;
   version: string;
@@ -42,6 +47,7 @@ export interface Configuration {
   build_tools: BuildToolsConfiguration;
   setup: SetupConfiguration;
   logging: LoggingConfiguration;
+  ourodeploy_sql_api_url: string;
 }
 
 export interface PathSelectionResponse {
@@ -87,5 +93,10 @@ export async function browseFile(
 
   return apiGet<PathSelectionResponse>(
     `/configuration/browse-file${query}`,
+  );
+}
+export async function getOuroDeploySqlStatus(): Promise<OuroDeploySqlStatus> {
+  return apiGet<OuroDeploySqlStatus>(
+    "/configuration/ourodeploy-sql/status",
   );
 }

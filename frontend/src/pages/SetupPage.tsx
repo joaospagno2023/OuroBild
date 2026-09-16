@@ -66,6 +66,67 @@ type ProjectExecution =
   };
 
 
+type SetupGenerationSnapshot = {
+  selectedProjects: string[];
+  environment: string;
+  version: string;
+  revision: string;
+  configuration: string;
+  publicationMode: SetupPublicationMode;
+  executions: ProjectExecution[];
+  isGenerating: boolean;
+  stopRequested: boolean;
+  publicationStatus: PublicationStatus;
+  publicationMessage: string;
+  publicationCompleted: number;
+  publicationFailed: number;
+};
+
+
+const SETUP_GENERATION_STORAGE_KEY =
+  "ourobuild.setup-generation";
+
+
+let persistedStopRequested = false;
+
+
+function readGenerationSnapshot(): SetupGenerationSnapshot | null {
+  try {
+    const value = window.sessionStorage.getItem(
+      SETUP_GENERATION_STORAGE_KEY,
+    );
+
+    if (!value) {
+      return null;
+    }
+
+    return JSON.parse(value) as SetupGenerationSnapshot;
+  } catch {
+    return null;
+  }
+}
+
+
+function persistGenerationSnapshot(
+  patch: Partial<SetupGenerationSnapshot>,
+) {
+  try {
+    const current = readGenerationSnapshot() ??
+      ({} as SetupGenerationSnapshot);
+
+    window.sessionStorage.setItem(
+      SETUP_GENERATION_STORAGE_KEY,
+      JSON.stringify({
+        ...current,
+        ...patch,
+      }),
+    );
+  } catch {
+    // A indisponibilidade do armazenamento não deve interromper a geração.
+  }
+}
+
+
 const ENVIRONMENT_LABELS: Record<string, string> = {
   production: "Produção",
   versioned: "Versionado",
@@ -203,8 +264,12 @@ function SetupPage() {
 
   const [
     executions,
-    setExecutions,
+    setExecutionsState,
   ] = useState<ProjectExecution[]>([]);
+
+  const executionsRef = useRef<ProjectExecution[]>([]);
+
+  const hasRestoredSnapshotRef = useRef(false);
 
   const [
     isGenerating,
@@ -217,6 +282,18 @@ function SetupPage() {
   ] = useState(false);
 
   const stopRequestedRef = useRef(false);
+
+  function updateExecutions(
+    update: (
+      current: ProjectExecution[],
+    ) => ProjectExecution[],
+  ) {
+    const next = update(executionsRef.current);
+
+    executionsRef.current = next;
+    setExecutionsState(next);
+    persistGenerationSnapshot({ executions: next });
+  }
 
   const [
     publicationStatus,
@@ -319,13 +396,43 @@ function SetupPage() {
           availableEnvironments,
         );
 
-        setExecutions(
-          createInitialExecutions(
-            availableProjects,
-          ),
+        const snapshot = readGenerationSnapshot();
+        const availableProjectIds = new Set(
+          availableProjects.map((project) => project.id),
         );
+        const restoredExecutions = snapshot?.executions
+          ? createInitialExecutions(availableProjects).map((execution) => {
+              const savedExecution = snapshot.executions.find(
+                (item) => item.id === execution.id,
+              );
 
-        setSelectedProjects([]);
+              return savedExecution
+                ? { ...execution, ...savedExecution }
+                : execution;
+            })
+          : createInitialExecutions(availableProjects);
+        const restoredSelectedProjects = (
+          snapshot?.selectedProjects ?? []
+        ).filter((projectId) => availableProjectIds.has(projectId));
+
+        executionsRef.current = restoredExecutions;
+        setExecutionsState(restoredExecutions);
+        setSelectedProjects(restoredSelectedProjects);
+
+        if (snapshot) {
+          setVersion(snapshot.version);
+          setRevision(snapshot.revision);
+          setConfiguration(snapshot.configuration);
+          setPublicationMode(snapshot.publicationMode);
+          setIsGenerating(snapshot.isGenerating);
+          setStopRequested(snapshot.stopRequested);
+          stopRequestedRef.current = snapshot.stopRequested;
+          persistedStopRequested = snapshot.stopRequested;
+          setPublicationStatus(snapshot.publicationStatus);
+          setPublicationMessage(snapshot.publicationMessage);
+          setPublicationCompleted(snapshot.publicationCompleted);
+          setPublicationFailed(snapshot.publicationFailed);
+        }
 
         const productionEnvironment =
           availableEnvironments.find(
@@ -338,9 +445,7 @@ function SetupPage() {
           availableEnvironments[0];
 
         if (defaultEnvironment) {
-          setEnvironment(
-            defaultEnvironment.id,
-          );
+          setEnvironment(snapshot?.environment || defaultEnvironment.id);
         } else {
           setEnvironment("");
 
@@ -355,7 +460,8 @@ function SetupPage() {
 
         setProjects([]);
         setEnvironments([]);
-        setExecutions([]);
+        executionsRef.current = [];
+        setExecutionsState([]);
         setSelectedProjects([]);
         setEnvironment("");
 
@@ -366,6 +472,7 @@ function SetupPage() {
         );
       } finally {
         if (isMounted) {
+          hasRestoredSnapshotRef.current = true;
           setIsLoading(false);
         }
       }
@@ -377,6 +484,113 @@ function SetupPage() {
       isMounted = false;
     };
   }, []);
+
+
+  useEffect(() => {
+    if (!hasRestoredSnapshotRef.current) {
+      return;
+    }
+
+    persistGenerationSnapshot({
+      selectedProjects,
+      environment,
+      version,
+      revision,
+      configuration,
+      publicationMode,
+      executions,
+      isGenerating,
+      stopRequested,
+      publicationStatus,
+      publicationMessage,
+      publicationCompleted,
+      publicationFailed,
+    });
+  }, [
+    selectedProjects,
+    environment,
+    version,
+    revision,
+    configuration,
+    publicationMode,
+    executions,
+    isGenerating,
+    stopRequested,
+    publicationStatus,
+    publicationMessage,
+    publicationCompleted,
+    publicationFailed,
+  ]);
+
+
+  useEffect(() => {
+    if (isLoading || !hasRestoredSnapshotRef.current) {
+      return;
+    }
+
+    let isMounted = true;
+    const executionIds = executionsRef.current
+      .filter((execution) => execution.executionId)
+      .map((execution) => ({
+        projectId: execution.id,
+        executionId: execution.executionId as string,
+      }));
+
+    async function restoreExecutionProgress() {
+      await Promise.all(
+        executionIds.map(async ({ projectId, executionId }) => {
+          try {
+            const execution = await getExecution(executionId);
+
+            if (isMounted) {
+              updateExecution(projectId, execution);
+            }
+          } catch {
+            // Mantém o último status persistido quando o histórico não existe.
+          }
+        }),
+      );
+    }
+
+    void restoreExecutionProgress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isLoading]);
+
+
+  useEffect(() => {
+    if (!isGenerating) {
+      return;
+    }
+
+    const refreshPersistedProgress = () => {
+      const snapshot = readGenerationSnapshot();
+
+      if (!snapshot) {
+        return;
+      }
+
+      executionsRef.current = snapshot.executions;
+      setExecutionsState(snapshot.executions);
+      setIsGenerating(snapshot.isGenerating);
+      setStopRequested(snapshot.stopRequested);
+      setPublicationStatus(snapshot.publicationStatus);
+      setPublicationMessage(snapshot.publicationMessage);
+      setPublicationCompleted(snapshot.publicationCompleted);
+      setPublicationFailed(snapshot.publicationFailed);
+    };
+
+    const intervalId = window.setInterval(
+      refreshPersistedProgress,
+      1000,
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isGenerating]);
 
 
   const allSelected =
@@ -493,7 +707,7 @@ function SetupPage() {
     projectId: string,
     execution: PipelineExecutionResponse,
   ) {
-    setExecutions(
+    updateExecutions(
       (current) =>
         current.map(
           (item) =>
@@ -549,6 +763,14 @@ function SetupPage() {
       setPublicationCompleted(status.completed);
       setPublicationFailed(status.failed);
 
+      persistGenerationSnapshot({
+        publicationCompleted: status.completed,
+        publicationFailed: status.failed,
+        ...(status.message
+          ? { publicationMessage: status.message }
+          : {}),
+      });
+
       if (status.message) {
         setPublicationMessage(status.message);
       }
@@ -572,7 +794,11 @@ function SetupPage() {
     }
 
     stopRequestedRef.current = true;
+    persistedStopRequested = true;
     setStopRequested(true);
+    persistGenerationSnapshot({
+      stopRequested: true,
+    });
 
     setToastMessage(
       "Parada solicitada. O projeto atual será concluído; os próximos projetos não serão iniciados.",
@@ -592,7 +818,7 @@ function SetupPage() {
       return;
     }
 
-    setExecutions(
+    updateExecutions(
       (current) =>
         current.map(
           (execution) =>
@@ -706,18 +932,27 @@ function SetupPage() {
     let allGenerationsSucceeded = true;
 
     stopRequestedRef.current = false;
+    persistedStopRequested = false;
     setStopRequested(false);
     setIsGenerating(true);
     setPublicationStatus("idle");
     setPublicationMessage("");
     setPublicationCompleted(0);
     setPublicationFailed(0);
+    persistGenerationSnapshot({
+      isGenerating: true,
+      stopRequested: false,
+      publicationStatus: "idle",
+      publicationMessage: "",
+      publicationCompleted: 0,
+      publicationFailed: 0,
+    });
 
     const selectedIds = [
       ...selectedProjects,
     ];
 
-    setExecutions(
+    updateExecutions(
       (current) =>
         current.map(
           (execution) =>
@@ -750,7 +985,10 @@ function SetupPage() {
         selectedIds.length;
         index += 1
       ) {
-        if (stopRequestedRef.current) {
+        if (
+          stopRequestedRef.current ||
+          persistedStopRequested
+        ) {
           markRemainingProjectsAsCancelled(
             selectedIds,
             index,
@@ -762,7 +1000,7 @@ function SetupPage() {
         const projectId =
           selectedIds[index];
 
-        setExecutions(
+        updateExecutions(
           (current) =>
             current.map(
               (execution) =>
@@ -826,7 +1064,7 @@ function SetupPage() {
 
           allGenerationsSucceeded = false;
 
-          setExecutions(
+          updateExecutions(
             (current) =>
               current.map(
                 (execution) =>
@@ -852,7 +1090,10 @@ function SetupPage() {
           break;
         }
 
-        if (stopRequestedRef.current) {
+        if (
+          stopRequestedRef.current ||
+          persistedStopRequested
+        ) {
           markRemainingProjectsAsCancelled(
             selectedIds,
             index + 1,
@@ -868,7 +1109,7 @@ function SetupPage() {
           nextProject !==
           undefined
         ) {
-          setExecutions(
+          updateExecutions(
             (current) =>
               current.map(
                 (execution) =>
@@ -894,6 +1135,11 @@ function SetupPage() {
           setPublicationMessage(
             "A geração não foi concluída com sucesso para todos os projetos. Nenhuma cópia para a rede foi iniciada.",
           );
+          persistGenerationSnapshot({
+            publicationStatus: "error",
+            publicationMessage:
+              "A geração não foi concluída com sucesso para todos os projetos. Nenhuma cópia para a rede foi iniciada.",
+          });
         } else {
           setToastMessage(
             "A geração não foi concluída com sucesso para todos os projetos.",
@@ -921,6 +1167,13 @@ function SetupPage() {
         } na rede...`,
       );
       setPublicationCompleted(0);
+      persistGenerationSnapshot({
+        publicationStatus: "publishing",
+        publicationMessage: `Publicando ${selectedIds.length} Setup${
+          selectedIds.length === 1 ? "" : "s"
+        } na rede...`,
+        publicationCompleted: 0,
+      });
 
       try {
         const publication =
@@ -935,6 +1188,10 @@ function SetupPage() {
           setPublicationMessage(
             publication.message,
           );
+          persistGenerationSnapshot({
+            publicationStatus: "error",
+            publicationMessage: publication.message,
+          });
           return;
         }
 
@@ -957,12 +1214,24 @@ function SetupPage() {
             finalPublication.message ??
               "Todos os Setups foram publicados com sucesso.",
           );
+          persistGenerationSnapshot({
+            publicationStatus: "success",
+            publicationMessage:
+              finalPublication.message ??
+              "Todos os Setups foram publicados com sucesso.",
+          });
         } else {
           setPublicationStatus("error");
           setPublicationMessage(
             finalPublication.message ??
               "A publicação não foi concluída para todos os projetos.",
           );
+          persistGenerationSnapshot({
+            publicationStatus: "error",
+            publicationMessage:
+              finalPublication.message ??
+              "A publicação não foi concluída para todos os projetos.",
+          });
         }
       } catch (error) {
         setPublicationStatus("error");
@@ -971,11 +1240,23 @@ function SetupPage() {
             ? error.message
             : "Não foi possível publicar os Setups na rede.",
         );
+        persistGenerationSnapshot({
+          publicationStatus: "error",
+          publicationMessage:
+            error instanceof Error
+              ? error.message
+              : "Não foi possível publicar os Setups na rede.",
+        });
       }
     } finally {
       setIsGenerating(false);
       setStopRequested(false);
       stopRequestedRef.current = false;
+      persistedStopRequested = false;
+      persistGenerationSnapshot({
+        isGenerating: false,
+        stopRequested: false,
+      });
     }
   }
 

@@ -122,6 +122,12 @@ class ApplicationConfigurationModel(
         nullable=False,
     )
 
+    ourodeploy_sql_api_url: Mapped[str | None] = mapped_column(
+        "OuroDeploySqlApiUrl",
+        Unicode(2000),
+        nullable=True,
+    )
+
     setup_excluir_pasta_work: Mapped[bool] = mapped_column(
         "SetupExcluirPastaWork",
         Boolean,

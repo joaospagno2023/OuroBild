@@ -14,6 +14,7 @@ import {
   browseFile,
   browseFolder,
   getConfiguration,
+  getOuroDeploySqlStatus,
   updateConfiguration,
 } from "../services/configurationApi";
 
@@ -65,6 +66,21 @@ function ConfigurationPage() {
     setToastMessage,
   ] = useState("");
 
+  const [
+    ouroDeploySqlOnline,
+    setOuroDeploySqlOnline,
+  ] = useState<boolean | null>(null);
+
+  const [
+    ouroDeploySqlStatusMessage,
+    setOuroDeploySqlStatusMessage,
+  ] = useState("");
+
+  const [
+    isCheckingOuroDeploySql,
+    setIsCheckingOuroDeploySql,
+  ] = useState(false);
+
   useEffect(() => {
     void loadConfiguration();
   }, []);
@@ -80,11 +96,29 @@ function ConfigurationPage() {
 
       setConfiguration(result);
       setMode("ready");
+      void checkOuroDeploySqlStatus();
     } catch {
       setError(
         "Não foi possível carregar as configurações.",
       );
       setMode("ready");
+    }
+  }
+
+  async function checkOuroDeploySqlStatus() {
+    setIsCheckingOuroDeploySql(true);
+
+    try {
+      const result = await getOuroDeploySqlStatus();
+      setOuroDeploySqlOnline(result.online);
+      setOuroDeploySqlStatusMessage(result.message);
+    } catch {
+      setOuroDeploySqlOnline(false);
+      setOuroDeploySqlStatusMessage(
+        "Não foi possível consultar o status da API do OuroDeploy SQL.",
+      );
+    } finally {
+      setIsCheckingOuroDeploySql(false);
     }
   }
 
@@ -101,48 +135,6 @@ function ConfigurationPage() {
       window.clearTimeout(timer);
     };
   }, [toastMessage]);
-
-  function validateVersion(
-    value: string,
-  ): string {
-    const version = value.trim();
-
-    if (!version) {
-      return "Não é possível salvar: informe a versão no formato X.Y.Z.";
-    }
-
-    if (!/^\\d+\\.\\d+\\.\\d+$/.test(version)) {
-      return "Não é possível salvar: a versão deve estar no formato X.Y.Z e não pode usar vírgula.";
-    }
-
-    const parts = version
-      .split(".")
-      .map((part) => Number(part));
-
-    if (
-      parts.length !== 3 ||
-      parts.some(
-        (part) =>
-          !Number.isInteger(part) ||
-          part < 0,
-      )
-    ) {
-      return "Não é possível salvar: a versão deve estar no formato X.Y.Z.";
-    }
-
-    const [major, minor, patch] = parts;
-
-    if (
-      major < 10 ||
-      (major === 10 &&
-        minor === 0 &&
-        patch === 0)
-    ) {
-      return "Não é possível salvar: a versão deve ser superior a 10.0.0.";
-    }
-
-    return "";
-  }
 
   function updateField<
     T extends keyof Configuration,
@@ -299,16 +291,6 @@ function ConfigurationPage() {
       return;
     }
 
-    const versionValidationError =
-      validateVersion(configuration.version);
-
-    if (versionValidationError) {
-      setToastMessage(
-        versionValidationError,
-      );
-      return;
-    }
-
     setIsSaving(true);
     setError("");
     setMessage("");
@@ -320,6 +302,7 @@ function ConfigurationPage() {
         );
 
       setConfiguration(result);
+      void checkOuroDeploySqlStatus();
 
       setMessage(
         "Configurações salvas com sucesso.",
@@ -559,18 +542,6 @@ function ConfigurationPage() {
                     event.target.value,
                   )
                 }
-                onBlur={(event) => {
-                  const validationError =
-                    validateVersion(
-                      event.target.value,
-                    );
-
-                  if (validationError) {
-                    setToastMessage(
-                      validationError,
-                    );
-                  }
-                }}
               />
             </div>
 
@@ -811,6 +782,100 @@ function ConfigurationPage() {
                   Sim
                 </option>
               </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="content-card">
+          <div className="card-header">
+            <div>
+              <h2>
+                Integrações
+              </h2>
+
+              <p>
+                Configuração e conectividade das APIs
+                utilizadas pelo OuroBuild.
+              </p>
+            </div>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-field">
+              <label>
+                OuroDeploy SQL API
+              </label>
+
+              <input
+                value={
+                  configuration.ourodeploy_sql_api_url
+                }
+                onChange={(event) =>
+                  updateField(
+                    "ourodeploy_sql_api_url",
+                    event.target.value,
+                  )
+                }
+                placeholder="https://servidor:porta"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>
+                Status da API
+              </label>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  minHeight: "38px",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 600,
+                    color:
+                      ouroDeploySqlOnline === null
+                        ? "#6b7280"
+                        : ouroDeploySqlOnline
+                          ? "#15803d"
+                          : "#b91c1c",
+                  }}
+                >
+                  {isCheckingOuroDeploySql
+                    ? "Verificando..."
+                    : ouroDeploySqlOnline === null
+                      ? "Não verificado"
+                      : ouroDeploySqlOnline
+                        ? "● Online"
+                        : "● Offline"}
+                </span>
+
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() =>
+                    void checkOuroDeploySqlStatus()
+                  }
+                  disabled={
+                    isSaving ||
+                    isBrowsing ||
+                    isCheckingOuroDeploySql
+                  }
+                >
+                  {isCheckingOuroDeploySql
+                    ? "Verificando..."
+                    : "Testar conexão"}
+                </button>
+              </div>
+
+              {ouroDeploySqlStatusMessage && (
+                <small style={{ marginTop: "6px" }}>
+                  {ouroDeploySqlStatusMessage}
+                </small>
+              )}
             </div>
           </div>
         </div>

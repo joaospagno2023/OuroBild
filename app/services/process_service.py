@@ -25,7 +25,7 @@ from app.models.process.process_status import (
     ProcessStatus,
 )
 
-from app.services.logging.pipeline_logger import (
+from app.utils.pipeline_logger import (
     PipelineLogger,
 )
 

@@ -11,18 +11,24 @@ import base64
 import os
 import subprocess
 
+import httpx
+
 from app.abstractions.application_configuration_repository import (
     ApplicationConfigurationRepository,
 )
+
 from app.core.configuration.configuration_loader import (
     ConfigurationLoader,
 )
+
 from app.models.configuration.app_settings import (
     AppSettings,
 )
+
 from app.models.configuration.configuration_response import (
     ConfigurationResponse,
 )
+
 from app.models.configuration.configuration_update_request import (
     ConfigurationUpdateRequest,
 )
@@ -51,6 +57,7 @@ class ConfigurationService:
         self._configuration_loader = (
             configuration_loader
         )
+
         self._configuration_repository = (
             configuration_repository
         )
@@ -103,6 +110,19 @@ class ConfigurationService:
                     "base_path": request.base_path,
                     "installer_path": request.installer_path,
                     "publish_path": request.publish_path,
+
+                    #
+                    # Integrações
+                    #
+
+                    "ourodeploy_sql_api_url": (
+                        request.ourodeploy_sql_api_url.strip()
+                    ),
+
+                    #
+                    # Armazenamento
+                    #
+
                     "storage": (
                         current_settings.storage.model_copy(
                             update={
@@ -112,6 +132,11 @@ class ConfigurationService:
                             }
                         )
                     ),
+
+                    #
+                    # Ferramentas
+                    #
+
                     "build_tools": (
                         current_settings.build_tools.model_copy(
                             update={
@@ -127,6 +152,11 @@ class ConfigurationService:
                             }
                         )
                     ),
+
+                    #
+                    # Setup
+                    #
+
                     "setup": (
                         current_settings.setup.model_copy(
                             update={
@@ -137,12 +167,20 @@ class ConfigurationService:
                                 "aip_root": (
                                     request.setup.aip_root
                                 ),
+                                "network_root_path": (
+                                    request.setup.network_root_path
+                                ),
                                 "excluirpastawork": (
                                     request.setup.excluirpastawork
                                 ),
                             }
                         )
                     ),
+
+                    #
+                    # Logging
+                    #
+
                     "logging": (
                         current_settings.logging.model_copy(
                             update={
@@ -169,6 +207,93 @@ class ConfigurationService:
         return self._to_response(
             settings=saved_settings,
         )
+
+    def get_ourodeploy_sql_status(
+        self,
+    ) -> dict[str, object]:
+        """
+        Verifica o estado da API OuroDeploy SQL.
+
+        A URL configurada representa a URL base da API.
+        O health check é realizado através de:
+
+            {base_url}/health
+
+        Returns:
+            Dicionário contendo:
+
+            configured:
+                Indica se a URL foi configurada.
+
+            online:
+                Indica se a API respondeu com sucesso.
+
+            url:
+                URL base configurada.
+
+            message:
+                Mensagem amigável para apresentação na interface.
+        """
+
+        settings = (
+            self._configuration_loader.load_settings()
+        )
+
+        base_url = (
+            settings.ourodeploy_sql_api_url.strip()
+        )
+
+        if not base_url:
+            return {
+                "configured": False,
+                "online": False,
+                "url": "",
+                "message": (
+                    "API OuroDeploy SQL não configurada"
+                ),
+            }
+
+        base_url = base_url.rstrip("/")
+
+        health_url = (
+            f"{base_url}/health"
+        )
+
+        try:
+            response = httpx.get(
+                health_url,
+                timeout=3.0,
+                follow_redirects=True,
+            )
+
+            if 200 <= response.status_code < 300:
+                return {
+                    "configured": True,
+                    "online": True,
+                    "url": base_url,
+                    "message": (
+                        "OuroDeploy SQL online"
+                    ),
+                }
+
+            return {
+                "configured": True,
+                "online": False,
+                "url": base_url,
+                "message": (
+                    "OuroDeploy SQL offline"
+                ),
+            }
+
+        except Exception:
+            return {
+                "configured": True,
+                "online": False,
+                "url": base_url,
+                "message": (
+                    "OuroDeploy SQL offline"
+                ),
+            }
 
     def browse_folder(
         self,
@@ -287,6 +412,7 @@ if ($initialPath) {{
         $dialog.InitialDirectory = (
             [System.IO.Path]::GetDirectoryName($initialPath)
         )
+
         $dialog.FileName = (
             [System.IO.Path]::GetFileName($initialPath)
         )
@@ -393,5 +519,10 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
             storage=settings.storage,
             build_tools=settings.build_tools,
             setup=settings.setup,
+
+            ourodeploy_sql_api_url=(
+                settings.ourodeploy_sql_api_url
+            ),
+
             logging=settings.logging,
         )

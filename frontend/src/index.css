@@ -276,6 +276,21 @@ textarea:focus-visible {
 
   background: #22c55e;
 }
+.status-dot-online {
+  background: #22c55e;
+}
+
+.status-dot-offline {
+  background: #ef4444;
+}
+
+.status-dot-not-configured {
+  background: #94a3b8;
+}
+
+.status-dot-checking {
+  background: #eab308;
+}
 
 .sidebar-version {
   padding: 11px 12px 0;

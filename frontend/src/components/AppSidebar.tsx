@@ -1,4 +1,3 @@
-
 import {
   BarChart3,
   Boxes,
@@ -6,6 +5,11 @@ import {
   Settings,
   Rocket,
 } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { NavLink } from "react-router-dom";
 
 type MenuItem = {
@@ -13,6 +17,19 @@ type MenuItem = {
   path: string;
   icon: React.ReactNode;
 };
+
+type OuroDeploySqlStatus = {
+  configured: boolean;
+  online: boolean;
+  url: string;
+  message: string;
+};
+
+type OuroDeploySqlState =
+  | "checking"
+  | "online"
+  | "offline"
+  | "not-configured";
 
 const menuItems: MenuItem[] = [
   {
@@ -38,6 +55,99 @@ const menuItems: MenuItem[] = [
 ];
 
 function AppSidebar() {
+  const [
+    ouroDeploySqlState,
+    setOuroDeploySqlState,
+  ] = useState<OuroDeploySqlState>("checking");
+
+  const checkOuroDeploySqlStatus =
+    useCallback(async () => {
+      try {
+        setOuroDeploySqlState("checking");
+
+        const response = await fetch(
+          "/api/configuration/ourodeploy-sql/status",
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
+
+        if (!response.ok) {
+          setOuroDeploySqlState("offline");
+          return;
+        }
+
+        const data =
+          (await response.json()) as OuroDeploySqlStatus;
+
+        if (!data.configured) {
+          setOuroDeploySqlState(
+            "not-configured",
+          );
+          return;
+        }
+
+        if (data.online) {
+          setOuroDeploySqlState("online");
+          return;
+        }
+
+        setOuroDeploySqlState("offline");
+      } catch {
+        setOuroDeploySqlState("offline");
+      }
+    }, []);
+
+  useEffect(() => {
+    void checkOuroDeploySqlStatus();
+
+    const intervalId = window.setInterval(
+      () => {
+        void checkOuroDeploySqlStatus();
+      },
+      30_000,
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [checkOuroDeploySqlStatus]);
+
+  function getOuroDeploySqlStatusTitle(): string {
+    switch (ouroDeploySqlState) {
+      case "online":
+        return "Online";
+
+      case "offline":
+        return "Offline";
+
+      case "not-configured":
+        return "Não configurada";
+
+      case "checking":
+      default:
+        return "Verificando...";
+    }
+  }
+
+  function getOuroDeploySqlStatusClass(): string {
+    switch (ouroDeploySqlState) {
+      case "online":
+        return "status-dot status-dot-online";
+
+      case "offline":
+        return "status-dot status-dot-offline";
+
+      case "not-configured":
+        return "status-dot status-dot-not-configured";
+
+      case "checking":
+      default:
+        return "status-dot status-dot-checking";
+    }
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -62,7 +172,9 @@ function AppSidebar() {
             to={item.path}
             className={({ isActive }) =>
               `sidebar-link ${
-                isActive ? "sidebar-link-active" : ""
+                isActive
+                  ? "sidebar-link-active"
+                  : ""
               }`
             }
           >
@@ -78,6 +190,19 @@ function AppSidebar() {
           <div>
             <strong>Sistema online</strong>
             <span>OuroBuild API</span>
+          </div>
+        </div>
+
+        <div className="system-status">
+          <span
+            className={getOuroDeploySqlStatusClass()}
+          />
+
+          <div>
+            <strong>OuroDeploy SQL</strong>
+            <span>
+              {getOuroDeploySqlStatusTitle()}
+            </span>
           </div>
         </div>
 
