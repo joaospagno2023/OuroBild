@@ -98,6 +98,12 @@ class ApplicationConfigurationModel(
         nullable=False,
     )
 
+    tf_path: Mapped[str] = mapped_column(
+        "TfPath",
+        Unicode(1000),
+        nullable=False,
+    )
+
     setup_engine: Mapped[str] = mapped_column(
         "SetupEngine",
         Unicode(50),

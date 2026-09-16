@@ -15,6 +15,7 @@ export interface BuildToolsConfiguration {
   msbuild_path: string;
   advanced_installer_path: string;
   robocopy_path: string;
+  tf_path: string;
 }
 
 export interface SetupConfiguration {

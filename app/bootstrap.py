@@ -122,6 +122,9 @@ from app.repositories.sql_permission_repository import (
 from app.repositories.sql_project_repository import (
     SqlProjectRepository,
 )
+from app.repositories.sql_project_source_state_repository import (
+    SqlProjectSourceStateRepository,
+)
 from app.repositories.sql_pipeline_execution_log_repository import (
     SqlPipelineExecutionLogRepository,
 )
@@ -150,6 +153,9 @@ from app.services.hash_service import (
 )
 from app.services.project_metadata_service import (
     ProjectMetadataService,
+)
+from app.services.source_control_service import (
+    SourceControlService,
 )
 from app.services.workspace.solution_locator_service import (
     SolutionLocatorService,
@@ -433,6 +439,12 @@ class Bootstrap:
             )
         )
 
+        self.project_source_state_repository = (
+            SqlProjectSourceStateRepository(
+                database_connection=self.database_connection,
+            )
+        )
+
         self.cleanup_rule_repository = (
             SqlCleanupRuleRepository(
                 database_connection=self.database_connection,
@@ -507,6 +519,15 @@ class Bootstrap:
                 hash_service=self.hash_service,
             )
         )
+
+        self.source_control_service = (
+            SourceControlService(
+                process_service=self.process_service,
+                repository=self.project_source_state_repository,
+                tf_path=self.settings.build_tools.tf_path,
+            )
+        )
+
         #
         # RepositÃ³rio de execuÃ§Ãµes
         #
@@ -552,6 +573,9 @@ class Bootstrap:
             msbuild_locator=self.msbuild_locator,
             project_metadata_service=(
                 self.project_metadata_service
+            ),
+            source_control_service=(
+                self.source_control_service
             ),
         )
 

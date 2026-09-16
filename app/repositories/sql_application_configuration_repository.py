@@ -152,6 +152,9 @@ class SqlApplicationConfigurationRepository(
                         robocopy_path=str(
                             settings.build_tools.robocopy_path
                         ),
+                        tf_path=str(
+                            settings.build_tools.tf_path
+                        ),
                         setup_engine=(
                             settings.setup.engine.value
                         ),
@@ -236,6 +239,10 @@ class SqlApplicationConfigurationRepository(
 
                 configuration_model.robocopy_path = str(
                     settings.build_tools.robocopy_path
+                )
+
+                configuration_model.tf_path = str(
+                    settings.build_tools.tf_path
                 )
 
                 configuration_model.setup_engine = (
@@ -353,6 +360,7 @@ class SqlApplicationConfigurationRepository(
                     model.advanced_installer_path
                 ),
                 robocopy_path=model.robocopy_path,
+                tf_path=model.tf_path,
             ),
 
             setup=SetupSettings(

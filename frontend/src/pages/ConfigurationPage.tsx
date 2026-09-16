@@ -688,6 +688,30 @@ function ConfigurationPage() {
                 ),
               "file",
             )}
+
+            {renderPathField(
+              "TF.exe",
+              configuration.build_tools
+                .tf_path,
+              (value) =>
+                updateBuildTool(
+                  "tf_path",
+                  value,
+                ),
+              "file",
+            )}
+
+            {renderPathField(
+              "TF.exe",
+              configuration.build_tools
+                .tf_path,
+              (value) =>
+                updateBuildTool(
+                  "tf_path",
+                  value,
+                ),
+              "file",
+            )}
           </div>
         </div>
 

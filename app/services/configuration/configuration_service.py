@@ -149,6 +149,9 @@ class ConfigurationService:
                                 "robocopy_path": (
                                     request.build_tools.robocopy_path
                                 ),
+                                "tf_path": (
+                                    request.build_tools.tf_path
+                                ),
                             }
                         )
                     ),

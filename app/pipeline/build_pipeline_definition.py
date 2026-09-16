@@ -38,6 +38,14 @@ from app.pipeline.steps.restore_step import (
     RestoreStep,
 )
 
+from app.pipeline.steps.source_control_step import (
+    SourceControlStep,
+)
+
+from app.services.source_control_service import (
+    SourceControlService,
+)
+
 from app.services.msbuild_locator import (
     MSBuildLocator,
 )
@@ -57,6 +65,7 @@ class BuildPipelineDefinition:
         process_service: ProcessService,
         msbuild_locator: MSBuildLocator,
         project_metadata_service: ProjectMetadataService,
+        source_control_service: SourceControlService | None = None,
     ) -> None:
 
         self.__process_service = (
@@ -69,6 +78,10 @@ class BuildPipelineDefinition:
 
         self.__project_metadata_service = (
             project_metadata_service
+        )
+
+        self.__source_control_service = (
+            source_control_service
         )
 
         self.__publish_command_factory = (
@@ -87,8 +100,21 @@ class BuildPipelineDefinition:
         Cria as Steps da Pipeline.
         """
 
-        steps = [
+        steps = []
 
+        if self.__source_control_service is not None:
+            steps.append(
+                SourceControlStep(
+                    process_service=(
+                        self.__process_service
+                    ),
+                    source_control_service=(
+                        self.__source_control_service
+                    ),
+                )
+            )
+
+        steps.append(
             RestoreStep(
                 process_service=(
                     self.__process_service
@@ -99,8 +125,8 @@ class BuildPipelineDefinition:
                 project_metadata_service=(
                     self.__project_metadata_service
                 ),
-            ),
-        ]
+            )
+        )
 
         if project.publish_profile:
 

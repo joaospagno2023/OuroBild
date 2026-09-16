@@ -28,6 +28,10 @@ from app.services.project_metadata_service import (
     ProjectMetadataService,
 )
 
+from app.services.source_control_service import (
+    SourceControlService,
+)
+
 
 class DefaultPipelineFactory(
     PipelineFactory,
@@ -41,6 +45,7 @@ class DefaultPipelineFactory(
         process_service: ProcessService,
         msbuild_locator: MSBuildLocator,
         project_metadata_service: ProjectMetadataService,
+        source_control_service: SourceControlService | None = None,
     ) -> None:
 
         self.__definition = (
@@ -49,6 +54,9 @@ class DefaultPipelineFactory(
                 msbuild_locator=msbuild_locator,
                 project_metadata_service=(
                     project_metadata_service
+                ),
+                source_control_service=(
+                    source_control_service
                 ),
             )
         )

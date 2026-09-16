@@ -21,3 +21,7 @@ class BuildToolsSettings(BaseModel):
     advanced_installer_path: Path
 
     robocopy_path: Path
+
+    tf_path: Path
+
+    tf_path: Path

@@ -788,6 +788,15 @@ function SetupPage() {
     }
   }
 
+  function resetGenerationSelection() {
+    setSelectedProjects([]);
+
+    persistGenerationSnapshot({
+      selectedProjects: [],
+    });
+  }
+
+
   function stopGeneration() {
     if (!isGenerating) {
       return;
@@ -1150,6 +1159,8 @@ function SetupPage() {
       }
 
       if (publicationMode !== "network") {
+        resetGenerationSelection();
+
         setToastMessage(
           `${selectedIds.length} Setup${
             selectedIds.length === 1 ? "" : "s"
@@ -1220,6 +1231,8 @@ function SetupPage() {
               finalPublication.message ??
               "Todos os Setups foram publicados com sucesso.",
           });
+
+          resetGenerationSelection();
         } else {
           setPublicationStatus("error");
           setPublicationMessage(
