@@ -165,6 +165,48 @@ def browse_file(
     )
 
 
+class BuildToolStatusResponse(BaseModel):
+    """Representa o status de uma ferramenta de Build."""
+
+    configured: bool
+    online: bool
+    path: str
+    message: str
+
+
+class BuildToolsStatusResponse(BaseModel):
+    """Representa o status das ferramentas de Build configuradas."""
+
+    msbuild_path: BuildToolStatusResponse
+    advanced_installer_path: BuildToolStatusResponse
+    robocopy_path: BuildToolStatusResponse
+    tf_path: BuildToolStatusResponse
+
+
+@router.get(
+    "/build-tools/status",
+    response_model=BuildToolsStatusResponse,
+)
+def get_build_tools_status(
+    request: Request,
+    current_user: User = Depends(
+        get_current_user,
+    ),
+) -> BuildToolsStatusResponse:
+    """Verifica a disponibilidade das ferramentas de Build."""
+
+    _ = current_user
+
+    bootstrap = request.app.state.bootstrap
+
+    status = (
+        bootstrap.configuration_service
+        .get_build_tools_status()
+    )
+
+    return BuildToolsStatusResponse.model_validate(status)
+
+
 @router.get(
     "/ourodeploy-sql/status",
     response_model=OuroDeploySqlStatusResponse,

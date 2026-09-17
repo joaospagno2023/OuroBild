@@ -2,7 +2,7 @@
 --------------------------------------------------------------------
 Projeto : OuroBuild
 Arquivo : 001_create_users.sql
-Descri√ß√£o : Cria a tabela de usu√°rios do OuroBuild.
+DescriÁ„o : Cria a tabela de usu·rios do OuroBuild.
 --------------------------------------------------------------------
 */
 

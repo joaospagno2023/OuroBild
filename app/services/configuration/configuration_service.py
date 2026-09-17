@@ -10,6 +10,7 @@ Descrição : Responsável por ler e atualizar as configurações
 import base64
 import os
 import subprocess
+from pathlib import Path
 
 import httpx
 
@@ -210,6 +211,47 @@ class ConfigurationService:
         return self._to_response(
             settings=saved_settings,
         )
+
+    def get_build_tools_status(
+        self,
+    ) -> dict[str, object]:
+        """Verifica a disponibilidade dos executáveis configurados."""
+
+        settings = (
+            self._configuration_loader.load_settings()
+        )
+
+        tools = {
+            "msbuild_path": settings.build_tools.msbuild_path,
+            "advanced_installer_path": (
+                settings.build_tools.advanced_installer_path
+            ),
+            "robocopy_path": settings.build_tools.robocopy_path,
+            "tf_path": settings.build_tools.tf_path,
+        }
+
+        result: dict[str, object] = {}
+
+        for name, configured_path in tools.items():
+            path = Path(configured_path)
+            configured = bool(str(path).strip())
+            online = configured and path.exists() and path.is_file()
+
+            if not configured:
+                message = "Não configurado"
+            elif online:
+                message = "Executável disponível"
+            else:
+                message = "Arquivo não encontrado"
+
+            result[name] = {
+                "configured": configured,
+                "online": online,
+                "path": str(path),
+                "message": message,
+            }
+
+        return result
 
     def get_ourodeploy_sql_status(
         self,

@@ -18,3 +18,5 @@ select * from CleanupRules
 
 
 select a.projectid,* from Projects a order by a.projectid desc 
+
+select * from ProjectSourceStates

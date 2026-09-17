@@ -23,5 +23,3 @@ class BuildToolsSettings(BaseModel):
     robocopy_path: Path
 
     tf_path: Path
-
-    tf_path: Path
