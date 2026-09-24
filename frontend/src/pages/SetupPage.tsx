@@ -2,6 +2,9 @@ import {
   AlertTriangle,
   Check,
   Circle,
+  Clock3,
+  FileText,
+  FolderOpen,
   Loader2,
   Rocket,
   Search,
@@ -80,6 +83,12 @@ type SetupGenerationSnapshot = {
   publicationMessage: string;
   publicationCompleted: number;
   publicationFailed: number;
+  publicationProgress: number;
+  publicationCurrentFile: string;
+  publicationCurrentFileIndex: number;
+  publicationTotalFiles: number;
+  generationStartedAt: number | null;
+  generationElapsedSeconds: number;
 };
 
 
@@ -296,6 +305,16 @@ function SetupPage() {
   }
 
   const [
+    generationStartedAt,
+    setGenerationStartedAt,
+  ] = useState<number | null>(null);
+
+  const [
+    generationElapsedSeconds,
+    setGenerationElapsedSeconds,
+  ] = useState(0);
+
+  const [
     publicationStatus,
     setPublicationStatus,
   ] = useState<PublicationStatus>("idle");
@@ -313,6 +332,36 @@ function SetupPage() {
   const [
     publicationFailed,
     setPublicationFailed,
+  ] = useState(0);
+
+  const [
+    publicationProgress,
+    setPublicationProgress,
+  ] = useState(0);
+
+  const [
+    publicationCurrentFile,
+    setPublicationCurrentFile,
+  ] = useState("");
+
+  const [
+    publicationCurrentFileIndex,
+    setPublicationCurrentFileIndex,
+  ] = useState(0);
+
+  const [
+    publicationTotalFiles,
+    setPublicationTotalFiles,
+  ] = useState(0);
+
+  const [
+    publicationStartedAt,
+    setPublicationStartedAt,
+  ] = useState<number | null>(null);
+
+  const [
+    publicationElapsedSeconds,
+    setPublicationElapsedSeconds,
   ] = useState(0);
 
   const [
@@ -432,6 +481,24 @@ function SetupPage() {
           setPublicationMessage(snapshot.publicationMessage);
           setPublicationCompleted(snapshot.publicationCompleted);
           setPublicationFailed(snapshot.publicationFailed);
+          setPublicationProgress(
+            snapshot.publicationProgress ?? 0,
+          );
+          setPublicationCurrentFile(
+            snapshot.publicationCurrentFile ?? "",
+          );
+          setPublicationCurrentFileIndex(
+            snapshot.publicationCurrentFileIndex ?? 0,
+          );
+          setPublicationTotalFiles(
+            snapshot.publicationTotalFiles ?? 0,
+          );
+          setGenerationStartedAt(
+            snapshot.generationStartedAt ?? null,
+          );
+          setGenerationElapsedSeconds(
+            snapshot.generationElapsedSeconds ?? 0,
+          );
         }
 
         const productionEnvironment =
@@ -505,6 +572,12 @@ function SetupPage() {
       publicationMessage,
       publicationCompleted,
       publicationFailed,
+      publicationProgress,
+      publicationCurrentFile,
+      publicationCurrentFileIndex,
+      publicationTotalFiles,
+      generationStartedAt,
+      generationElapsedSeconds,
     });
   }, [
     selectedProjects,
@@ -520,6 +593,12 @@ function SetupPage() {
     publicationMessage,
     publicationCompleted,
     publicationFailed,
+    publicationProgress,
+    publicationCurrentFile,
+    publicationCurrentFileIndex,
+    publicationTotalFiles,
+    generationStartedAt,
+    generationElapsedSeconds,
   ]);
 
 
@@ -580,6 +659,24 @@ function SetupPage() {
       setPublicationMessage(snapshot.publicationMessage);
       setPublicationCompleted(snapshot.publicationCompleted);
       setPublicationFailed(snapshot.publicationFailed);
+      setPublicationProgress(
+        snapshot.publicationProgress ?? 0,
+      );
+      setPublicationCurrentFile(
+        snapshot.publicationCurrentFile ?? "",
+      );
+      setPublicationCurrentFileIndex(
+        snapshot.publicationCurrentFileIndex ?? 0,
+      );
+      setPublicationTotalFiles(
+        snapshot.publicationTotalFiles ?? 0,
+      );
+      setGenerationStartedAt(
+        snapshot.generationStartedAt ?? null,
+      );
+      setGenerationElapsedSeconds(
+        snapshot.generationElapsedSeconds ?? 0,
+      );
     };
 
     const intervalId = window.setInterval(
@@ -760,12 +857,34 @@ function SetupPage() {
     while (true) {
       const status = await getSetupPublicationStatus(batchId);
 
+      const progress = Math.max(
+        0,
+        Math.min(100, Math.round(status.progress_percent ?? 0)),
+      );
+
       setPublicationCompleted(status.completed);
       setPublicationFailed(status.failed);
+      setPublicationProgress(progress);
+      setPublicationCurrentFile(
+        status.current_file ?? "",
+      );
+      setPublicationCurrentFileIndex(
+        status.current_file_index ?? 0,
+      );
+      setPublicationTotalFiles(
+        status.total_files ?? 0,
+      );
 
       persistGenerationSnapshot({
         publicationCompleted: status.completed,
         publicationFailed: status.failed,
+        publicationProgress: progress,
+        publicationCurrentFile:
+          status.current_file ?? "",
+        publicationCurrentFileIndex:
+          status.current_file_index ?? 0,
+        publicationTotalFiles:
+          status.total_files ?? 0,
         ...(status.message
           ? { publicationMessage: status.message }
           : {}),
@@ -787,6 +906,76 @@ function SetupPage() {
       });
     }
   }
+
+  useEffect(() => {
+    if (
+      generationStartedAt === null ||
+      publicationStatus === "publishing" ||
+      publicationStatus === "success" ||
+      publicationStatus === "error"
+    ) {
+      return;
+    }
+
+    const updateGenerationElapsedTime = () => {
+      const elapsed = Math.max(
+        0,
+        Math.floor(
+          (Date.now() - generationStartedAt) / 1000,
+        ),
+      );
+
+      setGenerationElapsedSeconds(elapsed);
+    };
+
+    updateGenerationElapsedTime();
+
+    const intervalId = window.setInterval(
+      updateGenerationElapsedTime,
+      1000,
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    generationStartedAt,
+    publicationStatus,
+  ]);
+
+  useEffect(() => {
+    if (
+      publicationStatus !== "publishing" ||
+      publicationStartedAt === null
+    ) {
+      return;
+    }
+
+    const updateElapsedTime = () => {
+      const elapsed = Math.max(
+        0,
+        Math.floor(
+          (Date.now() - publicationStartedAt) / 1000,
+        ),
+      );
+
+      setPublicationElapsedSeconds(elapsed);
+    };
+
+    updateElapsedTime();
+
+    const intervalId = window.setInterval(
+      updateElapsedTime,
+      1000,
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    publicationStatus,
+    publicationStartedAt,
+  ]);
 
   function resetGenerationSelection() {
     setSelectedProjects([]);
@@ -944,17 +1133,31 @@ function SetupPage() {
     persistedStopRequested = false;
     setStopRequested(false);
     setIsGenerating(true);
+    setGenerationStartedAt(Date.now());
+    setGenerationElapsedSeconds(0);
     setPublicationStatus("idle");
     setPublicationMessage("");
     setPublicationCompleted(0);
     setPublicationFailed(0);
+    setPublicationProgress(0);
+    setPublicationCurrentFile("");
+    setPublicationCurrentFileIndex(0);
+    setPublicationTotalFiles(0);
+    setPublicationStartedAt(null);
+    setPublicationElapsedSeconds(0);
     persistGenerationSnapshot({
       isGenerating: true,
       stopRequested: false,
+      generationStartedAt: Date.now(),
+      generationElapsedSeconds: 0,
       publicationStatus: "idle",
       publicationMessage: "",
       publicationCompleted: 0,
       publicationFailed: 0,
+      publicationProgress: 0,
+      publicationCurrentFile: "",
+      publicationCurrentFileIndex: 0,
+      publicationTotalFiles: 0,
     });
 
     const selectedIds = [
@@ -1172,6 +1375,8 @@ function SetupPage() {
       }
 
       setPublicationStatus("publishing");
+      setPublicationStartedAt(Date.now());
+      setPublicationElapsedSeconds(0);
       setPublicationMessage(
         `Publicando ${selectedIds.length} Setup${
           selectedIds.length === 1 ? "" : "s"
@@ -2012,7 +2217,12 @@ function SetupPage() {
             marginTop: "20px",
           }}
         >
-          <div className="card-header">
+          <div
+            className="card-header"
+            style={{
+              alignItems: "flex-start",
+            }}
+          >
             <div>
               <h2>Publicação dos Setups</h2>
               <p>
@@ -2020,80 +2230,630 @@ function SetupPage() {
               </p>
             </div>
 
-            <strong>
-              {publicationStatus === "publishing" && "Publicando..."}
-              {publicationStatus === "success" && "Concluída"}
-              {publicationStatus === "error" && "Com erro"}
-            </strong>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontWeight: 700,
+                fontSize: "18px",
+                color:
+                  publicationStatus === "error"
+                    ? "#b91c1c"
+                    : publicationStatus === "success"
+                      ? "#15803d"
+                      : "#0f172a",
+              }}
+            >
+              {publicationStatus === "publishing" && (
+                <Loader2
+                  size={22}
+                  className="spin"
+                  style={{ color: "#2563eb" }}
+                />
+              )}
+
+              {publicationStatus === "success" && (
+                <Check size={22} style={{ color: "#16a34a" }} />
+              )}
+
+              {publicationStatus === "error" && (
+                <X size={22} style={{ color: "#dc2626" }} />
+              )}
+
+              <span>
+                {publicationStatus === "publishing" &&
+                  "Publicando..."}
+                {publicationStatus === "success" &&
+                  "Concluída"}
+                {publicationStatus === "error" &&
+                  "Com erro"}
+              </span>
+            </div>
           </div>
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: "12px",
-              marginTop: "16px",
+              gridTemplateColumns:
+                "repeat(4, minmax(0, 1fr))",
+              gap: "22px",
+              marginTop: "26px",
             }}
           >
-            <div className="setup-summary">
-              <div>
-                <span>Publicados</span>
-                <strong>{publicationCompleted}</strong>
+            <div
+              style={{
+                minWidth: 0,
+                minHeight: "128px",
+                display: "flex",
+                alignItems: "center",
+                gap: "18px",
+                padding: "22px 24px",
+                boxSizing: "border-box",
+                border: "1px solid #dbe4f0",
+                borderRadius: "14px",
+                background: "#ffffff",
+                boxShadow:
+                  "0 2px 8px rgba(15, 23, 42, 0.04)",
+              }}
+            >
+              <div
+                style={{
+                  width: "64px",
+                  height: "64px",
+                  flex: "0 0 64px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  background: "#eaf2ff",
+                }}
+              >
+                <FolderOpen
+                  size={34}
+                  strokeWidth={1.8}
+                  style={{ color: "#2563eb" }}
+                />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span style={{
+                  display: "block",
+                  color: "#64748b",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  letterSpacing: "0.02em",
+                  textTransform: "uppercase",
+                }}>
+                  Publicados
+                </span>
+                <strong style={{
+                  display: "block",
+                  marginTop: "8px",
+                  color: "#0f172a",
+                  fontSize: "30px",
+                  lineHeight: 1,
+                  fontWeight: 700,
+                }}>
+                  {publicationCompleted}
+                </strong>
               </div>
             </div>
 
-            <div className="setup-summary">
-              <div>
-                <span>Com erro</span>
-                <strong>{publicationFailed}</strong>
+            <div
+              style={{
+                minWidth: 0,
+                minHeight: "128px",
+                display: "flex",
+                alignItems: "center",
+                gap: "18px",
+                padding: "22px 24px",
+                boxSizing: "border-box",
+                border: "1px solid #dbe4f0",
+                borderRadius: "14px",
+                background: "#ffffff",
+                boxShadow:
+                  "0 2px 8px rgba(15, 23, 42, 0.04)",
+              }}
+            >
+              <div style={{
+                width: "64px",
+                height: "64px",
+                flex: "0 0 64px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "50%",
+                background: "#e9faf5",
+              }}>
+                <Clock3
+                  size={34}
+                  strokeWidth={1.8}
+                  style={{ color: "#0f9f8a" }}
+                />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span style={{
+                  display: "block",
+                  color: "#64748b",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  letterSpacing: "0.02em",
+                  textTransform: "uppercase",
+                }}>
+                  Tempo de geração
+                </span>
+                <strong style={{
+                  display: "block",
+                  marginTop: "8px",
+                  color: "#0f172a",
+                  fontSize: "26px",
+                  lineHeight: 1,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                }}>
+                  {formatElapsedTime(generationElapsedSeconds)}
+                </strong>
+                <span style={{
+                  display: "block",
+                  marginTop: "7px",
+                  color: "#64748b",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}>
+                  Build + Setup
+                </span>
               </div>
             </div>
 
-            <div className="setup-summary">
+            <div
+              style={{
+                minWidth: 0,
+                minHeight: "128px",
+                display: "flex",
+                alignItems: "center",
+                gap: "18px",
+                padding: "22px 24px",
+                boxSizing: "border-box",
+                border: "1px solid #dbe4f0",
+                borderRadius: "14px",
+                background: "#ffffff",
+                boxShadow:
+                  "0 2px 8px rgba(15, 23, 42, 0.04)",
+              }}
+            >
+              <div style={{
+                width: "64px",
+                height: "64px",
+                flex: "0 0 64px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "50%",
+                background: "#fff0f1",
+              }}>
+                <AlertTriangle
+                  size={34}
+                  strokeWidth={1.8}
+                  style={{ color: "#dc2626" }}
+                />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span style={{
+                  display: "block",
+                  color: "#64748b",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  letterSpacing: "0.02em",
+                  textTransform: "uppercase",
+                }}>
+                  Com erro
+                </span>
+                <strong style={{
+                  display: "block",
+                  marginTop: "8px",
+                  color: "#0f172a",
+                  fontSize: "30px",
+                  lineHeight: 1,
+                  fontWeight: 700,
+                }}>
+                  {publicationFailed}
+                </strong>
+              </div>
+            </div>
+
+            <div
+              style={{
+                minWidth: 0,
+                minHeight: "128px",
+                display: "flex",
+                alignItems: "center",
+                gap: "18px",
+                padding: "22px 24px",
+                boxSizing: "border-box",
+                border: "1px solid #dbe4f0",
+                borderRadius: "14px",
+                background: "#ffffff",
+                boxShadow:
+                  "0 2px 8px rgba(15, 23, 42, 0.04)",
+              }}
+            >
+              <div style={{
+                width: "64px",
+                height: "64px",
+                flex: "0 0 64px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "50%",
+                background: "#eaf2ff",
+              }}>
+                {publicationStatus === "publishing" ? (
+                  <Loader2
+                    size={34}
+                    strokeWidth={2}
+                    className="spin"
+                    style={{ color: "#2563eb" }}
+                  />
+                ) : publicationStatus === "success" ? (
+                  <Check
+                    size={34}
+                    strokeWidth={2}
+                    style={{ color: "#16a34a" }}
+                  />
+                ) : (
+                  <X
+                    size={34}
+                    strokeWidth={2}
+                    style={{ color: "#dc2626" }}
+                  />
+                )}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <span style={{
+                  display: "block",
+                  color: "#64748b",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  letterSpacing: "0.02em",
+                  textTransform: "uppercase",
+                }}>
+                  Status
+                </span>
+                <strong style={{
+                  display: "block",
+                  marginTop: "8px",
+                  color: "#0f172a",
+                  fontSize: "21px",
+                  lineHeight: 1.15,
+                  fontWeight: 700,
+                }}>
+                  {publicationStatus === "publishing" && "Em andamento"}
+                  {publicationStatus === "success" && "Concluída"}
+                  {publicationStatus === "error" && "Com erro"}
+                </strong>
+                {publicationStatus === "publishing" && (
+                  <span style={{
+                    display: "block",
+                    marginTop: "7px",
+                    color: "#64748b",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                  }}>
+                    Publicando arquivos...
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: "28px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                gap: "16px",
+                marginBottom: "8px",
+              }}
+            >
+              <span
+                style={{
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  color: "#0f172a",
+                  fontSize: "16px",
+                  fontWeight: 500,
+                }}
+                title={publicationCurrentFile}
+              >
+                {publicationCurrentFile
+                  ? `Copiando ${
+                      publicationCurrentFileIndex || publicationCompleted
+                    }${
+                      publicationTotalFiles > 0
+                        ? `/${publicationTotalFiles}`
+                        : ""
+                    } ${publicationCurrentFile}`
+                  : publicationStatus === "publishing"
+                    ? "Preparando publicação..."
+                    : publicationMessage}
+              </span>
+
+              <strong
+                style={{
+                  flex: "0 0 auto",
+                  color: "#1d4ed8",
+                  fontSize: "16px",
+                }}
+              >
+                {publicationProgress}%
+              </strong>
+            </div>
+
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={publicationProgress}
+              style={{
+                width: "100%",
+                height: "12px",
+                overflow: "hidden",
+                borderRadius: "999px",
+                background: "#e2e8f0",
+                boxShadow:
+                  "inset 0 1px 2px rgba(15, 23, 42, 0.08)",
+              }}
+            >
+              <div
+                style={{
+                  width: `${publicationProgress}%`,
+                  height: "100%",
+                  borderRadius: "999px",
+                  background: "#2563eb",
+                  transition: "width 0.35s ease",
+                }}
+              />
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(3, minmax(0, 1fr))",
+              gap: "0",
+              marginTop: "28px",
+              padding: "22px 24px",
+              borderRadius: "14px",
+              background: "#f3f8ff",
+              border: "1px solid #eff6ff",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                minWidth: 0,
+                paddingRight: "24px",
+              }}
+            >
+              <FileText
+                size={34}
+                strokeWidth={1.8}
+                style={{
+                  flex: "0 0 auto",
+                  color: "#2563eb",
+                }}
+              />
+
+              <div
+                style={{
+                  minWidth: 0,
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  Arquivo atual
+                </span>
+
+                <strong
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    color: "#0f172a",
+                    fontSize: "15px",
+                  }}
+                  title={publicationCurrentFile}
+                >
+                  {publicationCurrentFile || "—"}
+                </strong>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                minWidth: 0,
+                padding:
+                  "0 24px",
+                borderLeft:
+                  "1px solid #dbeafe",
+                borderRight:
+                  "1px solid #dbeafe",
+              }}
+            >
+              <FolderOpen
+                size={34}
+                strokeWidth={1.8}
+                style={{
+                  flex: "0 0 auto",
+                  color: "#2563eb",
+                }}
+              />
+
               <div>
-                <span>Status</span>
-                <strong>
-                  {publicationStatus === "publishing"
-                    ? "Em andamento"
-                    : publicationStatus === "success"
-                      ? "Sucesso"
-                      : "Erro"}
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  Progresso
+                </span>
+
+                <strong
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    color: "#0f172a",
+                    fontSize: "15px",
+                  }}
+                >
+                  {publicationCurrentFileIndex || publicationCompleted}{" "}
+                  {publicationTotalFiles > 0
+                    ? `de ${publicationTotalFiles}`
+                    : ""}{" "}
+                  {publicationTotalFiles === 1
+                    ? "arquivo"
+                    : "arquivos"}
+                </strong>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                minWidth: 0,
+                paddingLeft: "24px",
+              }}
+            >
+              <Clock3
+                size={34}
+                strokeWidth={1.8}
+                style={{
+                  flex: "0 0 auto",
+                  color: "#2563eb",
+                }}
+              />
+
+              <div>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  Tempo decorrido
+                </span>
+
+                <strong
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    color: "#0f172a",
+                    fontSize: "15px",
+                  }}
+                >
+                  {formatElapsedTime(
+                    publicationElapsedSeconds,
+                  )}
                 </strong>
               </div>
             </div>
           </div>
 
-          {publicationMessage && (
-            <div
-              style={{
-                marginTop: "16px",
-                padding: "12px 14px",
-                borderRadius: "10px",
-                background:
-                  publicationStatus === "error"
-                    ? "#fef2f2"
-                    : publicationStatus === "success"
-                      ? "#f0fdf4"
-                      : "#eff6ff",
-                color:
-                  publicationStatus === "error"
-                    ? "#991b1b"
-                    : publicationStatus === "success"
-                      ? "#166534"
-                      : "#1e40af",
-                fontSize: "14px",
-                lineHeight: 1.5,
-              }}
-            >
-              {publicationMessage}
-            </div>
-          )}
+          {publicationMessage &&
+            publicationStatus !== "publishing" && (
+              <div
+                style={{
+                  marginTop: "16px",
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  background:
+                    publicationStatus === "error"
+                      ? "#fef2f2"
+                      : "#f0fdf4",
+                  color:
+                    publicationStatus === "error"
+                      ? "#991b1b"
+                      : "#166534",
+                  fontSize: "14px",
+                  lineHeight: 1.5,
+                }}
+              >
+                {publicationMessage}
+              </div>
+            )}
         </div>
       )}
     </section>
   );
 }
 
+
+
+function formatElapsedTime(
+  totalSeconds: number,
+): string {
+  const safeSeconds = Math.max(
+    0,
+    Math.floor(totalSeconds),
+  );
+
+  const hours = Math.floor(
+    safeSeconds / 3600,
+  );
+
+  const minutes = Math.floor(
+    (safeSeconds % 3600) / 60,
+  );
+
+  const seconds =
+    safeSeconds % 60;
+
+  return [
+    hours,
+    minutes,
+    seconds,
+  ]
+    .map((value) =>
+      String(value).padStart(2, "0"),
+    )
+    .join(":");
+}
 
 function CheckCircle() {
   return <Check size={19} />;
