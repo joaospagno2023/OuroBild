@@ -5,12 +5,10 @@ Arquivo : pipeline_runner.py
 Descrição: Responsável por executar todas as etapas da Pipeline.
 ----------------------------------------------------------------------
 """
-
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
 import inspect
-
 from app.abstractions.pipeline_execution_repository import (
     PipelineExecutionRepository,
 )
@@ -41,22 +39,16 @@ from app.utils.pipeline_logger import (
 from app.models.execution.pipeline_execution_state import (
     PipelineExecutionPhase,
 )
-
-
 class PipelineRunner:
     """
     Executa todas as etapas da Pipeline.
     """
-
     def __init__(
         self,
         repository: PipelineExecutionRepository,
     ) -> None:
-
         self.__repository = repository
-
         self.__step_executor = StepExecutor()
-
     def execute(
         self,
         pipeline: Pipeline,
@@ -74,59 +66,48 @@ class PipelineRunner:
         execution_id: str = "",
         project_id: str = "",
     ) -> PipelineResult:
-
         result = PipelineResult(
             execution_id=execution_id,
             project_id=project_id,
             started_at=datetime.now(),
         )
-
         self.__repository.save(
             result,
         )
-
         PipelineLogger.info(
             "=" * 80,
         )
-
         PipelineLogger.info(
             "PIPELINE RUNNER - INICIO",
         )
-
         PipelineLogger.info(
             "=" * 80,
         )
-
         PipelineLogger.info(
             f"Arquivo........: "
             f"{inspect.getfile(self.__class__)}",
         )
-
         PipelineLogger.info(
             f"Pipeline.......: "
             f"{pipeline.name}",
         )
-
         PipelineLogger.info(
             f"Quantidade Steps: "
             f"{len(pipeline.steps)}",
         )
-
         PipelineLogger.info(
             "=" * 80,
         )
-
         try:
-
             total_steps = len(
                 pipeline.steps,
             )
+            step_timings: list[dict[str, object]] = []
 
             for step_index, step in enumerate(
                 pipeline.steps,
                 start=1,
             ):
-
                 if progress_callback is not None:
                     progress_callback(
                         step.name,
@@ -141,37 +122,83 @@ class PipelineRunner:
                         ),
                         PipelineExecutionPhase.PIPELINE,
                     )
-
                 PipelineLogger.info(
                     "",
                 )
-
                 PipelineLogger.info(
                     "=" * 80,
                 )
-
                 PipelineLogger.info(
                     f"EXECUTANDO STEP: "
                     f"{step.name}",
                 )
-
                 PipelineLogger.info(
                     f"STEP CLASS.....: "
                     f"{step.__class__.__name__}",
                 )
-
                 PipelineLogger.info(
                     "=" * 80,
                 )
+                step_started_at = datetime.now()
+                PipelineLogger.info("PIPELINE STEP START")
+                PipelineLogger.info(f"Step............: {step.name}")
+                PipelineLogger.info(
+                    f"Step Index......: {step_index}/{total_steps}"
+                )
 
-                step_result = (
-                    self.__step_executor.execute(
+                try:
+                    step_result = self.__step_executor.execute(
                         pipeline=pipeline,
                         step=step,
                         context=context,
                     )
-                )
+                except Exception as exc:
+                    step_finished_at = datetime.now()
+                    step_elapsed_seconds = (
+                        step_finished_at - step_started_at
+                    ).total_seconds()
+                    step_timings.append(
+                        {
+                            "name": step.name,
+                            "elapsed_seconds": step_elapsed_seconds,
+                            "status": "exception",
+                        }
+                    )
+                    PipelineLogger.info("PIPELINE STEP END")
+                    PipelineLogger.info(
+                        f"Step............: {step.name}"
+                    )
+                    PipelineLogger.info("Status..........: exception")
+                    PipelineLogger.info(
+                        f"Elapsed.........: {step_elapsed_seconds:.2f}s"
+                    )
+                    PipelineLogger.info(f"Exception.......: {exc}")
+                    raise
 
+                step_finished_at = datetime.now()
+                step_elapsed_seconds = (
+                    step_finished_at - step_started_at
+                ).total_seconds()
+                step_result.started_at = step_started_at
+                step_result.finished_at = step_finished_at
+                step_result.elapsed_seconds = step_elapsed_seconds
+                step_timings.append(
+                    {
+                        "name": step_result.name,
+                        "elapsed_seconds": step_elapsed_seconds,
+                        "status": str(step_result.status),
+                    }
+                )
+                PipelineLogger.info("PIPELINE STEP END")
+                PipelineLogger.info(
+                    f"Step............: {step_result.name}"
+                )
+                PipelineLogger.info(
+                    f"Status..........: {step_result.status}"
+                )
+                PipelineLogger.info(
+                    f"Elapsed.........: {step_elapsed_seconds:.2f}s"
+                )
                 if progress_callback is not None:
                     progress_callback(
                         step_result.name,
@@ -186,156 +213,118 @@ class PipelineRunner:
                         ),
                         PipelineExecutionPhase.PIPELINE,
                     )
-
                 PipelineLogger.info(
                     "",
                 )
-
                 PipelineLogger.info(
                     "=" * 80,
                 )
-
                 PipelineLogger.info(
                     "PIPELINE RUNNER - STEP RESULT",
                 )
-
                 PipelineLogger.info(
                     "=" * 80,
                 )
-
                 PipelineLogger.info(
                     f"Step............: "
                     f"{step_result.name}",
                 )
-
                 PipelineLogger.info(
                     f"Status..........: "
                     f"{step_result.status}",
                 )
-
                 PipelineLogger.info(
                     f"Analysis........: "
                     f"{type(step_result.analysis)}",
                 )
-
                 if step_result.analysis is not None:
-
                     if hasattr(
                         step_result.analysis,
                         "warnings",
                     ):
-
                         PipelineLogger.info(
                             f"Warnings........: "
                             f"{len(step_result.analysis.warnings)}",
                         )
-
                     if hasattr(
                         step_result.analysis,
                         "errors",
                     ):
-
                         PipelineLogger.info(
                             f"Errors..........: "
                             f"{len(step_result.analysis.errors)}",
                         )
-
                 result.steps.append(
                     step_result,
                 )
-
                 analysis = step_result.analysis
-
                 # ---------------------------------------------------------
                 # BUILD
                 # ---------------------------------------------------------
-
                 if isinstance(
                     analysis,
                     BuildExecution,
                 ):
-
                     PipelineLogger.info(
                         "",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                     PipelineLogger.info(
                         "BUILD EXECUTION",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                     PipelineLogger.info(
                         f"Warnings........: "
                         f"{len(analysis.warnings)}",
                     )
-
                     PipelineLogger.info(
                         f"Errors..........: "
                         f"{len(analysis.errors)}",
                     )
-
                     result.build = analysis
-
                     PipelineLogger.info(
                         "BUILD ARMAZENADO EM PipelineResult",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                 # ---------------------------------------------------------
                 # PUBLISH
                 # ---------------------------------------------------------
-
                 elif isinstance(
                     analysis,
                     PublishExecution,
                 ):
-
                     PipelineLogger.info(
                         "",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                     PipelineLogger.info(
                         "PUBLISH EXECUTION",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                     result.publish = analysis
-
                     publish_execution = (
                             step_result.analysis
                         )
-
                     output_directory = (
                         publish_execution.summary.output_directory
                     )
-
                     if output_directory:
-
                         output_folder = Path(
                             output_directory,
                         )
-
                         result.output_folder = (
                             output_folder
                         )
-
                         if output_folder.exists():
                             result.artifacts = [
                                 path
@@ -345,213 +334,179 @@ class PipelineRunner:
                     PipelineLogger.info(
                         "PUBLISH ARMAZENADO EM PipelineResult",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                 # ---------------------------------------------------------
                 # STEP FAILED
                 # ---------------------------------------------------------
-
                 if (
                     step_result.status
                     == StepStatus.FAILED
                 ):
-
                     PipelineLogger.info(
                         "",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                     PipelineLogger.info(
                         "STEP FALHOU",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                     PipelineLogger.info(
                         f"Step............: "
                         f"{step_result.name}",
                     )
-
                     PipelineLogger.info(
                         f"Mensagem........: "
                         f"{step_result.message}",
                     )
-
                     PipelineLogger.info(
                         "PIPELINE SERÁ INTERROMPIDA",
                     )
-
                     PipelineLogger.info(
                         "PUBLISH NÃO SERÁ EXECUTADO",
                     )
-
                     PipelineLogger.info(
                         "=" * 80,
                     )
-
                     result.success = False
-
                     result.failed_step = (
                         step_result.name
                     )
-
                     result.message = (
                         step_result.message
                     )
-
                     break
-
         finally:
-
             finished_at = datetime.now()
-
             result.finished_at = (
                 finished_at
             )
-
             if result.started_at is not None:
-
                 result.elapsed_seconds = (
                     finished_at
                     - result.started_at
                 ).total_seconds()
-
             PipelineLogger.info(
                 "",
             )
-
             PipelineLogger.info(
                 "=" * 80,
             )
-
             PipelineLogger.info(
                 "PIPELINE RESULT",
             )
-
             PipelineLogger.info(
                 "=" * 80,
             )
-
             PipelineLogger.info(
                 f"Success.........: "
                 f"{result.success}",
             )
-
             PipelineLogger.info(
                 f"Failed Step.....: "
                 f"{result.failed_step}",
             )
-
             PipelineLogger.info(
                 f"Elapsed.........: "
                 f"{result.elapsed_seconds}",
             )
+            PipelineLogger.info("")
+            PipelineLogger.info("=" * 80)
+            PipelineLogger.info("PIPELINE TIMING SUMMARY")
+            PipelineLogger.info("=" * 80)
 
+            for timing in step_timings:
+                PipelineLogger.info(
+                    f"{timing['name']:<16}: "
+                    f"{timing['elapsed_seconds']:.2f}s "
+                    f"[{timing['status']}]"
+                )
+
+            if result.elapsed_seconds is not None:
+                PipelineLogger.info(
+                    f"Pipeline Total..: {result.elapsed_seconds:.2f}s"
+                )
+            else:
+                PipelineLogger.info("Pipeline Total..: None")
+
+            PipelineLogger.info("=" * 80)
             if result.build is None:
-
                 PipelineLogger.info(
                     "Build...........: None",
                 )
-
             else:
-
                 PipelineLogger.info(
                     f"Build Warnings..: "
                     f"{len(result.build.warnings)}",
                 )
-
                 PipelineLogger.info(
                     f"Build Errors....: "
                     f"{len(result.build.errors)}",
                 )
-
             if result.publish is None:
-
                 PipelineLogger.info(
                     "Publish.........: None",
                 )
-
             else:
-
                 PipelineLogger.info(
                     "Publish.........: Executado",
                 )
-
             PipelineLogger.info(
                 f"Steps executadas: "
                 f"{len(result.steps)}",
             )
-
             PipelineLogger.info(
                 "=" * 80,
             )
-
             PipelineLogger.info(
                 "SALVANDO EXECUÇÃO",
             )
-
             PipelineLogger.info(
                 "=" * 80,
             )
-
             self.__repository.save(
                 result,
             )
-
             PipelineLogger.info(
                 "EXECUÇÃO SALVA",
             )
-
             PipelineLogger.info(
                 "=" * 80,
             )
-
         PipelineLogger.info(
             "",
         )
-
         PipelineLogger.info(
             "=" * 80,
         )
-
         PipelineLogger.info(
             "PIPELINE RUNNER - FINAL",
         )
-
         PipelineLogger.info(
             "=" * 80,
         )
-
         PipelineLogger.info(
             f"PipelineResult...: "
             f"{type(result)}",
         )
-
         PipelineLogger.info(
             f"Build............: "
             f"{type(result.build)}",
         )
-
         PipelineLogger.info(
             f"Publish..........: "
             f"{type(result.publish)}",
         )
-
         PipelineLogger.info(
             f"Steps............: "
             f"{len(result.steps)}",
         )
-
         PipelineLogger.info(
             "=" * 80,
         )
-
         return result

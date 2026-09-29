@@ -310,10 +310,6 @@ class AdvancedInstallerWorkspaceService:
 
         for path in paths:
             try:
-                AdvancedInstallerWorkspaceService.__remove_readonly(
-                    path,
-                )
-
                 current_mode = (
                     path.stat().st_mode
                 )

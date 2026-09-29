@@ -21,7 +21,7 @@ class LoggingSettings(
     enabled: bool = True
 
     path: Path = Path(
-        r"C:\Custom\ourobuild\app\logs"
+        r"C:\Custom\Projetos\Custom\ourobuild\app\logs"
     )
 
     level: str = "INFO"

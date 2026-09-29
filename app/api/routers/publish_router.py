@@ -29,6 +29,9 @@ from app.models.setup.setup_publication_request import (
 from app.models.setup.setup_publication_start_result import (
     SetupPublicationStartResult,
 )
+from app.models.setup.setup_republish_request import (
+    SetupRepublishRequest,
+)
 from app.models.setup.setup_publication_status_result import (
     SetupPublicationStatusResult,
 )
@@ -120,6 +123,37 @@ def start_setup_network_publication(
 
     return bootstrap.setup_network_publication_service.start(
         publication_request,
+    )
+
+
+@router.post(
+    "/setups/network/republish",
+    response_model=SetupPublicationStartResult,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[
+        Depends(
+            require_permission(
+                "setup.execute",
+            ),
+        ),
+    ],
+)
+def republish_setup_network(
+    republish_request: SetupRepublishRequest,
+    request: Request,
+) -> SetupPublicationStartResult:
+    """
+    Copia para a rede Setups já gerados, sem regerar.
+
+    Só é permitido até 5 minutos após a geração (configurável
+    por OUROBUILD_REPUBLISH_MAX_AGE_MINUTES); fora do prazo
+    retorna success=false com o aviso, sem copiar nada.
+    """
+
+    bootstrap = request.app.state.bootstrap
+
+    return bootstrap.setup_network_publication_service.start_republish(
+        republish_request,
     )
 
 

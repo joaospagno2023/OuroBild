@@ -410,6 +410,28 @@ export async function publishSetups(
   );
 }
 
+export interface RepublishSetupRequest {
+  version: string;
+  revision: number;
+}
+
+/**
+ * Copia para a rede Setups já gerados, sem gerá-los novamente.
+ * Só é aceito até alguns minutos após a geração; fora do prazo,
+ * o backend responde com success=false e status="refused".
+ */
+export async function republishSetupNetwork(
+  request: RepublishSetupRequest,
+): Promise<PublishSetupsStartResult> {
+  return apiPost<
+    RepublishSetupRequest,
+    PublishSetupsStartResult
+  >(
+    "/publishes/setups/network/republish",
+    request,
+  );
+}
+
 export async function getSetupPublicationStatus(
   batchId: string,
 ): Promise<SetupPublicationStatusResult> {

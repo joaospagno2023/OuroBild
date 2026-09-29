@@ -250,6 +250,12 @@ class RestoreStep(ProcessStep):
                 CommandArgument(
                     value="/t:Restore",
                 ),
+                CommandArgument(
+                    value="/m",
+                ),
+                CommandArgument(
+                    value="/nr:false",
+                ),
             ]
 
         #

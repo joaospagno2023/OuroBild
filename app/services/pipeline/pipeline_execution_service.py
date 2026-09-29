@@ -6,6 +6,7 @@ Descrição : Gerencia a execução assíncrona das Pipelines.
 --------------------------------------------------------------------
 """
 
+import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from threading import Lock
@@ -330,8 +331,32 @@ class PipelineExecutionService:
         )
 
 
+def _resolve_max_workers() -> int:
+    """
+    Número de execuções simultâneas da Pipeline.
+
+    Padrão: 1 (sem mudança de comportamento). Para paralelizar
+    projetos independentes, defina OUROBUILD_MAX_WORKERS=2.
+    """
+
+    try:
+        return max(
+            1,
+            int(
+                os.environ.get(
+                    "OUROBUILD_MAX_WORKERS",
+                    "1",
+                )
+            ),
+        )
+    except ValueError:
+        return 1
+
+
 _pipeline_execution_service = (
-    PipelineExecutionService()
+    PipelineExecutionService(
+        max_workers=_resolve_max_workers(),
+    )
 )
 
 

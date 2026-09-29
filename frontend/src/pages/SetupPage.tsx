@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Check,
+  RefreshCw,
   Circle,
   Clock3,
   FileText,
@@ -27,6 +28,7 @@ import {
   getProjects,
   getSetupPublicationStatus,
   publishSetups,
+  republishSetupNetwork,
   type PipelineExecutionResponse,
   type Project,
   type SetupPublicationMode,
@@ -388,7 +390,7 @@ function SetupPage() {
 
     const timeoutId = window.setTimeout(() => {
       setToastMessage("");
-    }, 4000);
+    }, 6000);
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -848,6 +850,105 @@ function SetupPage() {
 
 
 
+
+  const [isRepublishing, setIsRepublishing] = useState(false);
+  const [republishMessage, setRepublishMessage] = useState("");
+
+  const [
+    toastVariant,
+    setToastVariant,
+  ] = useState<"error" | "success">("error");
+
+  function showToast(
+    message: string,
+    variant: "error" | "success" = "error",
+  ): void {
+    setToastVariant(variant);
+    setToastMessage(message);
+  }
+
+  async function handleRepublish(): Promise<void> {
+    const trimmedVersion = version.trim();
+    const versionValidationError = validateVersion(trimmedVersion);
+
+    if (versionValidationError) {
+      setVersionError(versionValidationError);
+      setToastMessage(versionValidationError);
+      return;
+    }
+
+    const parsedRevision = Number(revision.trim());
+
+    if (
+      !Number.isInteger(parsedRevision) ||
+      parsedRevision < 0
+    ) {
+      setToastMessage("Informe uma revisão válida.");
+      return;
+    }
+
+    setIsRepublishing(true);
+    setRepublishMessage("Verificando arquivos gerados...");
+
+    try {
+      const start = await republishSetupNetwork({
+        version: trimmedVersion,
+        revision: parsedRevision,
+      });
+
+      if (!start.success) {
+        setRepublishMessage("");
+        showToast(start.message, "error");
+        return;
+      }
+
+      setRepublishMessage("Copiando para a rede...");
+
+      const pollIntervalMs = 1000;
+
+      while (true) {
+        const current = await getSetupPublicationStatus(
+          start.batch_id,
+        );
+
+        if (
+          current.status === "completed" ||
+          current.status === "failed"
+        ) {
+          setRepublishMessage("");
+
+          showToast(
+            current.message
+              ?? "Não foi possível copiar os Setups para a rede.",
+            current.status === "completed"
+              ? "success"
+              : "error",
+          );
+
+          break;
+        }
+
+        if (current.message) {
+          setRepublishMessage(current.message);
+        }
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, pollIntervalMs);
+        });
+      }
+    } catch (error) {
+      setRepublishMessage("");
+
+      showToast(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível copiar os Setups para a rede.",
+        "error",
+      );
+    } finally {
+      setIsRepublishing(false);
+    }
+  }
 
   async function pollSetupPublication(
     batchId: string,
@@ -1492,12 +1593,15 @@ function SetupPage() {
             maxWidth: "420px",
             padding: "14px 18px",
             borderRadius: "10px",
-            background: "#dc2626",
+            background: toastVariant === "success"
+              ? "#16a34a"
+              : "#dc2626",
             color: "#ffffff",
             boxShadow:
               "0 8px 24px rgba(0, 0, 0, 0.18)",
             fontSize: "14px",
             fontWeight: 600,
+            whiteSpace: "pre-wrap",
           }}
         >
           {toastMessage}
@@ -1668,6 +1772,43 @@ function SetupPage() {
                 disabled={isGenerating}
               />
             </label>
+
+            <div
+              className="form-field"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "flex-end",
+              }}
+            >
+              <span>&nbsp;</span>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleRepublish}
+                disabled={isGenerating || isRepublishing}
+                title="Copia para a rede o Setup já gerado para esta versão/revisão, sem gerar de novo. Só é permitido por alguns minutos após a geração."
+              >
+                {isRepublishing ? (
+                  <Loader2 size={16} className="spin" />
+                ) : (
+                  <RefreshCw size={16} />
+                )}
+                {" "}Publicar na rede (sem gerar)
+              </button>
+
+              {republishMessage && (
+                <span
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "13px",
+                    color: "#64748b",
+                  }}
+                >
+                  {republishMessage}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="setup-summary">

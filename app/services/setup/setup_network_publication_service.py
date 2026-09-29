@@ -6,12 +6,18 @@ Descrição : Gerencia a publicação assíncrona de Setups na rede.
 --------------------------------------------------------------------
 """
 
+import os
+import time
+from datetime import datetime
 from threading import Lock
 from uuid import uuid4
 
 from app.models.configuration.app_settings import AppSettings
 from app.models.setup.setup_publication_request import (
     SetupPublicationRequest,
+)
+from app.models.setup.setup_republish_request import (
+    SetupRepublishRequest,
 )
 from app.models.setup.setup_publication_project_status import (
     SetupPublicationProjectStatus,
@@ -157,6 +163,194 @@ class SetupNetworkPublicationService:
             project_ids=project_ids,
             source_path=str(source_path),
         )
+
+    def start_republish(
+        self,
+        request: SetupRepublishRequest,
+    ) -> SetupPublicationStartResult:
+        """
+        Copia para a rede Setups já gerados, sem gerá-los de novo.
+
+        Regra: só é permitido até N minutos (padrão 5) após a
+        geração, medido pela data de criação do arquivo mais
+        recente de Client/Cliente e Server. Fora desse prazo a
+        cópia é recusada com um aviso.
+        """
+
+        version = request.version.strip()
+
+        if not version:
+            raise ValueError(
+                "A versão é obrigatória para publicação na rede."
+            )
+
+        if request.revision < 0:
+            raise ValueError(
+                "A revisão não pode ser negativa."
+            )
+
+        source_path = (
+            self.__settings.setup.output_root
+            / f"{version}.{request.revision}"
+        )
+
+        def refused(message: str) -> SetupPublicationStartResult:
+            return SetupPublicationStartResult(
+                batch_id="",
+                success=False,
+                status="refused",
+                message=message,
+                execution_ids=[],
+                project_ids=[],
+                source_path=str(source_path),
+            )
+
+        if not source_path.is_dir():
+            return refused(
+                "Pasta local do Setup não encontrada: "
+                f"{source_path}. Gere os Setups novamente."
+            )
+
+        client_path = source_path / "Client"
+
+        if not client_path.is_dir():
+            client_path = source_path / "Cliente"
+
+        server_path = source_path / "Server"
+
+        if not client_path.is_dir() or not server_path.is_dir():
+            return refused(
+                "A pasta local não possui Client/Cliente e Server. "
+                "Gere os Setups novamente."
+            )
+
+        newest = self.__newest_creation_timestamp(
+            client_path,
+            server_path,
+        )
+
+        if newest is None:
+            return refused(
+                "Nenhum arquivo foi encontrado na pasta local do "
+                "Setup. Gere os Setups novamente."
+            )
+
+        max_age_seconds = self.__max_age_seconds()
+        age_seconds = time.time() - newest
+
+        if age_seconds > max_age_seconds:
+            return refused(
+                "Cópia não permitida: ela só pode ser feita até "
+                f"{max_age_seconds // 60:g} minuto(s) após a geração. "
+                "Os arquivos foram gerados em "
+                f"{datetime.fromtimestamp(newest):%d/%m/%Y %H:%M:%S} "
+                f"(há {int(age_seconds // 60)} min "
+                f"{int(age_seconds % 60)} s). "
+                "Gere os Setups novamente."
+            )
+
+        batch_id = uuid4().hex.upper()
+
+        state = SetupPublicationStatusResult(
+            batch_id=batch_id,
+            status="pending",
+            success=None,
+            message="Publicação aguardando início.",
+            total=0,
+            completed=0,
+            failed=0,
+            progress_percent=0,
+            current_file=None,
+            current_file_index=0,
+            total_files=0,
+            projects=[],
+        )
+
+        with self.__lock:
+            self.__states[batch_id] = state
+
+        import threading
+
+        thread = threading.Thread(
+            target=self.__run,
+            args=(
+                batch_id,
+                [],
+                [],
+                source_path,
+                version,
+                request.revision,
+            ),
+            daemon=True,
+            name=f"ourobuild-setup-republish-{batch_id[:8]}",
+        )
+        thread.start()
+
+        return SetupPublicationStartResult(
+            batch_id=batch_id,
+            success=True,
+            status="pending",
+            message="Cópia dos Setups já gerados iniciada.",
+            execution_ids=[],
+            project_ids=[],
+            source_path=str(source_path),
+        )
+
+    @staticmethod
+    def __max_age_seconds() -> float:
+        """Prazo máximo, em segundos, entre a geração e a cópia."""
+
+        try:
+            minutes = float(
+                os.environ.get(
+                    "OUROBUILD_REPUBLISH_MAX_AGE_MINUTES",
+                    "5",
+                )
+            )
+        except ValueError:
+            minutes = 5.0
+
+        return max(minutes, 0.0) * 60
+
+    @staticmethod
+    def __newest_creation_timestamp(
+        *roots,
+    ) -> float | None:
+        """
+        Data de criação do arquivo mais recente sob as pastas
+        informadas. No Windows usa a data de criação; nos demais
+        sistemas, a de modificação.
+        """
+
+        newest: float | None = None
+
+        for root in roots:
+            for current, _, files in os.walk(root):
+                for name in files:
+                    try:
+                        info = os.stat(
+                            os.path.join(current, name)
+                        )
+                    except OSError:
+                        continue
+
+                    created = getattr(
+                        info,
+                        "st_birthtime",
+                        None,
+                    )
+
+                    if created is None:
+                        created = (
+                            info.st_ctime
+                            if os.name == "nt"
+                            else info.st_mtime
+                        )
+
+                    if newest is None or created > newest:
+                        newest = created
+
+        return newest
 
     def get(
         self,

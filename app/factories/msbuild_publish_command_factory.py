@@ -43,6 +43,30 @@ class MSBuildPublishCommandFactory:
             msbuild_locator
         )
 
+    @staticmethod
+    def __normalize_platform(
+        platform: str,
+    ) -> str:
+        """
+        Normaliza o nome da plataforma para o formato esperado
+        pelo MSBuild (mesma regra usada pelo BuildStep).
+        """
+
+        if not platform:
+            return platform
+
+        normalized = platform.strip().replace(" ", "")
+
+        aliases = {
+            "ANYCPU": "AnyCPU",
+            "X64": "x64",
+            "X86": "x86",
+            "WIN32": "Win32",
+            "MIXEDPLATFORMS": "Mixed Platforms",
+        }
+
+        return aliases.get(normalized.upper(), normalized)
+
     def create(
         self,
         context: PipelineContext,
@@ -91,7 +115,43 @@ class MSBuildPublishCommandFactory:
                     f"{request.configuration}"
                 ),
             ),
+
+            CommandArgument(
+                value="/m",
+            ),
+
+            CommandArgument(
+                value="/nr:false",
+            ),
         ]
+
+        #
+        # Platform
+        #
+        # Importante: o BuildStep compila o projeto usando
+        # /p:Platform=<...>. Se o Publish não usar a MESMA
+        # Platform (e a mesma Configuration), o MSBuild trata
+        # como uma combinação de propriedades globais diferente
+        # e recompila o projeto inteiro de novo dentro do
+        # Publish, mesmo sem nada ter mudado desde o Build.
+        #
+
+        publish_platform = (
+            publish_context.project.platform
+            if publish_context.project is not None
+            else None
+        )
+
+        if publish_platform:
+
+            arguments.append(
+                CommandArgument(
+                    value=(
+                        f"/p:Platform="
+                        f"{MSBuildPublishCommandFactory.__normalize_platform(publish_platform)}"
+                    ),
+                )
+            )
 
         #
         # Runtime

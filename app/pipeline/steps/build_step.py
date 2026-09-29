@@ -260,6 +260,14 @@ class BuildStep(ProcessStep):
                         f"{platform}"
                     ),
                 ),
+
+                CommandArgument(
+                    value="/m",
+                ),
+
+                CommandArgument(
+                    value="/nr:false",
+                ),
             ]
 
         #

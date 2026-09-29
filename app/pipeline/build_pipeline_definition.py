@@ -6,6 +6,8 @@ Descrição : Define a Pipeline padrão de Build.
 --------------------------------------------------------------------
 """
 
+import os
+
 from app.abstractions.process_service import (
     ProcessService,
 )
@@ -92,6 +94,28 @@ class BuildPipelineDefinition:
             )
         )
 
+    @staticmethod
+    def __clean_before_build_enabled() -> bool:
+        """
+        Define se o CleanStep deve rodar antes do Build.
+
+        Por padrão NÃO roda: o Clean apaga os artefatos
+        incrementais e força recompilação total a cada
+        execução. Para restaurar o comportamento antigo,
+        defina a variável de ambiente
+        OUROBUILD_CLEAN_BEFORE_BUILD=1.
+        """
+
+        return os.environ.get(
+            "OUROBUILD_CLEAN_BEFORE_BUILD",
+            "0",
+        ).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "sim",
+        )
+
     def create_steps(
         self,
         project: Project,
@@ -128,7 +152,10 @@ class BuildPipelineDefinition:
             )
         )
 
-        if project.publish_profile:
+        if (
+            project.publish_profile
+            and self.__clean_before_build_enabled()
+        ):
 
             steps.append(
                 CleanStep(

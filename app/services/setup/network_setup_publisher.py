@@ -6,6 +6,9 @@ Descrição : Publica Setups na estrutura de rede configurada.
 --------------------------------------------------------------------
 """
 
+import os
+import subprocess
+from collections import deque
 from datetime import datetime
 from pathlib import Path
 from shutil import copy2, copytree, rmtree
@@ -108,18 +111,36 @@ class DefaultSetupNetworkPublisher(
 
             destination_exists = destination_path.exists()
 
-            if destination_exists:
-                backup_path = self.__create_backup(
-                    destination_path=destination_path,
-                )
+            in_place = False
 
-                backup_created = True
+            if destination_exists:
+                try:
+                    backup_path = self.__create_backup(
+                        destination_path=destination_path,
+                    )
+
+                    backup_created = True
+
+                except OSError:
+                    #
+                    # Renomear pastas em SMB falha com facilidade
+                    # (arquivo aberto, falta de permissão de
+                    # exclusão). Com o Robocopy disponível,
+                    # atualiza o destino no próprio lugar (/MIR),
+                    # sem backup.
+                    #
+
+                    if self.__resolve_robocopy_path() is None:
+                        raise
+
+                    in_place = True
 
             try:
                 files_copied, total_files = self.__copy_setup(
                     source_path=source_path,
                     destination_path=destination_path,
                     progress_callback=progress_callback,
+                    in_place=in_place,
                 )
 
                 validated_files = self.__validate_destination(
@@ -394,15 +415,231 @@ class DefaultSetupNetworkPublisher(
 
         return backup_path
 
-    @staticmethod
     def __copy_setup(
+        self,
+        source_path: Path,
+        destination_path: Path,
+        progress_callback: SetupNetworkPublishProgressCallback | None = None,
+        in_place: bool = False,
+    ) -> tuple[int, int]:
+        """
+        Copia Client/Cliente e Server para o destino.
+
+        Usa Robocopy (multi-thread) quando disponível, que é
+        muito mais rápido que a cópia arquivo a arquivo em
+        Python sobre SMB. Se o Robocopy não for encontrado,
+        usa a cópia em Python como fallback.
+        """
+
+        robocopy_path = self.__resolve_robocopy_path()
+
+        if robocopy_path is None:
+            return self.__copy_setup_python(
+                source_path=source_path,
+                destination_path=destination_path,
+                progress_callback=progress_callback,
+            )
+
+        destination_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        destination_path.mkdir(
+            parents=False,
+            exist_ok=in_place,
+        )
+
+        client_source = source_path / "Client"
+
+        if not client_source.is_dir():
+            client_source = source_path / "Cliente"
+
+        server_source = source_path / "Server"
+
+        total_files = (
+            self.__count_files(client_source)
+            + self.__count_files(server_source)
+        )
+
+        if progress_callback is not None:
+            progress_callback(
+                0,
+                total_files,
+                "Preparando cópia...",
+                0,
+            )
+
+        files_done = 0
+
+        for source_dir, destination_dir in (
+            (client_source, destination_path / "Client"),
+            (server_source, destination_path / "Server"),
+        ):
+            files_done = self.__run_robocopy(
+                robocopy_path=robocopy_path,
+                source_dir=source_dir,
+                destination_dir=destination_dir,
+                files_done=files_done,
+                total_files=total_files,
+                progress_callback=progress_callback,
+                mirror=in_place,
+            )
+
+        #
+        # O Robocopy terminou sem erro (exit code < 8).
+        # A integridade é conferida depois por
+        # __validate_destination, que compara a contagem
+        # real do destino com a origem.
+        #
+
+        return total_files, total_files
+
+    def __resolve_robocopy_path(
+        self,
+    ) -> Path | None:
+        """
+        Retorna o caminho do Robocopy configurado, ou None
+        se não existir (usa o fallback em Python).
+        """
+
+        try:
+            configured = Path(
+                self.__settings.build_tools.robocopy_path
+            )
+        except Exception:
+            return None
+
+        if configured.is_file():
+            return configured
+
+        return None
+
+    @staticmethod
+    def __run_robocopy(
+        robocopy_path: Path,
+        source_dir: Path,
+        destination_dir: Path,
+        files_done: int,
+        total_files: int,
+        progress_callback: SetupNetworkPublishProgressCallback | None,
+        mirror: bool = False,
+    ) -> int:
+        """
+        Executa o Robocopy para um diretório e retorna o
+        total acumulado de arquivos copiados.
+
+        Exit codes 0 a 7 indicam sucesso; 8 ou mais, falha.
+        """
+
+        threads = os.environ.get(
+            "OUROBUILD_ROBOCOPY_THREADS",
+            "16",
+        )
+
+        command = [
+            str(robocopy_path),
+            str(source_dir),
+            str(destination_dir),
+            "/MIR" if mirror else "/E",
+            f"/MT:{threads}",
+            "/R:2",
+            "/W:2",
+            "/XJ",
+            "/NP",
+            "/NDL",
+            "/NJH",
+            "/NJS",
+            "/NC",
+            "/NS",
+        ]
+
+        is_windows = os.name == "nt"
+
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="oem" if is_windows else "utf-8",
+            errors="replace",
+            creationflags=getattr(
+                subprocess,
+                "CREATE_NO_WINDOW",
+                0,
+            ),
+        )
+
+        tail: deque[str] = deque(maxlen=20)
+
+        assert process.stdout is not None
+
+        for line in process.stdout:
+            text = line.strip()
+
+            if not text:
+                continue
+
+            tail.append(text)
+
+            if "ERROR" in text.upper():
+                continue
+
+            files_done += 1
+
+            if progress_callback is not None:
+                percent = (
+                    min(
+                        99,
+                        int(
+                            (files_done / total_files) * 100
+                        ),
+                    )
+                    if total_files > 0
+                    else 100
+                )
+
+                progress_callback(
+                    min(files_done, total_files),
+                    total_files,
+                    Path(text).name,
+                    percent,
+                )
+
+        return_code = process.wait()
+
+        if return_code >= 8:
+            raise IOError(
+                f"Robocopy falhou (exit code {return_code}) "
+                f"ao copiar '{source_dir}'. Últimas linhas: "
+                + " | ".join(tail)
+            )
+
+        return files_done
+
+    @staticmethod
+    def __count_files(
+        directory: Path,
+    ) -> int:
+        """
+        Conta arquivos usando os.walk, que evita um stat
+        por arquivo (importante em compartilhamentos de rede).
+        """
+
+        return sum(
+            len(files)
+            for _, _, files in os.walk(directory)
+        )
+
+    @staticmethod
+    def __copy_setup_python(
         source_path: Path,
         destination_path: Path,
         progress_callback: SetupNetworkPublishProgressCallback | None = None,
     ) -> tuple[int, int]:
         """
-        Copia Client/Cliente e Server para o destino com
-        acompanhamento arquivo a arquivo.
+        Fallback: copia Client/Cliente e Server em Python,
+        arquivo a arquivo.
         """
 
         destination_path.parent.mkdir(
@@ -521,21 +758,11 @@ class DefaultSetupNetworkPublisher(
                 "no destino."
             )
 
-        files = list(
-            client_path.rglob("*")
-        ) + list(
-            server_path.rglob("*")
+        return sum(
+            len(files)
+            for root in (client_path, server_path)
+            for _, _, files in os.walk(root)
         )
-
-        file_count = 0
-
-        for file_path in files:
-            if not file_path.is_file():
-                continue
-
-            file_count += 1
-
-        return file_count
 
     @staticmethod
     def __cleanup_failed_destination(

@@ -6,6 +6,7 @@ Descrição : Gera o Setup utilizando o Advanced Installer.
 --------------------------------------------------------------------
 """
 
+import os
 from pathlib import Path
 import re
 
@@ -350,68 +351,103 @@ class AdvancedInstallerService(
                 Path(paths.output_msi)
             )
 
-            set_package_name_result = (
-                self.__execute_set_package_name(
-                    aip_path=workspace_aip_path,
-                    output_msi=package_name,
-                    advanced_installer_path=advanced_installer_path,
-                )
-            )
+            if self.__combine_ai_commands_enabled():
 
-            if (
-                set_package_name_result.status
-                != ProcessStatus.SUCCESS
-            ):
-                return self.__create_process_failure_result(
-                    request=request,
-                    process_result=set_package_name_result,
-                    operation="SetPackageName",
-                )
+                #
+                # EXPERIMENTAL (OUROBUILD_AI_COMBINE_COMMANDS=1):
+                # um único processo do Advanced Installer executa
+                # SetPackageName + SetVersion + Build via arquivo
+                # .aic (/execute). Ver __execute_combined_edit_and_build.
+                #
 
-            set_version_result = (
-                self.__execute_set_version(
-                    aip_path=workspace_aip_path,
-                    version=request.version,
-                    advanced_installer_path=advanced_installer_path,
-                )
-            )
-
-            if (
-                set_version_result.status
-                != ProcessStatus.SUCCESS
-            ):
-                return self.__create_process_failure_result(
-                    request=request,
-                    process_result=set_version_result,
-                    operation="SetVersion",
-                    previous_duration=(
-                        set_package_name_result.duration
-                    ),
+                build_result = (
+                    self.__execute_combined_edit_and_build(
+                        aip_path=workspace_aip_path,
+                        output_msi=package_name,
+                        version=request.version,
+                        advanced_installer_path=advanced_installer_path,
+                    )
                 )
 
-            refresh_sync_result = (
-                self.__execute_refresh_sync(
-                    aip_path=workspace_aip_path,
-                    advanced_installer_path=advanced_installer_path,
-                )
-            )
+                if (
+                    build_result.status
+                    != ProcessStatus.SUCCESS
+                ):
+                    return self.__create_process_failure_result(
+                        request=request,
+                        process_result=build_result,
+                        operation=(
+                            "SetPackageName+SetVersion+"
+                            "Build (combinado via .aic)"
+                        ),
+                    )
 
-            if (
-                refresh_sync_result.status
-                != ProcessStatus.SUCCESS
-            ):
-                return self.__create_process_failure_result(
-                    request=request,
-                    process_result=refresh_sync_result,
-                    operation="RefreshSync",
+                #
+                # Tudo (SetPackageName+SetVersion+Build) veio em
+                # uma única chamada - não há duração "anterior" a
+                # somar separadamente.
+                #
+                steps_before_build_duration = 0.0
+
+            else:
+
+                set_package_name_result = (
+                    self.__execute_set_package_name(
+                        aip_path=workspace_aip_path,
+                        output_msi=package_name,
+                        advanced_installer_path=advanced_installer_path,
+                    )
                 )
 
-            build_result = (
-                self.__execute_build(
-                    aip_path=workspace_aip_path,
-                    advanced_installer_path=advanced_installer_path,
+                if (
+                    set_package_name_result.status
+                    != ProcessStatus.SUCCESS
+                ):
+                    return self.__create_process_failure_result(
+                        request=request,
+                        process_result=set_package_name_result,
+                        operation="SetPackageName",
+                    )
+
+                set_version_result = (
+                    self.__execute_set_version(
+                        aip_path=workspace_aip_path,
+                        version=request.version,
+                        advanced_installer_path=advanced_installer_path,
+                    )
                 )
-            )
+
+                if (
+                    set_version_result.status
+                    != ProcessStatus.SUCCESS
+                ):
+                    return self.__create_process_failure_result(
+                        request=request,
+                        process_result=set_version_result,
+                        operation="SetVersion",
+                        previous_duration=(
+                            set_package_name_result.duration
+                        ),
+                    )
+
+                #
+                # RefreshSync não é mais chamado aqui: exige um
+                # caminho de pasta sincronizada que não temos por
+                # projeto, e o /build já resincroniza sozinho (ver
+                # __execute_combined_edit_and_build).
+                #
+
+                build_result = (
+                    self.__execute_build(
+                        aip_path=workspace_aip_path,
+                        advanced_installer_path=advanced_installer_path,
+                    )
+                )
+
+                steps_before_build_duration = (
+                    set_package_name_result.duration
+                    + set_version_result.duration
+                )
 
             if (
                 build_result.status
@@ -422,7 +458,7 @@ class AdvancedInstallerService(
                     process_result=build_result,
                     operation="Build",
                     previous_duration=(
-                        refresh_sync_result.duration
+                        steps_before_build_duration
                     ),
                 )
 
@@ -431,9 +467,7 @@ class AdvancedInstallerService(
             )
 
             total_duration = (
-                set_package_name_result.duration
-                + set_version_result.duration
-                + refresh_sync_result.duration
+                steps_before_build_duration
                 + build_result.duration
             )
 
@@ -712,12 +746,14 @@ class AdvancedInstallerService(
                 CommandArgument(
                     value=str(output_msi),
                 ),
-                CommandArgument(
-                    value="-buildname",
-                ),
-                CommandArgument(
-                    value="DefaultBuild",
-                ),
+                #
+                # Sem -buildname: aplica ao build ativo do
+                # projeto. Alguns .aip não têm um build chamado
+                # literalmente "DefaultBuild" (ExitCode 3758162020
+                # = "Build not found: DefaultBuild"), e o /build,
+                # mais abaixo, já builda o build ativo sem precisar
+                # do nome.
+                #
             ],
         )
 
@@ -766,6 +802,125 @@ class AdvancedInstallerService(
         return self.__process_service.execute(
             command,
         )
+
+    @staticmethod
+    def __combine_ai_commands_enabled() -> bool:
+        """
+        Define se SetPackageName, SetVersion, RefreshSync e Build
+        devem ser executados em uma única chamada do Advanced
+        Installer, em vez de 4 chamadas separadas.
+
+        Padrão: habilitado. Para desligar, defina
+        OUROBUILD_AI_LEGACY_STEPS=1.
+        """
+
+        #
+        # Padrão: DESLIGADO. O /edit do Advanced Installer aceita
+        # um único comando por chamada (confirmado pela própria
+        # ajuda do CLI: "AdvancedInstaller.com /edit <path> <command>",
+        # no singular) - encadear vários comandos depois de /edit
+        # NÃO é suportado e foi a causa do ExitCode 3758162020.
+        #
+        # A combinação real (1 processo só) precisa do mecanismo de
+        # arquivo de comandos (/execute + .aic), implementado abaixo,
+        # mas ainda não testado contra um Advanced Installer de
+        # verdade. Teste manualmente em 1 projeto antes de usar nos
+        # 16, definindo OUROBUILD_AI_COMBINE_COMMANDS=1.
+        #
+
+        return os.environ.get(
+            "OUROBUILD_AI_COMBINE_COMMANDS",
+            "0",
+        ).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "sim",
+        )
+
+    def __execute_combined_edit_and_build(
+        self,
+        aip_path: Path,
+        output_msi: Path,
+        version: str,
+        advanced_installer_path: Path,
+    ):
+        """
+        EXPERIMENTAL - ainda não validado contra um Advanced
+        Installer real. Teste em 1 projeto antes de usar nos 16.
+
+        Executa SetPackageName + SetVersion + Build em UM processo
+        só usando um arquivo de comandos (.aic) via /execute - o
+        mecanismo que a própria Caphyon documenta para agrupar
+        vários comandos numa chamada (diferente de /edit, que só
+        aceita 1 comando por vez).
+
+            AdvancedInstaller.com /execute <AIP> <arquivo.aic>
+
+        Conteúdo do .aic (precisa do cabeçalho ";aic" e de BOM
+        UTF-8 no início do arquivo, conforme relatos da comunidade
+        da Caphyon):
+
+            ;aic
+            SetPackageName "<MSI>"
+            SetVersion <VERSAO>
+            Build
+
+        Sem RefreshSync: o Build já resincroniza as pastas
+        sincronizadas do projeto sozinho (confirmado manualmente).
+        """
+
+        import tempfile
+
+        output_msi = Path(output_msi).resolve()
+
+        output_msi.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        normalized_version = str(version).strip()
+
+        if not normalized_version:
+            raise ValueError(
+                "A versão do Setup não foi informada."
+            )
+
+        aic_content = (
+            ";aic\n"
+            f'SetPackageName "{output_msi}"\n'
+            f"SetVersion {normalized_version}\n"
+            "Build\n"
+        )
+
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            suffix=".aic",
+            delete=False,
+            dir=aip_path.parent,
+        ) as aic_file:
+
+            aic_file.write(b"\xef\xbb\xbf")
+            aic_file.write(aic_content.encode("utf-8"))
+            aic_path = Path(aic_file.name)
+
+        try:
+            command = Command(
+                executable=advanced_installer_path,
+                working_directory=aip_path.parent,
+                arguments=[
+                    CommandArgument(value="/execute"),
+                    CommandArgument(value=str(aip_path)),
+                    CommandArgument(value=str(aic_path)),
+                ],
+            )
+
+            return self.__process_service.execute(
+                command,
+            )
+
+        finally:
+            aic_path.unlink(missing_ok=True)
 
     def __execute_refresh_sync(
         self,

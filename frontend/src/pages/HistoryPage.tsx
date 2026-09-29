@@ -56,6 +56,26 @@ function getStatusLabel(item: PipelineHistoryItem): string {
   return item.success ? "Sucesso" : "Falha";
 }
 
+function isToday(value: string | null): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return false;
+  }
+
+  const now = new Date();
+
+  return (
+    parsed.getFullYear() === now.getFullYear() &&
+    parsed.getMonth() === now.getMonth() &&
+    parsed.getDate() === now.getDate()
+  );
+}
+
 function HistoryPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<PipelineHistoryItem[]>([]);
@@ -68,6 +88,11 @@ function HistoryPage() {
   const [isLoadingDetail, setIsLoadingDetail] =
     useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showOnlyToday, setShowOnlyToday] = useState(true);
+
+  const visibleItems = showOnlyToday
+    ? items.filter((item) => isToday(item.started_at))
+    : items;
 
   useEffect(() => {
     void loadHistory();
@@ -162,13 +187,19 @@ function HistoryPage() {
       );
     }
 
-    if (items.length === 0) {
+    if (visibleItems.length === 0) {
       return (
         <div className="empty-state">
           <Clock3 size={32} />
-          <strong>Nenhum histórico disponível</strong>
+          <strong>
+            {showOnlyToday
+              ? "Nenhuma execução hoje"
+              : "Nenhum histórico disponível"}
+          </strong>
           <span>
-            As execuções concluídas aparecerão nesta tela.
+            {showOnlyToday
+              ? "Mostrando somente as execuções de hoje. Use \"Ver tudo\" para consultar dias anteriores."
+              : "As execuções concluídas aparecerão nesta tela."}
           </span>
         </div>
       );
@@ -176,7 +207,7 @@ function HistoryPage() {
 
     return (
       <div className="project-admin-list">
-        {items.map((item) => (
+        {visibleItems.map((item) => (
           <div
             className="project-admin-row"
             key={item.execution_id}
@@ -383,21 +414,34 @@ function HistoryPage() {
         <div className="card-header">
           <div>
             <h2>Execuções</h2>
-            <p>Histórico das execuções de Build e Setup.</p>
+            <p>
+              Histórico das execuções de Build e Setup.
+              {showOnlyToday && " Mostrando somente hoje."}
+            </p>
           </div>
 
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => void loadHistory(true)}
-            disabled={isRefreshing}
-          >
-            <RefreshCw
-              size={14}
-              className={isRefreshing ? "spin" : undefined}
-            />
-            Atualizar
-          </button>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => setShowOnlyToday((value) => !value)}
+            >
+              {showOnlyToday ? "Ver tudo" : "Ver somente hoje"}
+            </button>
+
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => void loadHistory(true)}
+              disabled={isRefreshing}
+            >
+              <RefreshCw
+                size={14}
+                className={isRefreshing ? "spin" : undefined}
+              />
+              Atualizar
+            </button>
+          </div>
         </div>
 
         {renderHistoryList()}
