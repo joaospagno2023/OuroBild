@@ -923,6 +923,9 @@ class Bootstrap:
                 pipeline_execution_repository=(
                     self.pipeline_execution_repository
                 ),
+                source_control_service=(
+                    self.source_control_service
+                ),
             )
         )
         self.execute_publish_use_case = (

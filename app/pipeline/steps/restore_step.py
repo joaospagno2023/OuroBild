@@ -35,6 +35,9 @@ from app.services.msbuild_locator import (
 from app.services.project_metadata_service import (
     ProjectMetadataService,
 )
+from app.services.source_control_service import (
+    SourceControlService,
+)
 
 
 class RestoreStep(ProcessStep):
@@ -53,6 +56,7 @@ class RestoreStep(ProcessStep):
         process_service: ProcessService,
         msbuild_locator: MSBuildLocator,
         project_metadata_service: ProjectMetadataService,
+        source_control_service: SourceControlService | None = None,
     ) -> None:
 
         super().__init__(
@@ -65,6 +69,10 @@ class RestoreStep(ProcessStep):
 
         self.__project_metadata_service = (
             project_metadata_service
+        )
+
+        self.__source_control_service = (
+            source_control_service
         )
 
     def should_execute(
@@ -97,11 +105,34 @@ class RestoreStep(ProcessStep):
             build_context.paths.project_file
         )
 
-        return (
+        if (
             self.__project_metadata_service
             .is_restore_required(
                 project_id=project.id,
                 project_file=project_file,
+            )
+        ):
+            return True
+
+        #
+        # Mesmo quando o projeto (.csproj) não mudou, o Restore
+        # ainda roda se o código-fonte como um todo mudou desde o
+        # último Build bem-sucedido (hash calculado pelo
+        # SourceControlStep, guardado em context.metadata).
+        #
+
+        if self.__source_control_service is None:
+            return False
+
+        current_hash = context.metadata.get(
+            "source_hash",
+        )
+
+        return not (
+            self.__source_control_service
+            .is_build_up_to_date(
+                project_id=project.id,
+                current_hash=current_hash,
             )
         )
 

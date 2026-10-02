@@ -149,6 +149,9 @@ class BuildPipelineDefinition:
                 project_metadata_service=(
                     self.__project_metadata_service
                 ),
+                source_control_service=(
+                    self.__source_control_service
+                ),
             )
         )
 
@@ -165,6 +168,9 @@ class BuildPipelineDefinition:
                     msbuild_locator=(
                         self.__msbuild_locator
                     ),
+                    source_control_service=(
+                        self.__source_control_service
+                    ),
                 )
             )
 
@@ -177,6 +183,9 @@ class BuildPipelineDefinition:
                     ),
                     msbuild_locator=(
                         self.__msbuild_locator
+                    ),
+                    source_control_service=(
+                        self.__source_control_service
                     ),
                 ),
 

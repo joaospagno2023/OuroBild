@@ -26,6 +26,9 @@ from app.pipeline.steps.process_step import (
 from app.services.msbuild_locator import (
     MSBuildLocator,
 )
+from app.services.source_control_service import (
+    SourceControlService,
+)
 
 
 class CleanStep(ProcessStep):
@@ -43,6 +46,7 @@ class CleanStep(ProcessStep):
         self,
         process_service: ProcessService,
         msbuild_locator: MSBuildLocator,
+        source_control_service: SourceControlService | None = None,
     ) -> None:
 
         super().__init__(
@@ -51,6 +55,43 @@ class CleanStep(ProcessStep):
 
         self.__msbuild_locator = (
             msbuild_locator
+        )
+
+        self.__source_control_service = (
+            source_control_service
+        )
+
+    def should_execute(
+        self,
+        context: PipelineContext,
+    ) -> bool:
+        """
+        Pula o Clean quando o Build também vai ser pulado (código-
+        fonte sem alteração desde o último Build bem-sucedido) -
+        não faz sentido limpar artefatos que não vão ser
+        recompilados.
+        """
+
+        if self.__source_control_service is None:
+            return True
+
+        build_context = (
+            context.variables.get("build_context")
+        )
+
+        if build_context is None:
+            return True
+
+        current_hash = context.metadata.get(
+            "source_hash",
+        )
+
+        return not (
+            self.__source_control_service
+            .is_build_up_to_date(
+                project_id=build_context.project.id,
+                current_hash=current_hash,
+            )
         )
 
     def __normalize_platform(

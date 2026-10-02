@@ -29,6 +29,9 @@ from app.pipeline.steps.process_step import (
 from app.services.msbuild_locator import (
     MSBuildLocator,
 )
+from app.services.source_control_service import (
+    SourceControlService,
+)
 from app.utils.pipeline_logger import (
     PipelineLogger,
 )
@@ -49,6 +52,7 @@ class BuildStep(ProcessStep):
         self,
         process_service: ProcessService,
         msbuild_locator: MSBuildLocator,
+        source_control_service: SourceControlService | None = None,
     ) -> None:
 
         super().__init__(
@@ -57,6 +61,46 @@ class BuildStep(ProcessStep):
 
         self.__msbuild_locator = (
             msbuild_locator
+        )
+
+        self.__source_control_service = (
+            source_control_service
+        )
+
+    def should_execute(
+        self,
+        context: PipelineContext,
+    ) -> bool:
+        """
+        Pula o Build quando o código-fonte do projeto não mudou
+        desde o último Build que terminou com sucesso.
+
+        O Publish continua rodando sempre - ele que cria a pasta
+        da versão/revisão nova - mas como o Build não vai gerar
+        nada diferente, o MSBuild só copia os binários já
+        compilados para a pasta nova, sem recompilar.
+        """
+
+        if self.__source_control_service is None:
+            return True
+
+        build_context = (
+            context.variables.get("build_context")
+        )
+
+        if build_context is None:
+            return True
+
+        current_hash = context.metadata.get(
+            "source_hash",
+        )
+
+        return not (
+            self.__source_control_service
+            .is_build_up_to_date(
+                project_id=build_context.project.id,
+                current_hash=current_hash,
+            )
         )
 
     def __normalize_platform(

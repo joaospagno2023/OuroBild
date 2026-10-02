@@ -60,3 +60,9 @@ class ProjectSourceStateModel(Base):
         DateTime,
         nullable=True,
     )
+
+    last_build_hash: Mapped[str | None] = mapped_column(
+        "LastBuildHash",
+        Unicode(64),
+        nullable=True,
+    )

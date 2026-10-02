@@ -121,14 +121,62 @@ class SourceControlService:
 
         return True, result, final_hash
 
-    def mark_build_success(self, project_id: str) -> None:
-        """Registra no banco a data do último Build bem-sucedido."""
+    def mark_build_success(
+        self,
+        project_id: str,
+        source_hash: str | None,
+    ) -> None:
+        """
+        Registra no banco a data e o hash do último Build bem-sucedido.
+
+        Esse hash é o que permite, na próxima execução, saber com
+        segurança se o código mudou desde o último build que
+        REALMENTE deu certo - diferente do SourceHash (atualizado
+        mesmo quando o Build falha depois do Get Last).
+        """
+
+        if not source_hash:
+            return
 
         state = self.__repository.get_by_project_id(project_id)
+
         if state is None:
-            return
+            state = ProjectSourceState(
+                project_id=project_id,
+                source_hash=source_hash,
+            )
+
         state.last_build_at = datetime.now()
+        state.last_build_hash = source_hash
         self.__repository.save(state)
+
+    def is_build_up_to_date(
+        self,
+        project_id: str,
+        current_hash: str | None,
+    ) -> bool:
+        """
+        Indica se o código-fonte do projeto está igual ao do último
+        Build que terminou com sucesso - ou seja, se Restore e Build
+        podem ser pulados com segurança nesta execução.
+
+        Retorna False (precisa buildar) sempre que:
+        - o hash atual não foi informado (SourceControlStep não
+          rodou, por exemplo quando não há source_control_service
+          configurado para o ambiente);
+        - não existe nenhum build anterior registrado;
+        - o hash mudou desde o último build bem-sucedido.
+        """
+
+        if not current_hash:
+            return False
+
+        state = self.__repository.get_by_project_id(project_id)
+
+        if state is None or not state.last_build_hash:
+            return False
+
+        return state.last_build_hash == current_hash
 
     @classmethod
     def calculate_source_hash(cls, source_root: Path) -> str:

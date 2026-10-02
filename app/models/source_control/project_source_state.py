@@ -20,3 +20,4 @@ class ProjectSourceState:
     last_checked_at: datetime | None = None
     last_get_last_at: datetime | None = None
     last_build_at: datetime | None = None
+    last_build_hash: str | None = None

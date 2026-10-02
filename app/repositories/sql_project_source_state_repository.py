@@ -54,6 +54,7 @@ class SqlProjectSourceStateRepository(ProjectSourceStateRepository):
                     last_checked_at=state.last_checked_at,
                     last_get_last_at=state.last_get_last_at,
                     last_build_at=state.last_build_at,
+                    last_build_hash=state.last_build_hash,
                 )
                 session.add(model)
             else:
@@ -61,6 +62,7 @@ class SqlProjectSourceStateRepository(ProjectSourceStateRepository):
                 model.last_checked_at = state.last_checked_at
                 model.last_get_last_at = state.last_get_last_at
                 model.last_build_at = state.last_build_at
+                model.last_build_hash = state.last_build_hash
 
             session.flush()
             result = self.__to_domain(model)
@@ -75,4 +77,5 @@ class SqlProjectSourceStateRepository(ProjectSourceStateRepository):
             last_checked_at=model.last_checked_at,
             last_get_last_at=model.last_get_last_at,
             last_build_at=model.last_build_at,
+            last_build_hash=model.last_build_hash,
         )

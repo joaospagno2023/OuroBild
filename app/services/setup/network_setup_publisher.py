@@ -8,7 +8,11 @@ Descrição : Publica Setups na estrutura de rede configurada.
 
 import os
 import subprocess
+import tempfile
+import threading
+import time
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from shutil import copy2, copytree, rmtree
@@ -470,21 +474,74 @@ class DefaultSetupNetworkPublisher(
                 0,
             )
 
-        files_done = 0
+        #
+        # Client e Server são independentes, então rodam em
+        # paralelo (2 processos do Robocopy ao mesmo tempo) em
+        # vez de um depois do outro. Isso aproveita melhor a
+        # rede quando uma das duas pastas é bem menor que a
+        # outra, e reduz o tempo total mesmo quando são parecidas.
+        # Para voltar ao modo sequencial (se a rede/servidor não
+        # lidar bem com 2 conexões simultâneas), defina
+        # OUROBUILD_ROBOCOPY_PARALLEL=0.
+        #
 
-        for source_dir, destination_dir in (
-            (client_source, destination_path / "Client"),
-            (server_source, destination_path / "Server"),
-        ):
-            files_done = self.__run_robocopy(
+        parallel = os.environ.get(
+            "OUROBUILD_ROBOCOPY_PARALLEL",
+            "1",
+        ).strip().lower() not in (
+            "0",
+            "false",
+            "no",
+            "nao",
+            "não",
+        )
+
+        files_done_lock = threading.Lock()
+        files_done_holder = [0]
+
+        def copy_one(
+            source_dir: Path,
+            destination_dir: Path,
+        ) -> None:
+
+            self.__run_robocopy(
                 robocopy_path=robocopy_path,
                 source_dir=source_dir,
                 destination_dir=destination_dir,
-                files_done=files_done,
                 total_files=total_files,
                 progress_callback=progress_callback,
                 mirror=in_place,
+                files_done_holder=files_done_holder,
+                files_done_lock=files_done_lock,
             )
+
+        jobs = (
+            (client_source, destination_path / "Client"),
+            (server_source, destination_path / "Server"),
+        )
+
+        if parallel:
+
+            with ThreadPoolExecutor(
+                max_workers=2,
+            ) as executor:
+
+                futures = [
+                    executor.submit(
+                        copy_one,
+                        source_dir,
+                        destination_dir,
+                    )
+                    for source_dir, destination_dir in jobs
+                ]
+
+                for future in futures:
+                    future.result()
+
+        else:
+
+            for source_dir, destination_dir in jobs:
+                copy_one(source_dir, destination_dir)
 
         #
         # O Robocopy terminou sem erro (exit code < 8).
@@ -520,14 +577,17 @@ class DefaultSetupNetworkPublisher(
         robocopy_path: Path,
         source_dir: Path,
         destination_dir: Path,
-        files_done: int,
         total_files: int,
         progress_callback: SetupNetworkPublishProgressCallback | None,
+        files_done_holder: list[int],
+        files_done_lock: threading.Lock,
         mirror: bool = False,
-    ) -> int:
+    ) -> None:
         """
-        Executa o Robocopy para um diretório e retorna o
-        total acumulado de arquivos copiados.
+        Executa o Robocopy para um diretório, atualizando o
+        contador compartilhado de arquivos copiados (Client e
+        Server podem estar rodando ao mesmo tempo, em threads
+        diferentes, daí o lock).
 
         Exit codes 0 a 7 indicam sucesso; 8 ou mais, falha.
         """
@@ -535,6 +595,29 @@ class DefaultSetupNetworkPublisher(
         threads = os.environ.get(
             "OUROBUILD_ROBOCOPY_THREADS",
             "16",
+        )
+
+        #
+        # IMPORTANTE: a saída do Robocopy só é escrita linha a
+        # linha, em tempo real, quando vai para um console de
+        # verdade. Quando é redirecionada para um pipe (como
+        # fazíamos lendo stdout diretamente), o Windows passa a
+        # usar buffer cheio: as linhas só chegam em blocos
+        # grandes, bem depois dos arquivos terem sido copiados -
+        # por isso a barra ficava parada em "Preparando cópia..."
+        # por minutos e só então pulava de uma vez.
+        #
+        # Correção: o Robocopy escreve num ARQUIVO de log
+        # (/LOG:), e esse arquivo é lido (tail) a cada poucos
+        # milissegundos enquanto o processo roda. Arquivo em
+        # disco não sofre esse buffer, então o progresso aparece
+        # em tempo real, arquivo por arquivo.
+        #
+
+        log_path = Path(
+            tempfile.mktemp(
+                suffix=".robocopy.log",
+            )
         )
 
         command = [
@@ -552,17 +635,16 @@ class DefaultSetupNetworkPublisher(
             "/NJS",
             "/NC",
             "/NS",
+            f"/LOG:{log_path}",
         ]
 
         is_windows = os.name == "nt"
+        encoding = "oem" if is_windows else "utf-8"
 
         process = subprocess.Popen(
             command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="oem" if is_windows else "utf-8",
-            errors="replace",
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             creationflags=getattr(
                 subprocess,
                 "CREATE_NO_WINDOW",
@@ -571,21 +653,81 @@ class DefaultSetupNetworkPublisher(
         )
 
         tail: deque[str] = deque(maxlen=20)
+        read_position = 0
 
-        assert process.stdout is not None
+        def read_new_lines() -> list[str]:
 
-        for line in process.stdout:
-            text = line.strip()
+            nonlocal read_position
 
-            if not text:
-                continue
+            if not log_path.exists():
+                return []
+
+            with open(
+                log_path,
+                "r",
+                encoding=encoding,
+                errors="replace",
+            ) as log_file:
+
+                log_file.seek(read_position)
+                chunk = log_file.read()
+                read_position = log_file.tell()
+
+            return [
+                stripped
+                for raw_line in chunk.splitlines()
+                if (stripped := raw_line.strip())
+            ]
+
+        while process.poll() is None:
+
+            for text in read_new_lines():
+
+                tail.append(text)
+
+                if "ERROR" in text.upper():
+                    continue
+
+                with files_done_lock:
+                    files_done_holder[0] += 1
+                    files_done = files_done_holder[0]
+
+                if progress_callback is not None:
+                    percent = (
+                        min(
+                            99,
+                            int(
+                                (files_done / total_files) * 100
+                            ),
+                        )
+                        if total_files > 0
+                        else 100
+                    )
+
+                    progress_callback(
+                        min(files_done, total_files),
+                        total_files,
+                        Path(text).name,
+                        percent,
+                    )
+
+            time.sleep(0.25)
+
+        #
+        # O processo já terminou, mas pode ter escrito linhas
+        # finais no log depois da última checagem acima.
+        #
+
+        for text in read_new_lines():
 
             tail.append(text)
 
             if "ERROR" in text.upper():
                 continue
 
-            files_done += 1
+            with files_done_lock:
+                files_done_holder[0] += 1
+                files_done = files_done_holder[0]
 
             if progress_callback is not None:
                 percent = (
@@ -608,14 +750,14 @@ class DefaultSetupNetworkPublisher(
 
         return_code = process.wait()
 
+        log_path.unlink(missing_ok=True)
+
         if return_code >= 8:
             raise IOError(
                 f"Robocopy falhou (exit code {return_code}) "
                 f"ao copiar '{source_dir}'. Últimas linhas: "
                 + " | ".join(tail)
             )
-
-        return files_done
 
     @staticmethod
     def __count_files(

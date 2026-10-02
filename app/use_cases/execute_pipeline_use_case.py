@@ -33,6 +33,10 @@ from app.factories.publish_context_factory import (
     PublishContextFactory,
 )
 
+from app.services.source_control_service import (
+    SourceControlService,
+)
+
 from app.models.build.build_context import (
     BuildContext,
 )
@@ -107,6 +111,9 @@ class ExecutePipelineUseCase:
         pipeline_execution_repository: (
             PipelineExecutionRepository | None
         ) = None,
+        source_control_service: (
+            SourceControlService | None
+        ) = None,
     ) -> None:
         """
         Inicializa o caso de uso.
@@ -114,6 +121,10 @@ class ExecutePipelineUseCase:
 
         self.__project_repository = (
             project_repository
+        )
+
+        self.__source_control_service = (
+            source_control_service
         )
 
         self.__pipeline_factory = (
@@ -412,6 +423,26 @@ class ExecutePipelineUseCase:
         #
 
         result.version = version
+
+        #
+        # Registra o hash do código-fonte como "último build
+        # bem-sucedido", para que a próxima execução possa pular
+        # Restore/Build se nada tiver mudado (ver
+        # SourceControlService.is_build_up_to_date). Só grava
+        # quando a Pipeline inteira (incluindo o Publish, que cria
+        # a pasta da versão) terminou com sucesso.
+        #
+
+        if (
+            result.success
+            and self.__source_control_service is not None
+        ):
+            self.__source_control_service.mark_build_success(
+                project_id=project_id,
+                source_hash=context.metadata.get(
+                    "source_hash",
+                ),
+            )
 
         if self.__pipeline_execution_repository is not None:
             self.__pipeline_execution_repository.save(

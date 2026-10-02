@@ -1086,6 +1086,36 @@ function SetupPage() {
     });
   }
 
+  function resetScreenAfterNetworkPublish() {
+    executionsRef.current = [];
+    setExecutionsState([]);
+
+    setSelectedProjects([]);
+
+    setPublicationStatus("idle");
+    setPublicationMessage("");
+    setPublicationProgress(0);
+    setPublicationCompleted(0);
+    setPublicationFailed(0);
+    setPublicationCurrentFile("");
+    setPublicationCurrentFileIndex(0);
+    setPublicationTotalFiles(0);
+    setPublicationStartedAt(null);
+    setPublicationElapsedSeconds(0);
+
+    persistGenerationSnapshot({
+      executions: [],
+      selectedProjects: [],
+      publicationStatus: "idle",
+      publicationMessage: "",
+      publicationCompleted: 0,
+      publicationFailed: 0,
+      publicationCurrentFile: "",
+      publicationCurrentFileIndex: 0,
+      publicationTotalFiles: 0,
+    });
+  }
+
 
   function stopGeneration() {
     if (!isGenerating) {
@@ -1526,19 +1556,13 @@ function SetupPage() {
           finalPublication.success === true &&
           finalPublication.failed === 0
         ) {
-          setPublicationStatus("success");
-          setPublicationMessage(
+          const successMessage =
             finalPublication.message ??
-              "Todos os Setups foram publicados com sucesso.",
-          );
-          persistGenerationSnapshot({
-            publicationStatus: "success",
-            publicationMessage:
-              finalPublication.message ??
-              "Todos os Setups foram publicados com sucesso.",
-          });
+            "Todos os Setups foram publicados com sucesso.";
 
-          resetGenerationSelection();
+          showToast(successMessage, "success");
+
+          resetScreenAfterNetworkPublish();
         } else {
           setPublicationStatus("error");
           setPublicationMessage(
@@ -2935,6 +2959,7 @@ function SetupPage() {
               </div>
             </div>
           </div>
+
 
           {publicationMessage &&
             publicationStatus !== "publishing" && (
